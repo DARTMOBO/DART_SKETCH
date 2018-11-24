@@ -49,7 +49,7 @@ CapacitiveSensor   cs_4_2 = CapacitiveSensor(8,9); // stratos
 #endif
 
 
-#include "EEPROM.h"
+#include "DART_EEPROM.h"
 
 #if (shifter_active == 1 && stratos == 0)
 #include "DART_Shifter.h"
