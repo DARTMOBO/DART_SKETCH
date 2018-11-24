@@ -18,7 +18,7 @@
 #define stratos 0 // 
 
 #if defined (__AVR_ATmega32U4__)  
-  #include "MIDIUSB.h"
+  #include "DART_MIDI.h"
  #include <Mouse.h>
   #include <Keyboard.h>
 
@@ -26,7 +26,7 @@
 #endif
 
  #if (capacitivesensor_active == 1)
- #include "CapacitiveSensor.h"
+ #include "DART_Touch_Sensor.h"
 
 #if (stratos == 1 )
 CapacitiveSensor   cs_4_2 = CapacitiveSensor(8,9); // stratos
@@ -45,14 +45,14 @@ CapacitiveSensor   cs_4_2 = CapacitiveSensor(8,9); // stratos
  // #if defined DMX_active 
  #if (DMX_active == 1 && stratos == 0)
 
-#include "DmxSimple.h"
+#include "DART_DMX_Out.h"
 #endif
 
 
 #include "EEPROM.h"
 
 #if (shifter_active == 1 && stratos == 0)
-#include "Shifter.h"
+#include "DART_Shifter.h"
 #endif
 
 

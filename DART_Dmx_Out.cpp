@@ -17,7 +17,7 @@
 #include "pins_arduino.h"
 
 #include "Arduino.h"
-#include "DmxSimple.h"
+#include "DART_DMX_Out.h"
 
 
 

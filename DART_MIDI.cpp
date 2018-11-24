@@ -16,7 +16,7 @@
 
 #if defined (__AVR_ATmega32U4__)
 
-#include "MIDIUSB.h"
+#include "DART_MIDI.h"
 
 #define MIDI_AC_INTERFACE 	pluggedInterface	// MIDI AC Interface
 #define MIDI_INTERFACE 		((uint8_t)(pluggedInterface+1))
