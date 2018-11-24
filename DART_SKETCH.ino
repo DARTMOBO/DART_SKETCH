@@ -115,7 +115,7 @@ const int minbeam = 290;
  178, // backspace
  176, // return
  177, // esc
- 212, // delete
+ 212 // delete
  };
 
 
