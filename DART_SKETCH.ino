@@ -1,13 +1,12 @@
 
-
-////////////////////////////
-//
-// DART Sketch - 
-// Massimiliano Marchese
-// Piero pappalardo
-// www.dartmobo.com
-//
-////////////////////////////
+///////////////////////////
+//                       //
+// DART_SKETCH           //
+// Massimiliano Marchese //
+// Piero pappalardo      //
+// www.dartmobo.com      //
+//                       //
+///////////////////////////
 
 #define touch_version 1 // 1 = 680k - 2 = 10m
 #define main_encoder 1 // disabilita l'encoder principale
@@ -18,7 +17,7 @@
 #define stratos 0 // 
 
 #if defined (__AVR_ATmega32U4__)  
-  #include "DART_MIDI.h"
+  #include "_DART_MIDI.h"
  #include <Mouse.h>
   #include <Keyboard.h>
 
@@ -26,7 +25,7 @@
 #endif
 
  #if (capacitivesensor_active == 1)
- #include "DART_Touch_Sensor.h"
+ #include "_DART_Touch_Sensor.h"
 
 #if (stratos == 1 )
 CapacitiveSensor   cs_4_2 = CapacitiveSensor(8,9); // stratos
@@ -45,14 +44,14 @@ CapacitiveSensor   cs_4_2 = CapacitiveSensor(8,9); // stratos
  // #if defined DMX_active 
  #if (DMX_active == 1 && stratos == 0)
 
-#include "DART_DMX_Out.h"
+#include "_DART_DMX_Out.h"
 #endif
 
 
-#include "DART_EEPROM.h"
+#include "_DART_EEPROM.h"
 
 #if (shifter_active == 1 && stratos == 0)
-#include "DART_Shifter.h"
+#include "_DART_Shifter.h"
 #endif
 
 

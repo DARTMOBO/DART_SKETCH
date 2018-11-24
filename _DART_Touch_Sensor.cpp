@@ -8,7 +8,7 @@
 #include "WConstants.h"
 #endif
 
-#include "DART_Touch_Sensor.h"
+#include "_DART_Touch_Sensor.h"
 
 
 CapacitiveSensor::CapacitiveSensor(uint8_t sendPin, uint8_t receivePin)
