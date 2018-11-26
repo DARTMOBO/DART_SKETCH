@@ -1,5 +1,6 @@
 #if (shifter_active == 1 && stratos == 0)
 
+
 void ledControl (byte stat)   // stat significa status 1 = acceso 0 = spento
 {
    
@@ -8,15 +9,18 @@ void ledControl (byte stat)   // stat significa status 1 = acceso 0 = spento
  
    for (byte i = 0; i < 16; i++)
    {
-   if (encledtable[i] == lightable[chan]) {buttonefxd = i; break;} else buttonefxd = 60;
+   if (encledtable[i] == (lightable[chan]-1)) {buttonefxd = i; break;} else buttonefxd = 60;
    }
 
-   shifter.setPin(lightable[chan], stat); 
+   shifter.setPin((lightable[chan]-1), stat); 
 
-   bit_write(1,lightable[chan]+page,stat);
+   bit_write(1,(lightable[chan]-1)+page,stat);
 
  }
 }
+
+
+
 #endif
 
 #if (shifter_active == 1 && stratos == 0)

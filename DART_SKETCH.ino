@@ -85,7 +85,7 @@ const int minbeam = 290;
  //  const byte qwertymod[2];
 
 
- const byte *const qwertymod[33] PROGMEM = { // da 0 a 24 ci sono i modificatori - da 25 a 32 controlli mouse
+ const PROGMEM  byte qwertymod[33] = { // da 0 a 24 ci sono i modificatori - da 25 a 32 controlli mouse
    
  0,   // niente 
  194, // f1
@@ -115,7 +115,7 @@ const int minbeam = 290;
  178, // backspace
  176, // return
  177, // esc
- 212 // delete
+ 212, // delete
  };
 
 
@@ -125,7 +125,7 @@ const int minbeam = 290;
 
 
 
- const byte *const input_remap[] PROGMEM = {6,8,4,2,7,1,5,3,};
+ const PROGMEM byte  input_remap[]  = {6,8,4,2,7,1,5,3,};
 byte remapper(byte input) 
 {return  (( pgm_read_byte(input_remap + ((input)-(((input)/8)*8)) ) +(((input)/8)*8))) -1;}
 
