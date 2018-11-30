@@ -246,6 +246,8 @@ void diversifica_valuetable ()
 }
 #endif
 
+///////////////////////////////////////////////////////
+
    void ain_nucleo()
 {
    if ( modetable[chan] == 0) {}

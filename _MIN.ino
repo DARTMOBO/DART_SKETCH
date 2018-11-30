@@ -341,7 +341,7 @@ bitWrite(scala[numero+2],i+7,  bitRead(maxvalue[encoder_mempos[numero]+max_modif
     
    
     dmxtable[encoder_mempos[0]] = 1; // encoder mode
-    minvalue[encoder_mempos[0]] = 33;  // speed - il centro è 32
+    minvalue[encoder_mempos[0]] = 36;  // speed - il centro è 32
     qwertyvalue[encoder_mempos[0]] = 0; // touchstop
     modetable[encoder_mempos[0]]= 21;  
     lastbutton[encoder_mempos[0]] = 64;
@@ -423,10 +423,8 @@ bitWrite(scala[numero+2],i+7,  bitRead(maxvalue[encoder_mempos[numero]+max_modif
     dmxtable[mouse_mempos]= 0; // disabilita il mouse
     
    
-    dmxtable[encoder_mempos[0]] = 2; // encoder mode
-    minvalue[encoder_mempos[0]] = 10;  // speed
-    
-   
+    dmxtable[encoder_mempos[0]] = 1; // encoder mode
+    minvalue[encoder_mempos[0]] = 10;  // speed 
     lastbutton[encoder_mempos[0]] = 64;
     typetable[encoder_mempos[0]] = 176;
     
@@ -434,11 +432,15 @@ bitWrite(scala[numero+2],i+7,  bitRead(maxvalue[encoder_mempos[numero]+max_modif
   
     lightable[touch_mempos[0]] = 0; // no virtual touch
     lightable[touch_mempos[1]] = 0;
-
+    typetable[touch_mempos[0]] = 177;
+    typetable[touch_mempos[1]] = 177;
+    minvalue[touch_mempos[0]] = 70;
+    minvalue[touch_mempos[1]] = 70;
+    
     qwertyvalue[general_mempos]=0; // no efx
     maxvalue[general_mempos] = 34; // no pads
     minvalue[general_mempos] = 0; // no extraplex
-    dmxtable[general_mempos] = 1; // no 2nd encoder
+    dmxtable[general_mempos] = 2; // no 2nd encoder
    
    
  }

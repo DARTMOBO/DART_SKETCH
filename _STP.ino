@@ -121,8 +121,8 @@ void setup()
     
 
     
- attachInterrupt(0, lettura_enc_principale, CHANGE); 
- attachInterrupt(1, lettura_enc_principale, CHANGE);
+   attachInterrupt(0, lettura_enc_principale, CHANGE); 
+   attachInterrupt(1, lettura_enc_principale, CHANGE);
 
  //#if (stratos == 1)
  //attachInterrupt(2, lettura_enc_principale2, CHANGE); 
