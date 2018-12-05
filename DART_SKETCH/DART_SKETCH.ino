@@ -8,6 +8,8 @@
 //                       //
 ///////////////////////////
 
+
+
 #define touch_version 1 // 1 = 680k - 2 = 10m
 #define main_encoder 1 // disabilita l'encoder principale
 #define capacitivesensor_active  1 // 1 = capacitivesensor attivato
