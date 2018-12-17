@@ -3,7 +3,7 @@
 
 void ledControl (byte stat)   // stat significa status 1 = acceso 0 = spento
 {
-   
+   if (valuetable[general_mempos] == 0)
    {  if (stat >0 ) 
    buttonefx = 0; // ampiezza dell'effetto
  
@@ -17,6 +17,23 @@ void ledControl (byte stat)   // stat significa status 1 = acceso 0 = spento
    bit_write(1,(lightable[chan]-1)+page,stat);
 
  }
+else 
+{
+  if (
+    lightable[chan] == 4 || 
+     lightable[chan] == 5 || 
+      lightable[chan] == 6 || 
+       lightable[chan] == 10 || 
+        lightable[chan] == 11 || 
+         lightable[chan] == 12 )
+      
+      {
+        digitalWrite(lightable[chan], stat);
+        }
+
+  }
+
+ 
 }
 
 

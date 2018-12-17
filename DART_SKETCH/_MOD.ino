@@ -816,7 +816,7 @@ void updateEncoder(byte numero)
     if (valore < lower_val                            ///// button pushed
         && lastbutton[chan] == 1    
         ) {
-         //  Serial.println("eccomi qua");
+        
         
       lastbutton[chan] = 0;
       if (modetable[chan] >= 3) offgroup(chan,1);      // da 3 in poi ci sono i toggle groups

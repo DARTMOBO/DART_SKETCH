@@ -15,7 +15,7 @@
 #define capacitivesensor_active  1 // 1 = capacitivesensor attivato
 #define shifter_active  1
 #define DMX_active  1 // 1 = attiva // 0 == disattiva // disattivare anche da dmxsimple .cpp per liberare tutta la memoria
-#define pullups_active 0 // 
+#define pullups_active 1 // 
 #define stratos 0 // 
 
 #if defined (__AVR_ATmega32U4__)  
