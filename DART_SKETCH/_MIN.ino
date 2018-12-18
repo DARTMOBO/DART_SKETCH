@@ -427,8 +427,8 @@ bitWrite(scala[numero+2],i+7,  bitRead(maxvalue[encoder_mempos[numero]+max_modif
     // nel default preset l'extraplex non viene attivato
    page_mempos=53; 
    mouse_mempos = 54;
-   encoder_mempos[1] = 55;
-   encoder_mempos[0] = 56;
+   encoder_mempos[0] = 55;
+   encoder_mempos[1] = 56;
    
     touch_mempos[0] = 57;        
     touch_mempos[1] = 58;
@@ -447,13 +447,15 @@ bitWrite(scala[numero+2],i+7,  bitRead(maxvalue[encoder_mempos[numero]+max_modif
     minvalue[encoder_mempos[0]] = 10;  // speed 
     lastbutton[encoder_mempos[0]] = 64;
     typetable[encoder_mempos[0]] = 176;
-    
+    typetable[encoder_mempos[1]] = 176;
     
   
     lightable[touch_mempos[0]] = 0; // no virtual touch
     lightable[touch_mempos[1]] = 0;
-    typetable[touch_mempos[0]] = 177;
-    typetable[touch_mempos[1]] = 177;
+    typetable[touch_mempos[0]] = 144;
+    typetable[touch_mempos[1]] = 145;
+   // qwertyvalue[touch_mempos[0]]=0;
+   // qwertyvalue[touch_mempos[1]]=0;
     minvalue[touch_mempos[0]] = 70;
     minvalue[touch_mempos[1]] = 70;
     
@@ -461,7 +463,7 @@ bitWrite(scala[numero+2],i+7,  bitRead(maxvalue[encoder_mempos[numero]+max_modif
     maxvalue[general_mempos] = 34; // no pads
     minvalue[general_mempos] = 0; // no extraplex
     dmxtable[general_mempos] = 2; // no 2nd encoder
-   
+    valuetable[general_mempos] = 0; // shifters & multiplexers active.
    
  }
  #endif
