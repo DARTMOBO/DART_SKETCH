@@ -1,7 +1,7 @@
 #if (shifter_active == 1 && stratos == 0)
 
 
-void ledControl (byte stat)   // stat significa status 1 = acceso 0 = spento
+void ledControl (byte chann, byte stat)   // stat significa status 1 = acceso 0 = spento
 {
    
      if (valuetable[general_mempos] == 0)
@@ -10,29 +10,29 @@ void ledControl (byte stat)   // stat significa status 1 = acceso 0 = spento
  
    for (byte i = 0; i < 16; i++)
    {
-   if (encledtable[i] == (lightable[chan]-1)) {buttonefxd = i; break;} else buttonefxd = 60;
+   if (encledtable[i] == (lightable[chann]-1)) {buttonefxd = i; break;} else buttonefxd = 60;
    }
 
-   shifter.setPin((lightable[chan]-1), stat); 
+   shifter.setPin((lightable[chann]-1), stat); 
 
-   bit_write(1,(lightable[chan]-1)+page,stat);
+   bit_write(1,(lightable[chann]-1)+page,stat);
 
  }
 else 
 
 {
-  
+   //Serial.println(lightable[chann]);
   if (
-    lightable[chan] == 4 || 
-     lightable[chan] == 5 || 
-      lightable[chan] == 6 || 
-       lightable[chan] == 10 || 
-        lightable[chan] == 11 || 
-         lightable[chan] == 12 )
+    lightable[chann] == 4 || 
+     lightable[chann] == 5 || 
+      lightable[chann] == 6 || 
+       lightable[chann] == 10 || 
+        lightable[chann] == 11 || 
+         lightable[chann] == 12 )
       
       {
-        
-        digitalWrite(lightable[chan], stat);
+      //  Serial.println(lightable[chann]);
+        digitalWrite(lightable[chann], stat);
       //  digitalWrite(10, stat);
         }
 

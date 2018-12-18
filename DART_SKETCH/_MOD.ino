@@ -833,7 +833,7 @@ void updateEncoder(byte numero)
            // lower_Xen[0] = 200;
             if (typetable[chan+page] < 160) scale_learn(valuetable[chan+page]);   
             #if (shifter_active == 1 && stratos == 0)    
-            ledControl(1);
+            ledControl(chan, 1);
             ledrestore(page);
             #endif
           //  test3();     
@@ -857,7 +857,7 @@ void updateEncoder(byte numero)
              #endif
              outnucleo (0,chan);
              #if (shifter_active == 1 && stratos == 0)
-             ledControl(0);
+             ledControl(chan, 0);
               #endif
            
              }      
@@ -872,7 +872,7 @@ void updateEncoder(byte numero)
               #endif
              outnucleo (0,chan);
              #if (shifter_active == 1 && stratos == 0)
-              if (bit_read(4,page+chan) == 0)  ledControl(0);
+              if (bit_read(4,page+chan) == 0)  ledControl(chan,0);
               #endif
               }
               bit_write(4,chan+page,0);

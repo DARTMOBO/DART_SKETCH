@@ -73,10 +73,20 @@ if (valuetable[ledD]==note && bit_read(3,ledD) == 1   )  {    // prima pagina
       old_pitch = 126;
         if (modetable[ledD] >= 3) offgroup(ledD,1);
       
-      if (page==0) {                                          // agisci solo se la pagina ÃƒÂ¨ 0
+      if (page==0) {                                          // agisci solo se la pagina = 0
         #if (shifter_active == 1 && stratos == 0)
         shifter.setPin(lightable[ledD],1); shifterwrite=1;    // il led viene acceso 
       #endif
+      
+      if (valuetable[general_mempos] != 0 ) {
+         ledControl(ledD, 1);
+      //    Serial.println(remapper(ledD)); //
+        //  Serial.println(remapper(ledD));
+        //  Serial.println(lightable[ledD]);
+         //  Serial.println(lightable[ledD+1]);
+          //  Serial.println(lightable[ledD-1]);
+       // digitalWrite(5, 1);
+        }
        #if (DMX_active == 1  && stratos == 0)
     DmxSimple.write(dmxtable[ledD], velocity);
       #endif
@@ -99,10 +109,14 @@ if (valuetable[ledD+max_modifiers]==note && bit_read(3,ledD+max_modifiers) == 1)
       bit_write(1, lightable[ledD]+max_modifiers, 1);
       old_pitch = 126;
       
-      if (page!=0) {                                            // sgisci solo se sei su seconda pagina
+      if (page!=0) {                                            // agisci solo se sei su seconda pagina
         #if (shifter_active == 1 && stratos == 0)
         shifter.setPin(lightable[ledD],1); shifterwrite=1; 
       #endif
+       if (valuetable[general_mempos] != 0 ) {
+         ledControl(ledD, 1);
+        // digitalWrite(4, 1);
+        }
        #if (DMX_active == 1  && stratos == 0)
     DmxSimple.write(dmxtable[ledD], velocity); 
       #endif
@@ -128,6 +142,9 @@ if (valuetable[ledE]==note && bit_read(3,ledE) ==1    )    {
     #if (shifter_active == 1 && stratos == 0)
     shifter.setPin(lightable[ledE],0); shifterwrite=1;
    #endif
+    if (valuetable[general_mempos] != 0 ) {
+        ledControl(ledE, 0);
+        }
     #if (DMX_active == 1  && stratos == 0)
    DmxSimple.write(dmxtable[ledE], 0);
    #endif
@@ -151,6 +168,9 @@ if (valuetable[ledE+max_modifiers]==note && bit_read(3,ledE+max_modifiers) ==1  
       #if (shifter_active == 1 && stratos == 0) 
     shifter.setPin(lightable[ledE],0); shifterwrite=1; 
        #endif
+        if (valuetable[general_mempos] != 0 ) {
+        ledControl(ledE, 0);
+        }
         #if (DMX_active == 1  && stratos == 0)
          DmxSimple.write(dmxtable[ledE], 0);
          #endif
