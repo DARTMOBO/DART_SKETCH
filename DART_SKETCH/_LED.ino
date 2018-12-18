@@ -3,7 +3,8 @@
 
 void ledControl (byte stat)   // stat significa status 1 = acceso 0 = spento
 {
-   if (valuetable[general_mempos] == 0)
+   
+     if (valuetable[general_mempos] == 0)
    {  if (stat >0 ) 
    buttonefx = 0; // ampiezza dell'effetto
  
@@ -18,7 +19,9 @@ void ledControl (byte stat)   // stat significa status 1 = acceso 0 = spento
 
  }
 else 
+
 {
+  
   if (
     lightable[chan] == 4 || 
      lightable[chan] == 5 || 
@@ -28,7 +31,9 @@ else
          lightable[chan] == 12 )
       
       {
+        
         digitalWrite(lightable[chan], stat);
+      //  digitalWrite(10, stat);
         }
 
   }
@@ -117,7 +122,7 @@ if (encled < 240 ) shifter.setPin((encledtable[ripristino_led] ), bit_read(1,enc
    
 
     
-   if (buttonefxu==5) { shifter.setAll(LOW); //shifter.write(); 
+   if (buttonefxu==5) { shifter.setAll(LOW);  
  ledrestore(page); shifterwrite=1; }
  
 

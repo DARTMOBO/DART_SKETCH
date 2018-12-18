@@ -19,6 +19,7 @@ void setup()
   #if (stratos == 0 ) 
     pinMode(2, INPUT);                             // ------------ encoder input settings
     pinMode(3, INPUT); 
+    // pinMode(12, OUTPUT); 
     digitalWrite(2, HIGH); //turn pullup resistor on // encoder
     digitalWrite(3, HIGH); //turn pullup resistor on // encoder
     
@@ -219,6 +220,12 @@ readingsXen[2] = (cs_4_2.capacitiveSensorRaw(limit_touch)/2);
 #if (stratos == 1)
  page = 0; // provvisorio
  #endif
+
+if (valuetable[general_mempos] != 0) {
+ digitalWrite(12, LOW);
+  digitalWrite(11, LOW);
+   digitalWrite(10, LOW);
+}
 
 // if (minvalue[general_mempos] > 0) digitalWrite(9, HIGH); // extraplex
 

@@ -109,7 +109,7 @@ for( channel = 0; channel < 8; channel++)
 }
 
  ///////////////////////////////////////////////////////////////////   
- setPlexer(channel); // all 4051's are set on the channel to be read
+ if (valuetable[general_mempos] == 0 ) setPlexer(channel); // all 4051's are set on the channel to be read
  
  for(plexer = 0; plexer < 
   5+boolean(maxvalue[general_mempos]) // se si attivano i pads (mettendo maxvalue = 0) l'analogico A5 non viene letto

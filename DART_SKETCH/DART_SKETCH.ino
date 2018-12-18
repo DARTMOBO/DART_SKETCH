@@ -369,7 +369,7 @@ if (cycletimer < 250 ) cycletimer++;
    
       
      #if (shifter_active == 1 && stratos == 0)
-     if (shifterwrite ==1)  {shifter.write(); shifterwrite=0;}
+    if (shifterwrite ==1 && valuetable[general_mempos] == 0)  {shifter.write(); shifterwrite=0;}
      #endif
  
   }
