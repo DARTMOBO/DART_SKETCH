@@ -216,6 +216,8 @@ void load_preset_base() {
     #endif
 // if (numero > 0) numero = 1;
 
+eeprom_preset_active = 0;
+
    for (byte i = 0; i <max_modifiers; i++) {
     modetable[i]= EEPROM.read(i+128+(numero*512));
     setup_mempos(i);                                // dopo aver caricato la modetable ÃƒÂ¨ possibile fare il settaggio macchina
@@ -296,6 +298,7 @@ bitWrite(scala[numero+2],i+7,  bitRead(maxvalue[encoder_mempos[numero]+max_modif
 
   void setup_mempos (byte i)  // richiamato da load_preset
   {
+   
      if ( modetable[i] == 18) distance_mempos = i;
   //____________________________________________________________________________
   if ( modetable[i] == 21) {encoder_mempos[0] = i;update_scala(0);}
