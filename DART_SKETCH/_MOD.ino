@@ -824,11 +824,12 @@ void updateEncoder(byte numero)
             if (bit_read(4,page+chan)==0)              // something happens only if the button is off in the toggletable
             { 
                if ( eeprom_preset_active == 0 ) {dmxtable[chan]++;  
-        #if defined (__AVR_ATmega32U4__)  
+               
+        
+        }
+           #if defined (__AVR_ATmega32U4__)  
             HOT_keys(chan,1);    
             #endif  
-        }
-           
             outnucleo (1,chan);
            // lower_Xen[0] = 200;
             if (typetable[chan+page] < 160) scale_learn(valuetable[chan+page]);   
@@ -910,6 +911,7 @@ void updateEncoder(byte numero)
 {
      #if defined (__AVR_ATmega32U4__)  
 
+  Serial.println(minvalue[canale]);
   
    if (minvalue[canale] > 0) { 
     if (pressione == 1) 

@@ -55,22 +55,23 @@ switch ((cmd-144)  /16)
 
 void outnucleo (byte onoff, byte chan_)
 {
+  
 switch (onoff)
 {
  case 1:
  if (eeprom_preset_active == 1)
  {
- if (qwertyvalue[chan_] == 0   )  
+ if (qwertyvalue[chan_] == 0   )                                              // se non è specificato nessu tasto qwerty
  {button(typetable[chan_+page],valuetable[chan_+page],maxvalue[chan_],1);
   #if (DMX_active == 1  && stratos == 0)
  DmxSimple.write(dmxtable[chan_], maxvalue[chan_]*2);
  #endif
  }}
- else button(typetable[chan_+page],valuetable[chan_+page],maxvalue[chan_],1);
+ else button(typetable[chan_+page],valuetable[chan_+page],maxvalue[chan_],1); // se siamo in modalità autodetect
  
  
      #if defined (__AVR_ATmega32U4__)  
-      if (eeprom_preset_active == 1)
+      if (eeprom_preset_active == 1) // se esiste un preset in memoria
       {
     if (qwertyvalue[chan_] < 25 && qwertyvalue[chan_] > 0) Keyboard.press(pgm_read_byte(qwertymod+qwertyvalue[chan_]));
   else if (qwertyvalue[chan_] > 31 ) Keyboard.press(qwertyvalue[chan_]); // normale tabella ascii 
