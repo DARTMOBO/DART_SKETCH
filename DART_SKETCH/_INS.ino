@@ -316,23 +316,22 @@ void scale_learn(byte pitch)
    void offgroup (byte canale, byte midiout)
    {    for (int i = 0; i <56; i++) { // se i pulsanti sono nello stesso gruppo e sono accesi, spegnere lucetta e memorizzare status toggle
 
-  if (modetable[i// +(page)
-  ] == modetable[canale// +(page)
-  ] && i!=canale) {
+  if (modetable[i] == modetable[canale] && i!=canale) {
   
  if (
- bit_read(4,i) ==1
+ bit_read(4,i) == 1
  || 
- bit_read(4,i+max_modifiers) ==1
- )   
+ bit_read(4,i+max_modifiers) == 1
+ )  
+  
 {  if (midiout ==1) outnucleo(0,i);
  }  
  #if (shifter_active == 1 && stratos == 0)
-  shifter.setPin(lightable[i], 0); 
+  shifter.setPin(lightable[i]-1, 0); 
   #endif 
   
   bit_write(4,i+page,0);
- bit_write(1,lightable[i]+page,0);
+ bit_write(1,lightable[i]+page-1,0);
   } 
   }
 }

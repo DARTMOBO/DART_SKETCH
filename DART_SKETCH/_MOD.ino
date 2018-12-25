@@ -4,7 +4,11 @@ void mouse_control ()
   if (chan == minvalue[mouse_mempos] )   {// sezione mouse
   if  (dmxtable[mouse_mempos] == 1){  // 1 = attivazione mouse  
  mousex = 127 + (((valore+1)/64)-8) ; 
- Mouse.move( -(mousex-127), 0, 0);  }
+ Mouse.move( (mousex-127)*((boolean(lightable[mouse_mempos])*2) -1), 0, 0); 
+ 
+ }
+
+ 
  if (dmxtable[mouse_mempos] == 2) // 2 = attivazione freccette
  {
  if (valore>upper_val) { if (lastbutton[minvalue[mouse_mempos]] != 2) { Keyboard.press(216); lastbutton[minvalue[mouse_mempos]]=2;  }}
@@ -13,13 +17,14 @@ void mouse_control ()
  else { if (lastbutton[minvalue[mouse_mempos]] != 1) { Keyboard.release(215); Keyboard.release(216);  lastbutton[minvalue[mouse_mempos]]=1;}
  } 
  }
+ 
  }
  
 
    if (chan == maxvalue[mouse_mempos])  {
    if  (dmxtable[mouse_mempos] == 1) { 
    mousey = 127 + (((valore+1)/64)-8) ;
-  Mouse.move( 0 , -(mousey-127), 0); }
+  Mouse.move( 0 , (mousey-127)*((boolean(lightable[mouse_mempos])*2) -1), 0); }
   
  if (dmxtable[mouse_mempos] == 2)
  {
