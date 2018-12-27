@@ -593,14 +593,16 @@ V_touch_regulator[numero2] = 0; // lastbutton encoder 1 e 2 mempos si possono us
 
    #if defined (__AVR_ATmega32U4__)  
    if (  //valuetable[mouse_mempos+page] > 0 && 
-   valuetable[mouse_mempos+page] == numero) { // nuova regola - per attivare la mousewheel, usare la memoryposition dell'encoder scelto
+   valuetable[mouse_mempos+page] == numero+1) { // nuova regola - per attivare la mousewheel, usare la memoryposition dell'encoder scelto
     // l'encoder scelto funziona come mouse wheel 
     //- valuetable[mouse_mempos]   0 = spento, 1 = mousewheel su main encoder, 2 = mousewheel su encoder secondario. 
    if (mouse_wheel_speed_counter == 0)  //  mouse_wheel_speed_counter ÃƒÆ’Ã‚Â¨ un rallentatore
-   Mouse.move(0,0,(lastbutton[numero]-64)); // l'encoder funziona come mouse wheel
+   Mouse.move(0,0,(lastbutton[numero]-64)*(constrain(minvalue[numero]-32,-1,1) ) ); // l'encoder funziona come mouse wheel
    
    mouse_wheel_speed_counter++;
-   if (mouse_wheel_speed_counter ==  constrain (map(minvalue[numero+page],0,8,32,1),1,32)) {
+ //  if (mouse_wheel_speed_counter ==  constrain (map(minvalue[numero+page],0,8,32,1),1,32)) 
+   if (mouse_wheel_speed_counter ==  map(abs(minvalue[numero]-32),0,32,32,1)       ) 
+   {
    mouse_wheel_speed_counter=0;
    }
    } 
