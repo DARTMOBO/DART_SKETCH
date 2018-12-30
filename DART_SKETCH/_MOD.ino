@@ -1,6 +1,8 @@
 void mouse_control () 
 {
    #if defined (__AVR_ATmega32U4__)  
+  if (mouse_mempos != 0)
+  { /// tutta la sezione mouse
   if (chan == minvalue[mouse_mempos] )   {// sezione mouse
   if  (dmxtable[mouse_mempos] == 1){  // 1 = attivazione mouse  
  mousex = 127 + (((valore+1)/64)-8) ; 
@@ -21,7 +23,7 @@ void mouse_control ()
  }
  
 
-   if (chan == maxvalue[mouse_mempos])  {
+   else if (chan == maxvalue[mouse_mempos])  {
    if  (dmxtable[mouse_mempos] == 1) { 
    mousey = 127 + (((valore+1)/64)-8) ;
   Mouse.move( 0 , (mousey-127)*((boolean(lightable[mouse_mempos])*2) -1), 0); }
@@ -34,6 +36,7 @@ void mouse_control ()
  else { if (lastbutton[maxvalue[mouse_mempos]] != 1) { Keyboard.release(218); Keyboard.release(217);  lastbutton[maxvalue[mouse_mempos]]=1;}
  } 
  }
+}
 }
 #endif
 }
