@@ -11,7 +11,7 @@ void setup()
    for(byte bit = 4; bit < 7; bit++) pinMode(bit, OUTPUT);  // set the three select pins to output  // 4051
    #endif
    
-   Serial.println("stratos" );
+  // Serial.println("stratos" );
    
    for(byte bit = 0; bit < 64; bit++) lastbutton[bit]=1;
 
@@ -28,45 +28,20 @@ void setup()
     #endif
 
  #if (pullups_active == 1)
- /* pinMode(A0, INPUT_PULLUP); 
-  pinMode(A1, INPUT_PULLUP); 
-  pinMode(A2, INPUT_PULLUP); 
-  pinMode(A3, INPUT_PULLUP); 
-  pinMode(A4, INPUT_PULLUP); 
-  pinMode(A5, INPUT_PULLUP); 
-  */
-
-  /*
-  digitalWrite(A0, HIGH);
-  digitalWrite(A1, HIGH);
-  digitalWrite(A2, HIGH);
-  digitalWrite(A3, HIGH);
-  digitalWrite(A4, HIGH);
-  digitalWrite(A5, HIGH);
-*/
-
- /* digitalWrite(A0, LOW);
-  digitalWrite(A1, LOW);
-  digitalWrite(A2, LOW);
-  digitalWrite(A3, LOW);
-  digitalWrite(A4, LOW);
-  digitalWrite(A5, LOW);
-  */
+ 
   
   #if defined (__AVR_ATmega32U4__)
  #if (stratos == 0)
   // dartmobo pullups
   
- { digitalWrite(18, HIGH);
+{ digitalWrite(18, HIGH);
   digitalWrite(19, HIGH);
   digitalWrite(20, HIGH);
   digitalWrite(21, HIGH);
   digitalWrite(22, HIGH);
   digitalWrite(23, HIGH);
- 
-    //pinMode(9, OUTPUT); 
-    // digitalWrite(9, HIGH);
 }
+
 #endif
 #if (stratos == 1)
 // stratos pullups
@@ -220,6 +195,20 @@ readingsXen[2] = (cs_4_2.capacitiveSensorRaw(limit_touch)/2);
 #if (stratos == 1)
  page = 0; // provvisorio
  #endif
+
+
+ if (maxvalue[general_mempos] == 0 ){  // se i pads sono attivi bisogna togliere la pullup
+ 
+ #if (stratos == 0)
+  #if defined (__AVR_ATmega32U4__) 
+  digitalWrite(23, LOW);
+  #endif
+  #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
+  digitalWrite(19, LOW);
+  #endif
+ #endif
+
+}  
 
 if (valuetable[general_mempos] != 0) {
  digitalWrite(12, LOW);

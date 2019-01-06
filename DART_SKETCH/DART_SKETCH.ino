@@ -1,4 +1,3 @@
-
 ///////////////////////////
 //                       //
 // DART_SKETCH           //
@@ -7,8 +6,6 @@
 // www.dartmobo.com      //
 //                       //
 ///////////////////////////
-
-
 
 #define touch_version 1 // 1 = 680k - 2 = 10m
 #define main_encoder 1 // disabilita l'encoder principale
@@ -19,9 +16,9 @@
 #define stratos 0 // 
 
 #if defined (__AVR_ATmega32U4__)  
-  #include "_DART_MIDI.h"
- #include <Mouse.h>
-  #include <Keyboard.h>
+#include "_DART_MIDI.h"
+#include <Mouse.h>
+#include <Keyboard.h>
 
  midiEventPacket_t rx;
 #endif

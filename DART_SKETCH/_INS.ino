@@ -99,7 +99,7 @@ for( channel = 0; channel < 8; channel++)
 {
     virtual_touch_end(0);
     
-  // if (maxvalue[general_mempos] == 0 ){ PADS();}  
+  if (maxvalue[general_mempos] == 0 ){ PADS();}  
  
   if (dmxtable[general_mempos] >1)
 {  

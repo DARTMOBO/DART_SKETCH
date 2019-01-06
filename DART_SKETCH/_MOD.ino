@@ -224,21 +224,28 @@ midiOut(typetable[page_mempos],valuetable[page_mempos],minvalue[page_mempos]);
 
  #if ( stratos == 0)
  void PADS () { 
+
+  // i pads vengono attivati da GENERAL SETTINGS, il messaggio MIDI emesso viene descritto nell'ITEM PADS
+  // attivando i pads viene disattivata la resistenza pullup sul sesto input analogico A5
+  // 
+  
   { 
      padNum++;
     if (padNum > 3) padNum = 0 ;   
 {
 setPlexer(padNum*2);
 padVal = analogRead(5);
- 
+
+// if (padNum == 3) Serial.println(padVal);
+
 if (padVal > 55 && padDecay[padNum] == 0 ) {
 for(byte pad = 0; pad < 6; pad++)
   {
- setPlexer(padNum*2);
+ // setPlexer(padNum*2);
  padVal2 = analogRead(5);
   if (padVal2 > padVal) padVal = padVal2;
 }
-padDecay[padNum] =14 //+ (padVal / 40)
+padDecay[padNum] =16 //+ (padVal / 40)
 ;
 midiOut(typetable[PADS_mempos+(page)],valuetable[PADS_mempos+(page)]+(padNum*2),(map(padVal,0,1024,0,127)));
 
@@ -246,7 +253,11 @@ midiOut(typetable[PADS_mempos+(page)],valuetable[PADS_mempos+(page)]+(padNum*2),
     // buttonefxu = 5;
    buttonefxd = constrain((padVal/128), 0,3);
 }
-if (padDecay[padNum] >0) padDecay[padNum] = padDecay[padNum] -1;
+
+if (padDecay[padNum] >0) { padDecay[padNum] = padDecay[padNum] -1; 
+if (padDecay[padNum] == 1)  midiOut(typetable[PADS_mempos+(page)],valuetable[PADS_mempos+(page)]+(padNum*2),0);
+
+}
    } 
    }
 }
@@ -921,7 +932,7 @@ void updateEncoder(byte numero)
 {
      #if defined (__AVR_ATmega32U4__)  
 
-  Serial.println(minvalue[canale]);
+ //  Serial.println(minvalue[canale]);
   
    if (minvalue[canale] > 0) { 
     if (pressione == 1) 
