@@ -228,31 +228,36 @@ midiOut(typetable[page_mempos],valuetable[page_mempos],minvalue[page_mempos]);
   // i pads vengono attivati da GENERAL SETTINGS, il messaggio MIDI emesso viene descritto nell'ITEM PADS
   // attivando i pads viene disattivata la resistenza pullup sul sesto input analogico A5
   // 
-  
-  { 
-     padNum++;
-    if (padNum > 3) padNum = 0 ;   
-{
-setPlexer(padNum*2);
-padVal = analogRead(5);
+  setPlexer(padNum*2); 
 
-// if (padNum == 3) Serial.println(padVal);
+// padVal = analogRead(5);
+padVal = analogRead(5); 
+                              // la lettura viene ripetuta due volte per lasciare il tempo di scaricare corrente residua al pad
+                              // questa è solo una congettura... sto ancora facendo prove e test
 
-if (padVal > 55 && padDecay[padNum] == 0 ) {
+// if (padNum == 0) Serial.println(padVal);
+
+if (padVal > 2 && padDecay[padNum] == 0 ) {
 for(byte pad = 0; pad < 6; pad++)
   {
  // setPlexer(padNum*2);
  padVal2 = analogRead(5);
   if (padVal2 > padVal) padVal = padVal2;
 }
-padDecay[padNum] =16 //+ (padVal / 40)
+padDecay[padNum] =14 //+ (padVal / 40)
 ;
-midiOut(typetable[PADS_mempos+(page)],valuetable[PADS_mempos+(page)]+(padNum*2),(map(padVal,0,1024,0,127)));
+//midiOut(typetable[PADS_mempos+(page)],valuetable[PADS_mempos+(page)]+(padNum*2),(map(padVal,0,512,0,127)));
+midiOut(typetable[PADS_mempos+(page)],valuetable[PADS_mempos+(page)]+(padNum*2),constrain(padVal,0,127));
 
   buttonefx = 0;
     // buttonefxu = 5;
    buttonefxd = constrain((padVal/128), 0,3);
 }
+
+  { 
+     padNum++;
+    if (padNum > 3) padNum = 0 ;   
+{
 
 if (padDecay[padNum] >0) { padDecay[padNum] = padDecay[padNum] -1; 
 if (padDecay[padNum] == 1)  midiOut(typetable[PADS_mempos+(page)],valuetable[PADS_mempos+(page)]+(padNum*2),0);
