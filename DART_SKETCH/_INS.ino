@@ -250,6 +250,12 @@ void diversifica_valuetable ()
 
    void ain_nucleo()
 {
+
+{
+ // if (chan == 2) Serial.println(valore); // monitoraggio velostat.
+  }
+
+  
    if ( modetable[chan] == 0) {}
   else if ( modetable[chan] > 0 && modetable[chan]< 11) {push_buttons(); }
   else if (modetable[chan  ] < 17)  pots(); 

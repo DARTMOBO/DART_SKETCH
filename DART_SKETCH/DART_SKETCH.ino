@@ -7,13 +7,22 @@
 //                       //
 ///////////////////////////
 
-#define touch_version 1 // 1 = 680k - 2 = 10m
-#define main_encoder 1 // disabilita l'encoder principale
-#define capacitivesensor_active  1 // 1 = capacitivesensor attivato
-#define shifter_active  1
-#define DMX_active  1 // 1 = attiva // 0 == disattiva // disattivare anche da dmxsimple .cpp per liberare tutta la memoria
-#define pullups_active 1 // 
-#define stratos 0 // 
+
+#define main_encoder 1               // 1 = enabled // 0 = disabled // MAIN ENCODER_ 
+#define capacitivesensor_active  1   // 1 = enabled // 0 = disabled // CAPACITIVE SENSORS_
+#define shifter_active  1            // 1 = enabled // 0 = disabled // SHIFT REGISTERS_
+#define DMX_active  1                // 1 = enabled // 0 = disabled // disable also from dmxsimple.cpp to free more memory
+#define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
+#define stratos 0                    // 1 = enabled // 0 = disabled // Stratos sketch version.
+#define touch_version 1              // 1 = 680k //  2 = 10m // resistor settings for touch sensing circuit
+
+
+
+//---------------------------------------------
+
+
+
+
 
 #if defined (__AVR_ATmega32U4__)  
 #include "_DART_MIDI.h"
@@ -111,7 +120,7 @@ const int minbeam = 290;
  129, // left shift
  130, // left alt
  
- 178, // backspace
+ 179, // tab
  176, // return
  177, // esc
  212, // delete
