@@ -767,11 +767,18 @@ void senseEncoder_2nd ()
 switch (channel) { //// 2nd enc scanning
 case 0 : { // MSB2 = map(getValue(5,5), 0 ,1024, 0, 2);//MSB = map(getValue(1,5), 0 ,1024, 0, 2);
 setPlexer(5); //analogRead(multiplexer);
-MSB[1] = map(analogRead(5), 0 ,1024, 0, 2);
+valore++;
+valore--;
+//delay(1);
+// MSB[1] = map(analogRead(5), 0 ,1024, 0, 2);
+MSB[1] = digitalRead(A5);
 };
 case 2 : {  // LSB2 = map(getValue(7,5), 0, 1024, 0, 2);
 setPlexer(7);
-LSB[1] = map(analogRead(5), 0, 1024, 0, 2);
+valore++;
+valore--;
+// LSB[1] = map(analogRead(5), 0, 1024, 0, 2);
+LSB[1] = digitalRead(A5);
 //Serial.println(MSB[1]);
 //Serial.println(LSB[1]);
 //delay(100);
@@ -779,11 +786,18 @@ LSB[1] = map(analogRead(5), 0, 1024, 0, 2);
 
 case 4 : { // MSB2 = map(getValue(5,5), 0 ,1024, 0, 2);
 setPlexer(5); //analogRead(multiplexer);
-MSB[1] = map(analogRead(5), 0 ,1024, 0, 2); };
+valore++;
+valore--;
+// MSB[1] = map(analogRead(5), 0 ,1024, 0, 2); 
+MSB[1] = digitalRead(A5);
+};
 
 case 6 : {//LSB2 = map(getValue(7,5), 0, 1024, 0, 2);
   setPlexer(7);
-LSB[1] = map(analogRead(5), 0, 1024, 0, 2);
+  valore++;
+valore--;
+// LSB[1] = map(analogRead(5), 0, 1024, 0, 2);
+LSB[1] = digitalRead(A5);
 
 };
 }

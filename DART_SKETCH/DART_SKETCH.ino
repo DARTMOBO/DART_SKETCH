@@ -1,22 +1,17 @@
 ///////////////////////////
-//                       //
-// DART_SKETCH           //
+// DART_SKETCH   V1.53   //
 // Massimiliano Marchese //
 // Piero pappalardo      //
 // www.dartmobo.com      //
-//                       //
 ///////////////////////////
 
-
 #define main_encoder 1               // 1 = enabled // 0 = disabled // MAIN ENCODER_ 
-#define capacitivesensor_active  1   // 1 = enabled // 0 = disabled // CAPACITIVE SENSORS_
+#define capacitivesensor_active 1    // 1 = enabled // 0 = disabled // CAPACITIVE SENSORS_
 #define shifter_active  1            // 1 = enabled // 0 = disabled // SHIFT REGISTERS_
 #define DMX_active  1                // 1 = enabled // 0 = disabled // disable also from dmxsimple.cpp to free more memory
 #define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
 #define stratos 0                    // 1 = enabled // 0 = disabled // Stratos sketch version.
-#define touch_version 1              // 1 = 680k //  2 = 10m // resistor settings for touch sensing circuit
-
-
+#define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
 
 //---------------------------------------------
 
