@@ -321,11 +321,11 @@ void touch_sensors() {
    
 ///////////////////////////////////////////////////////////////////////////////////////////
  if (lightable[touch_mempos[0]] == 0)  touch_execute(0);
-  else if  (lightable[touch_mempos[0]] == 2) { noteOn(176, 127,   averageXen[0] ,0);  delay(20); }
+  else if  (lightable[touch_mempos[0]] == 2) { noteOn(176, 127,   averageXen[0] ,0);  delay(20); } // monitoring
 ////////////////////////////////////////////////////////////////////////////////////////////////
   if (minvalue[general_mempos] == 0) {
 if ( lightable[touch_mempos[1]] == 0) touch_execute(1);   
-else if  (lightable[touch_mempos[1]] == 2) { noteOn(177, 127, averageXen[1],0); delay(20);   }
+else if  (lightable[touch_mempos[1]] == 2) { noteOn(177, 127, averageXen[1],0); delay(20);   }  // monitoring
 
   }
 //if (cycletimer > 200) 
@@ -407,7 +407,7 @@ int smooth = (encodervaluepot[numero]/8)-dmxtable[touch_mempos[numero]]; // rito
 lastbutton[touch_mempos[numero]] = 1; encled=0; 
 encoder_block[numero] = 64;
 
-bit_write(1,maxvalue[touch_mempos[numero]]+page,0);
+bit_write(1,maxvalue[touch_mempos[numero]]-1+page,0); // spengo il led nella tabella di memoria
 
 
 #if (shifter_active == 1 && stratos == 0)
@@ -444,9 +444,9 @@ noteOn(typetable[touch_mempos[numero]+(page)], valuetable[touch_mempos[numero]+(
 lastbutton[touch_mempos[numero]] = 0;  //shifter.setAll(LOW); 
 encoder_block[numero] = 64;
 
-bit_write(1,maxvalue[touch_mempos[numero]]+page,1);
+bit_write(1,maxvalue[touch_mempos[numero]]-1+page,1);
 #if (shifter_active == 1 && stratos == 0)
- shifter.setPin(maxvalue[touch_mempos[numero]],HIGH); 
+ shifter.setPin(maxvalue[touch_mempos[numero]]-1,HIGH);  // accendo il led del touch , nella tabella di memoria
  #endif
 #if ( stratos == 1)
 
