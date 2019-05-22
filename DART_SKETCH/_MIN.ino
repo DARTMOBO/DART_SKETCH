@@ -35,6 +35,7 @@
            for(byte ledA = 0; ledA < max_modifiers*2; ledA++)   bit_write(2,ledA,(type+note_off_case==(typetable[ledA]))); 
            }
      }
+     
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
    /*       else if (incomingByte>= 160 && incomingByte<= 175){ // l'eftertouch serve per i LED!!!  32, come valore fuori range, per avere effetto ZERO.
       action=1;
@@ -75,7 +76,7 @@ if (valuetable[ledD]==note && bit_read(3,ledD) == 1   )  {    // prima pagina
       
       if (page==0) {                                          // agisci solo se la pagina = 0
         #if (shifter_active == 1 && stratos == 0)
-        shifter.setPin(lightable[ledD],1); shifterwrite=1;    // il led viene acceso 
+        shifter.setPin(lightable[ledD]-1,1); shifterwrite=1;    // il led viene acceso 
       #endif
       
       if (valuetable[general_mempos] != 0 ) {
@@ -111,7 +112,7 @@ if (valuetable[ledD+max_modifiers]==note && bit_read(3,ledD+max_modifiers) == 1)
       
       if (page!=0) {                                            // agisci solo se sei su seconda pagina
         #if (shifter_active == 1 && stratos == 0)
-        shifter.setPin(lightable[ledD],1); shifterwrite=1; 
+        shifter.setPin(lightable[ledD]-1,1); shifterwrite=1; 
       #endif
        if (valuetable[general_mempos] != 0 ) {
          ledControl(ledD, 1);
@@ -140,7 +141,7 @@ if (valuetable[ledE]==note && bit_read(3,ledE) ==1    )    {
    
    if (page==0) {
     #if (shifter_active == 1 && stratos == 0)
-    shifter.setPin(lightable[ledE],0); shifterwrite=1;
+    shifter.setPin(lightable[ledE]-1,0); shifterwrite=1;
    #endif
     if (valuetable[general_mempos] != 0 ) {
         ledControl(ledE, 0);
@@ -166,7 +167,7 @@ if (valuetable[ledE+max_modifiers]==note && bit_read(3,ledE+max_modifiers) ==1  
  
    if (page!=0) {
       #if (shifter_active == 1 && stratos == 0) 
-    shifter.setPin(lightable[ledE],0); shifterwrite=1; 
+    shifter.setPin(lightable[ledE]-1,0); shifterwrite=1; 
        #endif
         if (valuetable[general_mempos] != 0 ) {
         ledControl(ledE, 0);

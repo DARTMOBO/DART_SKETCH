@@ -1048,7 +1048,7 @@ void pots ()
       encled = abs( 15 - ((potOut) / 8)) * 16 ;
       switch ( (typetable[chan + (page)] - 144)  / 16)
       {
-        case 0 :   if (chan < 8) noteOn(176, chan,  valore/8, 0) ; break;// note
+        case 0 :   noteOn(typetable[chan + (page)]+32, valuetable[chan + (page)],  potOut, 1) ; break; // if (chan < 8) noteOn(176, chan,  valore/8, 0) ; break;// note
         case 1 :   noteOn(typetable[chan + (page)], valuetable[chan + (page)],  potOut, 1) ; break; // poly AT
         case 2 :   noteOn(typetable[chan + (page)], valuetable[chan + (page)],  potOut, 1) ;
  
