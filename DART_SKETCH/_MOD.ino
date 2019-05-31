@@ -3,15 +3,18 @@ void mouse_control ()
    #if defined (__AVR_ATmega32U4__)  
   if (mouse_mempos != 0)
   { /// tutta la sezione mouse
-  if (chan == minvalue[mouse_mempos] )   {// sezione mouse
+  if (chan == minvalue[mouse_mempos] )   {// sezione mouse  // asse X
   if  (dmxtable[mouse_mempos] == 1){  // 1 = attivazione mouse  
- mousex = 127 + (((valore+1)/64)-8) ; 
- Mouse.move( (mousex-127)*((boolean(lightable[mouse_mempos])*2) -1), 0, 0); 
+ mousex = 119 + (((valore+1)/64)) ;  
+ if (mousex >133 ) {if ( qwertyvalue[mouse_mempos] < 255 ) qwertyvalue[mouse_mempos]++;} else  {qwertyvalue[mouse_mempos]= 0;}
+if (qwertyvalue[mouse_mempos] < 100)  Mouse.move( (mousex-127)*
+ ((boolean(lightable[mouse_mempos])*2  // inversione di direzione
+ ) -1), 0, 0); 
  
  }
 
  
- if (dmxtable[mouse_mempos] == 2) // 2 = attivazione freccette
+ if (dmxtable[mouse_mempos] == 2) // 2 = attivazione freccette - destra sinistra
  {
  if (valore>upper_val) { if (lastbutton[minvalue[mouse_mempos]] != 2) { Keyboard.press(216); lastbutton[minvalue[mouse_mempos]]=2;  }}
  else
@@ -22,13 +25,14 @@ void mouse_control ()
  
  }
  
-
-   else if (chan == maxvalue[mouse_mempos])  {
+   else if (chan == maxvalue[mouse_mempos])  { // asse Y
    if  (dmxtable[mouse_mempos] == 1) { 
-   mousey = 127 + (((valore+1)/64)-8) ;
-  Mouse.move( 0 , (mousey-127)*((boolean(lightable[mouse_mempos])*2) -1), 0); }
+   mousex = 119 + (((valore+1)/64)) ;
+   if (mousex >133 ) {if ( mousey < 255 ) mousey++;} else  {mousey= 0;}
+ if (mousey < 100) 
+ Mouse.move( 0 , (mousex-127)*((boolean(lightable[mouse_mempos])*2) -1), 0); }
   
- if (dmxtable[mouse_mempos] == 2)
+ if (dmxtable[mouse_mempos] == 2) // 2 = attivazione freccette - sopra sotto
  {
  if (valore>upper_val) { if (lastbutton[maxvalue[mouse_mempos]] != 2) { Keyboard.press(218); lastbutton[maxvalue[mouse_mempos]]=2;  }}
  else
