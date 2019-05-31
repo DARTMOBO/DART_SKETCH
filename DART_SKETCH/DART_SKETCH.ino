@@ -12,7 +12,8 @@
 #define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
 #define stratos 0                    // 1 = enabled // 0 = disabled // Stratos sketch version.
 #define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
-
+#define mouse_block 1                //
+#define arrows_block 1               //  
 //---------------------------------------------
 
 
