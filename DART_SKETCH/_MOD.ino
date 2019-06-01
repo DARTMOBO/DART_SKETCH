@@ -1035,24 +1035,52 @@ void updateEncoder(byte numero)
 
 void pots ()
 {
- // Serial.println("eccomi qua");
+ 
   {
     
-    if (abs((lastbutton[chan] * 4)  - valore) > 10
-
-       )
+    if (abs((lastbutton[chan] * 4)  - valore) > 10 
+       )                                                     // the potentiometer has been moved
+       
+   if (qwertyvalue[chan] > 0) {                             // pot working in qwerty mode
+    if (valore > upper_val ) {
+      
+      if ( lastbutton[chan]*4 < upper_val) { 
+      qwerty_out(1,chan,0); 
+    //  Keyboard.press(pgm_read_byte(qwertymod+qwertyvalue[chan]));
+     // if (qwertyvalue[chan] > 31 ) Keyboard.press(qwertyvalue[chan]); // normale tabella ascii // 
+    }
+    
+    }
+    else 
+    if (valore < lower_val) { if ( lastbutton[chan]*4 > lower_val) { if (maxvalue[chan] == 127) qwerty_out(1,chan,1); //Keyboard.press(pgm_read_byte(qwertymod+qwertyvalue[chan]+1)); 
+    } } 
+    else
     {
+      if ( lastbutton[chan]*4 > upper_val) {
+        qwerty_out(0,chan,0); 
+      //  Keyboard.release(pgm_read_byte(qwertymod+qwertyvalue[chan]));
+       //  if (qwertyvalue[chan] > 31 ) Keyboard.release(qwertyvalue[chan]);
+      }
+      else 
+      if (lastbutton[chan]*4 < lower_val) {if (maxvalue[chan] == 127)  qwerty_out(0,chan,1); //Keyboard.release(pgm_read_byte(qwertymod+qwertyvalue[chan]+1));
+      }
+      }
+      
+      lastbutton[chan] = valore / 4 ;
+   }
+   else                                                       // pot working in MIDI mode
+   {
 
  lastbutton[chan] = valore / 4 ;
  
       if (modetable[chan] ==11) if ((typetable[chan + (page)]) < 224) valore = map(valore, 63, 960, minvalue[chan], maxvalue[chan]) ;  
-      else if (modetable[chan  ] == 12) { valore = map(valore, 63, 256, minvalue[chan], maxvalue[chan]) ;
+      else if (modetable[chan  ] == 12) { valore = map(valore, 63, 256, minvalue[chan], maxvalue[chan]) ;                             // hypercurve 1
       #if (shifter_active == 1 && stratos == 0)
       shifter.setAll(LOW); 
       #endif
       }
-      else if (modetable[chan  ] == 13) { valore = map(valore, 768, 960, minvalue[chan], maxvalue[chan]) ;
-      #if (shifter_active == 1 && stratos == 0)
+      else if (modetable[chan  ] == 13) { valore = map(valore, 768, 960, minvalue[chan], maxvalue[chan]) ;                            // hypercurve 2
+      #if (shifter_active == 1 && stratos == 0) 
       shifter.setAll(LOW); 
       #endif
       }

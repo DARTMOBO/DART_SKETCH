@@ -58,10 +58,10 @@ void outnucleo (byte onoff, byte chan_)
   
 switch (onoff)
 {
- case 1:
+ case 1:                                                                      // se premuto
  if (eeprom_preset_active == 1)
  {
- if (qwertyvalue[chan_] == 0   )                                              // se non è specificato nessu tasto qwerty
+ if (qwertyvalue[chan_] == 0   )                                              // se non è specificato nessun tasto qwerty
  {button(typetable[chan_+page],valuetable[chan_+page],maxvalue[chan_],1);
   #if (DMX_active == 1  && stratos == 0)
  DmxSimple.write(dmxtable[chan_], maxvalue[chan_]*2);
@@ -72,11 +72,12 @@ switch (onoff)
  
      #if defined (__AVR_ATmega32U4__)  
       if (eeprom_preset_active == 1) // se esiste un preset in memoria
-      {
+      qwerty_out(1,chan_,0);
+   /*   {
     if (qwertyvalue[chan_] < 25 && qwertyvalue[chan_] > 0) Keyboard.press(pgm_read_byte(qwertymod+qwertyvalue[chan_]));
   else if (qwertyvalue[chan_] > 31 ) Keyboard.press(qwertyvalue[chan_]); // normale tabella ascii // 
   else if (qwertyvalue[chan_] != 31 ) Mouse.press(qwertyvalue[chan_]-24); // 25 26 27 28 29 30 - 
-      }
+      }*/
   #endif
      break;
      
@@ -92,14 +93,39 @@ switch (onoff)
    
      
       #if defined (__AVR_ATmega32U4__)  
-      if (eeprom_preset_active == 1){
+      if (eeprom_preset_active == 1)
+      qwerty_out(0,chan_,0);
+     /* {
     //  else if (qwertyvalue[chan_] < 25 ) Keyboard.release(qwertymod[qwertyvalue[chan_]]); 
        if (qwertyvalue[chan_] < 25 && qwertyvalue[chan_] > 0 ) Keyboard.release(pgm_read_byte(qwertymod+qwertyvalue[chan_]));
    else if (qwertyvalue[chan_] > 31 ) Keyboard.release(qwertyvalue[chan_]);
     else  if (qwertyvalue[chan_] != 31 ) Mouse.release(qwertyvalue[chan_]-24);   
       }
+      */
     #endif
      break;
   }
   
   }
+
+  void qwerty_out(byte onoff, byte chan_, byte add)
+  {
+    switch (onoff)
+{
+ case 1:   
+  {
+    if (qwertyvalue[chan_] < 25 && qwertyvalue[chan_] > 0) Keyboard.press(pgm_read_byte(qwertymod+qwertyvalue[chan_]+add));
+  else if (qwertyvalue[chan_] > 31 ) Keyboard.press(qwertyvalue[chan_]+add); // normale tabella ascii // 
+  else if (qwertyvalue[chan_] != 31 ) Mouse.press(qwertyvalue[chan_]-24+add); // 25 26 27 28 29 30 - 
+      }
+ break;
+ case 0:
+ {
+    //  else if (qwertyvalue[chan_] < 25 ) Keyboard.release(qwertymod[qwertyvalue[chan_]]); 
+       if (qwertyvalue[chan_] < 25 && qwertyvalue[chan_] > 0 ) Keyboard.release(pgm_read_byte(qwertymod+qwertyvalue[chan_]+add));
+   else if (qwertyvalue[chan_] > 31 ) Keyboard.release(qwertyvalue[chan_]+add);
+    else  if (qwertyvalue[chan_] != 31 ) Mouse.release(qwertyvalue[chan_]-24+add);   
+      }
+ break;
+}
+    }
