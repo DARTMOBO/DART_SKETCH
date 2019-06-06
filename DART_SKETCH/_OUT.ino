@@ -72,7 +72,7 @@ switch (onoff)
  
      #if defined (__AVR_ATmega32U4__)  
       if (eeprom_preset_active == 1) // se esiste un preset in memoria
-      qwerty_out(1,chan_,0);
+      qwerty_out(1,qwertyvalue[chan_],0);
    /*   {
     if (qwertyvalue[chan_] < 25 && qwertyvalue[chan_] > 0) Keyboard.press(pgm_read_byte(qwertymod+qwertyvalue[chan_]));
   else if (qwertyvalue[chan_] > 31 ) Keyboard.press(qwertyvalue[chan_]); // normale tabella ascii // 
@@ -94,7 +94,7 @@ switch (onoff)
      
       #if defined (__AVR_ATmega32U4__)  
       if (eeprom_preset_active == 1)
-      qwerty_out(0,chan_,0);
+      qwerty_out(0,qwertyvalue[chan_],0);
      /* {
     //  else if (qwertyvalue[chan_] < 25 ) Keyboard.release(qwertymod[qwertyvalue[chan_]]); 
        if (qwertyvalue[chan_] < 25 && qwertyvalue[chan_] > 0 ) Keyboard.release(pgm_read_byte(qwertymod+qwertyvalue[chan_]));
@@ -114,17 +114,17 @@ switch (onoff)
 {
  case 1:   
   {
-    if (qwertyvalue[chan_] < 25 && qwertyvalue[chan_] > 0) Keyboard.press(pgm_read_byte(qwertymod+qwertyvalue[chan_]+add));
-  else if (qwertyvalue[chan_] > 31 ) Keyboard.press(qwertyvalue[chan_]+add); // normale tabella ascii // 
-  else if (qwertyvalue[chan_] != 31 ) Mouse.press(qwertyvalue[chan_]-24+add); // 25 26 27 28 29 30 - 
+    if (chan_ < 25 && chan_ > 0) Keyboard.press(pgm_read_byte(qwertymod+chan_+add));
+  else if (chan_ > 31 ) Keyboard.press(chan_+add); // normale tabella ascii // 
+  else if (chan_ != 31 ) Mouse.press(chan_-24+add); // 25 26 27 28 29 30 - 
       }
  break;
  case 0:
  {
-    //  else if (qwertyvalue[chan_] < 25 ) Keyboard.release(qwertymod[qwertyvalue[chan_]]); 
-       if (qwertyvalue[chan_] < 25 && qwertyvalue[chan_] > 0 ) Keyboard.release(pgm_read_byte(qwertymod+qwertyvalue[chan_]+add));
-   else if (qwertyvalue[chan_] > 31 ) Keyboard.release(qwertyvalue[chan_]+add);
-    else  if (qwertyvalue[chan_] != 31 ) Mouse.release(qwertyvalue[chan_]-24+add);   
+    //  else if (chan_ < 25 ) Keyboard.release(qwertymod[chan_]); 
+       if (chan_ < 25 && chan_ > 0 ) Keyboard.release(pgm_read_byte(qwertymod+chan_+add));
+   else if (chan_ > 31 ) Keyboard.release(chan_+add);
+    else  if (chan_ != 31 ) Mouse.release(chan_-24+add);   
       }
  break;
 }

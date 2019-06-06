@@ -37,17 +37,17 @@ for( channel = 0; channel < 18; channel++)
       valore = (!(digitalRead(4)))*1000;   ain_nucleo();}
       
         else if (channel == 3) { valore = (!(digitalRead(6)))*1000;   ain_nucleo(); }
-  else if (channel == 4) { valore = (!(digitalRead(7)))*1000;   ain_nucleo(); }
+   else if (channel == 4)  { valore = (!(digitalRead(7)))*1000;   ain_nucleo(); }
    else if (channel == 5) { valore = (!(digitalRead(19)))*1000;   ain_nucleo(); }
    else if (channel == 6) { valore = (!(digitalRead(18)))*1000;   ain_nucleo(); 
    }
 
 
    
-  else if (channel == 7) {  digitalWrite(15, LOW);digitalWrite(14, HIGH);
-  valore = (!(digitalRead(5)))*1000;   ain_nucleo(); }
-  else if (channel == 8) { valore = (!(digitalRead(6)))*1000;   ain_nucleo(); }
-   else if (channel == 9) { valore = (!(digitalRead(7)))*1000;   ain_nucleo();   }
+    else if (channel == 7) {  digitalWrite(15, LOW);digitalWrite(14, HIGH);
+    valore = (!(digitalRead(5)))*1000;   ain_nucleo(); }
+    else if (channel == 8) { valore = (!(digitalRead(6)))*1000;   ain_nucleo(); }
+    else if (channel == 9) { valore = (!(digitalRead(7)))*1000;   ain_nucleo();   }
     else if (channel == 10) { valore = (!(digitalRead(19)))*1000;   ain_nucleo();  }
     else if (channel == 11) { valore = (!(digitalRead(18)))*1000;   ain_nucleo(); 
     }
@@ -109,21 +109,28 @@ for( channel = 0; channel < 8; channel++)
 }
 
  ///////////////////////////////////////////////////////////////////   
- if (valuetable[general_mempos] == 0 ) setPlexer(channel); // all 4051's are set on the channel to be read
+ if (valuetable[general_mempos] == 0 ) // nomobo setup
+ setPlexer(channel); // all 4051's are set on the channel to be read
  
  for(plexer = 0; plexer < 
   5+boolean(maxvalue[general_mempos]) // se si attivano i pads (mettendo maxvalue = 0) l'analogico A5 non viene letto
   ; plexer++) //  plexer 0,1,2,3,4 - the 5th plexer is read at higher speed (pads and 2nd encoder)
   
   {
-   valore = analogRead(plexer);
+  // 
     
    chan = (plexer * 8) + channel  ;                                  // 46 - 48 - second encoder
+ 
+   
+ 
  //Serial.println(chan);
 //delay (100);
  
   if (eeprom_preset_active == 0) // se non trovo un preset nella eeprom 
   {
+    valore = analogRead(plexer);
+   // valore = analogRead(plexer);
+    
     if (valore < upper_val   /// se premo un pulsante - valore scende
      && dmxtable[chan] < 3
     )  
@@ -146,6 +153,20 @@ for( channel = 0; channel < 8; channel++)
   }
  qwertyvalue[chan] = valore /32; // registra la lettura per un futuro confronto in un range 0-255
   }
+  else
+  {
+    if (modetable[chan] < 11) //  valore = analogRead(plexer); 
+    //valore = !boolean(digitalRead(plexer))*1024; // digital_read is faster
+     #if defined (__AVR_ATmega32U4__)
+     valore = digitalRead(plexer+18)*1020; //
+     #endif
+     #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
+     valore = digitalRead(plexer+14)*1020; //
+     #endif
+     
+    else 
+    valore = analogRead(plexer);
+    }
 
 
  
@@ -258,7 +279,7 @@ void diversifica_valuetable ()
   
    if ( modetable[chan] == 0) {}
   else if ( modetable[chan] > 0 && modetable[chan]< 11) {push_buttons(); }
-  else if (modetable[chan  ] < 17)  pots(); 
+  else if (modetable[chan] < 17)  pots();  // pots + hypercurves - 11, 12,13,14,15,
    else if (modetable[chan] == 17)   { if (valore < 512) lastbutton[page_mempos] =0; else lastbutton[page_mempos] =1;} // page switch
  
    else if (modetable[chan] == 18) {

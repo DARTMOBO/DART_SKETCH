@@ -1,3 +1,11 @@
+// 1.59 aggiunta possibilità controllo due leds con page switch
+
+// voglio provare a controllare due led con lo switch page - uso ledcontrol(chan,1);
+
+// 1.58 - aumentata velocità ciclo tramite letture digitali
+
+// ho fatto modifiche necessarie per poter scegliere la seconda key , nella emulazion hid dei pot
+
 // i.57 aggiunto funzionalità qwerty su pot
 
 // sto lavorando su una modalità qwerty per i pulsanti
@@ -7,10 +15,9 @@
 // per fare un antiblocco mouse posso usare qwertyvalue[mouse_mempos]
 
 // testare corrispondenza feedback led in modalità nomobo
-// https://github.com/DARTMOBO/DART_PRESETS/archive/master.zip
 // 1.55 aggiustato la corrispondenza in numerazione del led on/off del touchsensor - 
-// led feedback was turning on the wrong output pin - now solved  EEEEESSSSSSSSTTTTTTTTTTTTTT
+// led feedback was turning on the wrong output pin - now solved  
 
-// risolto problema touch 666666666666666666666777777777777777766666666666777 sensor 20 5 19
+// risolto problema touch  sensor 20 5 19
 
 //                                                     

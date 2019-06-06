@@ -570,7 +570,7 @@ if (EEPROM.read(i+128) == note) EEPROM.write(i+128,19);}  }
 
        EEPROM.write(memoryposition+512-64,type-176+(velocity*16)+144);  // type 2nd
        
-   EEPROM.write(memoryposition+384+512-64,note); //  trying not to cross memory limit - wertyvalue stored 64 memory slots before
+   EEPROM.write(memoryposition+384+512-64,note); //  trying not to cross memory limit - qwertyvalue stored 64 memory slots before
  }
  
      break;

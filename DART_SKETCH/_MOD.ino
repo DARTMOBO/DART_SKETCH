@@ -194,7 +194,26 @@ void pageswitch(){ //----------------------------------------------------- PAGE 
     #endif
   //  incomingByte = boolean(page);
 
-midiOut(typetable[page_mempos],valuetable[page_mempos],minvalue[page_mempos]);
+midiOut(typetable[page_mempos],valuetable[page_mempos],0);
+
+ #if (page_LEDs == 1)
+if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {
+ shifter.setPin((dmxtable[page_mempos]-1), 1); 
+ bit_write(1,(dmxtable[page_mempos]-1)+page,1);
+ shifter.setPin((lightable[page_mempos]-1), 0); 
+ bit_write(1,(lightable[page_mempos]-1)+page,0);
+}
+else
+ {
+ // shifter.setPin((minvalue[page_mempos]-1), 1); 
+ digitalWrite(dmxtable[page_mempos]-1,1);
+ bit_write(1,(dmxtable[page_mempos]-1)+page,1);
+ // shifter.setPin((maxvalue[page_mempos]-1), 0); 
+ digitalWrite(lightable[page_mempos]-1,0);
+ bit_write(1,(lightable[page_mempos]-1)+page,0);
+ }
+ #endif
+
  
     shifterwrite=1;
     pagestate=0;
@@ -213,7 +232,7 @@ midiOut(typetable[page_mempos],valuetable[page_mempos],minvalue[page_mempos]);
   } 
   
   
-  if (lastbutton[page_mempos]==0  ){
+  if (lastbutton[page_mempos]==0  ){ // seconda
  
  if (pagestate==0) {
       page = max_modifiers;
@@ -230,7 +249,25 @@ midiOut(typetable[page_mempos],valuetable[page_mempos],minvalue[page_mempos]);
     ledrestore(page);
     #endif
    // incomingByte = boolean(page);
- midiOut(typetable[page_mempos],valuetable[page_mempos],maxvalue[page_mempos]);
+ midiOut(typetable[page_mempos],valuetable[page_mempos],127);
+
+ #if (page_LEDs == 1)
+if (valuetable[general_mempos] == 0 lightable[page_mempos]>0) {
+ shifter.setPin((dmxtable[page_mempos]-1), 0); 
+ bit_write(1,(dmxtable[page_mempos]-1)+page,0);
+ shifter.setPin((lightable[page_mempos]-1), 1); 
+ bit_write(1,(lightable[page_mempos]-1)+page,1);
+}
+else
+ {
+ // shifter.setPin((minvalue[page_mempos]-1), 1); 
+ digitalWrite(dmxtable[page_mempos]-1,0);
+ bit_write(1,(dmxtable[page_mempos]-1)+page,0);
+ // shifter.setPin((maxvalue[page_mempos]-1), 0); 
+ digitalWrite(lightable[page_mempos]-1,1);
+ bit_write(1,(lightable[page_mempos]-1)+page,1);
+ }
+ #endif
 
     shifterwrite=1;
     
@@ -1045,24 +1082,26 @@ void pots ()
     if (valore > upper_val ) {
       
       if ( lastbutton[chan]*4 < upper_val) { 
-      qwerty_out(1,chan,0); 
+      qwerty_out(1,qwertyvalue[chan],0); 
     //  Keyboard.press(pgm_read_byte(qwertymod+qwertyvalue[chan]));
      // if (qwertyvalue[chan] > 31 ) Keyboard.press(qwertyvalue[chan]); // normale tabella ascii // 
     }
     
     }
     else 
-    if (valore < lower_val) { if ( lastbutton[chan]*4 > lower_val) { if (maxvalue[chan] == 127) qwerty_out(1,chan,1); //Keyboard.press(pgm_read_byte(qwertymod+qwertyvalue[chan]+1)); 
+    if (valore < lower_val) { if ( lastbutton[chan]*4 > lower_val) { // if (maxvalue[chan] == 127) 
+    qwerty_out(1,minvalue[chan],0); //Keyboard.press(pgm_read_byte(qwertymod+qwertyvalue[chan]+1)); 
     } } 
     else
     {
       if ( lastbutton[chan]*4 > upper_val) {
-        qwerty_out(0,chan,0); 
+        qwerty_out(0,qwertyvalue[chan],0); 
       //  Keyboard.release(pgm_read_byte(qwertymod+qwertyvalue[chan]));
        //  if (qwertyvalue[chan] > 31 ) Keyboard.release(qwertyvalue[chan]);
       }
       else 
-      if (lastbutton[chan]*4 < lower_val) {if (maxvalue[chan] == 127)  qwerty_out(0,chan,1); //Keyboard.release(pgm_read_byte(qwertymod+qwertyvalue[chan]+1));
+      if (lastbutton[chan]*4 < lower_val) { // if (maxvalue[chan] == 127)  
+      qwerty_out(0,minvalue[chan],0); //Keyboard.release(pgm_read_byte(qwertymod+qwertyvalue[chan]+1));
       }
       }
       

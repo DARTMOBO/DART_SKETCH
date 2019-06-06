@@ -4,25 +4,25 @@
 void ledControl (byte chann, byte stat)   // stat significa status 1 = acceso 0 = spento
 {
    
-     if (valuetable[general_mempos] == 0)
+   if (valuetable[general_mempos] == 0) // se siamo in modalita MOBO 
    {  if (stat >0 ) 
    buttonefx = 0; // ampiezza dell'effetto
  
    for (byte i = 0; i < 16; i++)
    {
-   if (encledtable[i] == (lightable[chann]-1)) {buttonefxd = i; break;} else buttonefxd = 60;
+   if (encledtable[i] == (lightable[chann]-1)) {buttonefxd = i; break;} else buttonefxd = 60;  // effetti led
    }
 
    shifter.setPin((lightable[chann]-1), stat); 
 
    bit_write(1,(lightable[chann]-1)+page,stat);
 
- }
+}
 else 
 
 {
    //Serial.println(lightable[chann]);
-  if (
+  if (                              // solo se corrisponde a uno di questi valore , fai qualcosa -  sarebbero i pin digitali di arduino
     lightable[chann] == 4 || 
      lightable[chann] == 5 || 
       lightable[chann] == 6 || 
@@ -33,6 +33,7 @@ else
       {
       //  Serial.println(lightable[chann]);
         digitalWrite(lightable[chann], stat);
+         bit_write(1,(lightable[chann]-1)+page,stat);
       //  digitalWrite(10, stat);
         }
 

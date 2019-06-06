@@ -1,5 +1,5 @@
 ///////////////////////////
-// DART_SKETCH   V1.57   //
+// DART_SKETCH   V1.59   //
 // Massimiliano Marchese //
 // Piero pappalardo      //
 // www.dartmobo.com      //
@@ -12,12 +12,11 @@
 #define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
 #define stratos 0                    // 1 = enabled // 0 = disabled // Stratos sketch version.
 #define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
-#define mouse_block 1                //
-#define arrows_block 1               //  
+#define mouse_block 1                //  mouse messages are stopped after 2 seconds of repeated activity
+#define arrows_block 1               //  arrow key messages are stopped after 2 seconds of repeated activity
+#define page_LEDs 1
+
 //---------------------------------------------
-
-
-
 
 
 #if defined (__AVR_ATmega32U4__)  
