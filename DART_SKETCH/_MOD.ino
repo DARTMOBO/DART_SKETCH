@@ -194,7 +194,7 @@ void pageswitch(){ //----------------------------------------------------- PAGE 
     #endif
   //  incomingByte = boolean(page);
 
-midiOut(typetable[page_mempos],valuetable[page_mempos],0);
+midiOut(typetable[page_mempos],valuetable[page_mempos],minvalue[page_mempos]);
 
  #if (page_LEDs == 1)
 if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {
@@ -249,10 +249,10 @@ else
     ledrestore(page);
     #endif
    // incomingByte = boolean(page);
- midiOut(typetable[page_mempos],valuetable[page_mempos],127);
+ midiOut(typetable[page_mempos],valuetable[page_mempos],maxvalue[page_mempos]);
 
  #if (page_LEDs == 1)
-if (valuetable[general_mempos] == 0 lightable[page_mempos]>0) {
+if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {
  shifter.setPin((dmxtable[page_mempos]-1), 0); 
  bit_write(1,(dmxtable[page_mempos]-1)+page,0);
  shifter.setPin((lightable[page_mempos]-1), 1); 
