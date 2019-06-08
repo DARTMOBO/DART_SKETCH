@@ -1,5 +1,5 @@
 ///////////////////////////
-// DART_SKETCH   V1.59   //
+// DART_SKETCH   v1.60   //
 // Massimiliano Marchese //
 // Piero pappalardo      //
 // www.dartmobo.com      //
@@ -299,12 +299,7 @@ byte scala_reset;
 
 
 void loop () {
-
-   
-
 if (cycletimer < 250 ) cycletimer++;
-
- 
     #if defined (__AVR_ATmega32U4__)               // USB MIDI in
   do {                                         
     rx = MidiUSB.read();

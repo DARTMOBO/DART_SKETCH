@@ -1,3 +1,7 @@
+// idea, i pas si potrebbero velocizzare usando un digitalread come soglia, dopo il digitalread si possono fare i susseguenti analogread..
+
+// v1.60 adesso si possono collegare tanti encoders - l'encoder secondario (side spinner) va collegato a pins 33 e 41 - da testare, ma dovrebbe funzionare molto meglio
+
 // 1.59 aggiunta possibilità controllo due leds con page switch
 
 // voglio provare a controllare due led con lo switch page - uso ledcontrol(chan,1);

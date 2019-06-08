@@ -92,7 +92,7 @@ for( channel = 0; channel < 18; channel++)
   #if (stratos == 0)
   void AIN()
  { 
-for( channel = 0; channel < 8; channel++)    
+for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del multiplexer vado poi a leggere tutti gli ingressi analogici (cioè l'uscita di ogni plexer)
 { 
   
  if (lastbutton[encoder_mempos[0]] == 64 || dmxtable[general_mempos] == 0) // 64 = no encoder action - the MAIN spinner has priority over any other action.
@@ -100,16 +100,19 @@ for( channel = 0; channel < 8; channel++)
     virtual_touch_end(0);
     
   if (maxvalue[general_mempos] == 0 ){ PADS();}  
+
+
  
   if (dmxtable[general_mempos] >1)
 {  
   senseEncoder_2nd();  // carica MSB LSB [1]
-  updateEncoder(encoder_mempos[1]);  // carica lastbutton[encoder_mempos[1]
-  encoder(encoder_mempos[1]); // esegui encoder secondario.
+  // updateEncoder(encoder_mempos[1]);  // carica lastbutton[encoder_mempos[1]
+  //encoder(encoder_mempos[1]); // esegui encoder secondario.
 }
 
  ///////////////////////////////////////////////////////////////////   
- if (valuetable[general_mempos] == 0 ) // nomobo setup
+ 
+  if (valuetable[general_mempos] == 0 ) // nomobo setup
  setPlexer(channel); // all 4051's are set on the channel to be read
  
  for(plexer = 0; plexer < 
@@ -155,7 +158,8 @@ for( channel = 0; channel < 8; channel++)
   }
   else
   {
-    if (modetable[chan] < 11) //  valore = analogRead(plexer); 
+   
+     if (modetable[chan] < 11) //  valore = analogRead(plexer); 
     //valore = !boolean(digitalRead(plexer))*1024; // digital_read is faster
      #if defined (__AVR_ATmega32U4__)
      valore = digitalRead(plexer+18)*1020; //
@@ -164,8 +168,26 @@ for( channel = 0; channel < 8; channel++)
      valore = digitalRead(plexer+14)*1020; //
      #endif
      
-    else 
-    valore = analogRead(plexer);
+    else if (modetable[chan] < 19)     valore = analogRead(plexer);
+    else if (modetable[chan] == 19)
+    {
+       #if defined (__AVR_ATmega32U4__)
+      MSB[1]=   digitalRead(plexer+18); //
+      LSB[1]=   digitalRead(plexer+19); //
+    //  Serial.println(MSB[1]);
+    //  Serial.println(LSB[1]);
+    //  Serial.println("-");
+    //  delay(100);
+     #endif
+     #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
+     MSB[1] = digitalRead(plexer+14); //
+     LSB[1]=   digitalRead(plexer+15);
+     #endif
+      
+      }
+  
+    
+    
     }
 
 
@@ -282,14 +304,12 @@ void diversifica_valuetable ()
   else if (modetable[chan] < 17)  pots();  // pots + hypercurves - 11, 12,13,14,15,
    else if (modetable[chan] == 17)   { if (valore < 512) lastbutton[page_mempos] =0; else lastbutton[page_mempos] =1;} // page switch
  
-   else if (modetable[chan] == 18) {
+   else if (modetable[chan] == 18) {                  // beam
 
       #if defined (__AVR_ATmega32U4__)
     digitalWrite(18+plexer, LOW);   // tolgo la pullup
     valore = analogRead(plexer);  beam(); 
-  
-  // delay (10); // non ricordo a che serve sto delay...
-  digitalWrite(18+plexer, HIGH); // rimetto la pullup
+    digitalWrite(18+plexer, HIGH); // rimetto la pullup
       #endif
 
        #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
@@ -298,6 +318,9 @@ void diversifica_valuetable ()
 
       
     }
+    else if (modetable[chan] == 19) {updateEncoder(chan); 
+  //  Serial.println(lastbutton[chan]); delay(100);
+    encoder(chan); }
     
 
     #if defined (__AVR_ATmega32U4__)  

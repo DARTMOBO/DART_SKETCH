@@ -574,7 +574,7 @@ shifterwrite=1;};// opencalibration[1]=HIGH;
 
 
 void encoder(byte numero) // 
-// adesso in numero accettato corrisponderà alla chan/memoryposition
+// adesso il numero accettato corrisponderà alla chan/memoryposition
 
 {
 
@@ -586,7 +586,7 @@ void encoder(byte numero) //
      
     // MODIFICO // encoder_block[numero] = encoder_block[numero]+(lastbutton[encoder_mempos[numero]] -64);
     if (modetable[numero]>20) //  solo se modetable è 21 o 22 devi eseguire i comendi in parentesi 
-                              //- nota: in encoder() entreranno solo "numero" 19, 21 e 22
+                              //- nota: in encoder() entreranno solo "numero" 19, 21 e 22 - quindi l'encoder generico è escluso da correlazioni col touch
        {
         numero2 = modetable[numero]-21;
         tocco = lastbutton[touch_mempos[numero2]];
@@ -830,41 +830,25 @@ void senseEncoder_2nd ()
 
  // Serial.println(MSB[1]);
 switch (channel) { //// 2nd enc scanning
-case 0 : { // MSB2 = map(getValue(5,5), 0 ,1024, 0, 2);//MSB = map(getValue(1,5), 0 ,1024, 0, 2);
+case 1 : { // MSB2 = map(getValue(5,5), 0 ,1024, 0, 2);//MSB = map(getValue(1,5), 0 ,1024, 0, 2);
 setPlexer(5); //analogRead(multiplexer);
-valore++;
-valore--;
-//delay(1);
+
 // MSB[1] = map(analogRead(5), 0 ,1024, 0, 2);
 MSB[1] = digitalRead(A5);
-};
-case 2 : {  // LSB2 = map(getValue(7,5), 0, 1024, 0, 2);
-setPlexer(7);
-valore++;
-valore--;
-// LSB[1] = map(analogRead(5), 0, 1024, 0, 2);
-LSB[1] = digitalRead(A5);
-//Serial.println(MSB[1]);
-//Serial.println(LSB[1]);
-//delay(100);
-};
+LSB[1] = digitalRead(A4);
+updateEncoder(encoder_mempos[1]); 
+encoder(encoder_mempos[1]);
 
-case 4 : { // MSB2 = map(getValue(5,5), 0 ,1024, 0, 2);
-setPlexer(5); //analogRead(multiplexer);
-valore++;
-valore--;
-// MSB[1] = map(analogRead(5), 0 ,1024, 0, 2); 
+}; 
+break;
+case 6 : {  // QUANDO CHANNEL Si strova su 6 vuol dire che il setplexer() è ancora messo su 5, che è l'input da leggere
 MSB[1] = digitalRead(A5);
+LSB[1] = digitalRead(A4);
+updateEncoder(encoder_mempos[1]); 
+encoder(encoder_mempos[1]);
 };
+break;
 
-case 6 : {//LSB2 = map(getValue(7,5), 0, 1024, 0, 2);
-  setPlexer(7);
-  valore++;
-valore--;
-// LSB[1] = map(analogRead(5), 0, 1024, 0, 2);
-LSB[1] = digitalRead(A5);
-
-};
 }
 
 }
@@ -874,7 +858,7 @@ LSB[1] = digitalRead(A5);
 
 
 
-void lettura_enc_principale()
+void lettura_enc_principale()   // legge l'encoder principale , collegato ad pins con capacità interrupt.
 {
    MSB[0] = digitalRead(2); //MSB = most significant bit
    LSB[0] = digitalRead(3); //LSB = least significant bit
