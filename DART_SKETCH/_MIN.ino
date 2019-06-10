@@ -311,7 +311,7 @@ bitWrite(scala[numero+2],i+7,  bitRead(maxvalue[encoder_mempos[numero]+max_modif
   if ( modetable[i] == 20) PADS_mempos = i;
   if ( modetable[i] == 17) page_mempos = i; 
   if ( modetable[i] == 26) {general_mempos = i; eeprom_preset_active = 1;}
-  if (dmxtable[general_mempos] >  1) { modetable[45] = 0; modetable[47] =0;} // disattiva lo scanning sugli input dedicati al secondo encoder
+  if (dmxtable[general_mempos] >  1) { modetable[45] = 0; modetable[37] =0;} // disattiva lo scanning sugli input dedicati al secondo encoder
   
   }
 
@@ -325,7 +325,6 @@ bitWrite(scala[numero+2],i+7,  bitRead(maxvalue[encoder_mempos[numero]+max_modif
     { /// stratos
       valuetable[i+page]=    60+i; 
     valuetable[i]=    60+i;
-
     }
     
     
@@ -338,14 +337,13 @@ bitWrite(scala[numero+2],i+7,  bitRead(maxvalue[encoder_mempos[numero]+max_modif
     lightable[i]=remapper(i);
     }
 
- 
     // nota: i modificatori normali vanno da 0 a 55 nel normale ciclo AIN e nelle tabelle array
     // rimangono solo 4 spazi liberi in teoria
     // ma bisogna considerare che : se l'extraplex ÃƒÂ¨ disattivato, tutti gli spazi da 48 a 55 sono disponibili
     // se si attiva il secondo encoder, gli slot di memoria relativi ai pin 46 e 48 (numerazione ciclo AIN) sono disponibili
     // se si attiva l'extraplex il secondo touch non ha bisogno di settaggio
-
     // nel default preset l'extraplex non viene attivato
+    
    page_mempos=53; 
    mouse_mempos = 54;
    encoder_mempos[1] = 55;

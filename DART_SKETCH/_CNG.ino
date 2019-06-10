@@ -1,3 +1,5 @@
+// risolto problema relativo al riposizionalemte dell'encoder secondario. si annullava la lettura del fader (dart one)
+
 // la nuova funzione qwerty sui pot , porta problemi in modalità autodetect. da risolvere - ok dovrebbe essere risolto.
 
 // idea, i pas si potrebbero velocizzare usando un digitalread come soglia, dopo il digitalread si possono fare i susseguenti analogread..

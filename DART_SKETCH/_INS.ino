@@ -1,3 +1,5 @@
+
+ 
  #if (stratos == 1)
  void AIN_stratos()
  
@@ -168,8 +170,8 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
      valore = digitalRead(plexer+14)*1020; //
      #endif
      
-    else if (modetable[chan] < 19)     valore = analogRead(plexer);
-    else if (modetable[chan] == 19)
+    else if (modetable[chan] < 19)     valore = analogRead(plexer); // pots 
+    else if (modetable[chan] == 19)                                 // encoders
     {
        #if defined (__AVR_ATmega32U4__)
       MSB[1]=   digitalRead(plexer+18); //
@@ -186,11 +188,10 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
       
       }
   
-    
-    
     }
 
-
+// if (chan == remapper(33)) {Serial.println(valore); Serial.println(modetable[chan]);  Serial.println("-");  }
+// delay(2);
  
      ain_nucleo(); 
      
