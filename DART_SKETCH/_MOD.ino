@@ -1062,7 +1062,8 @@ void pots ()
     if (abs((lastbutton[chan] * 4)  - valore) > 10 
        )                                                     // the potentiometer has been moved
        
-   if (qwertyvalue[chan] > 0) {                             // pot working in qwerty mode
+   if (qwertyvalue[chan] > 0 && eeprom_preset_active != 0) {                             // pot working in qwerty mode
+   {
     if (valore > upper_val ) {
       
       if ( lastbutton[chan]*4 < upper_val) { 
@@ -1090,6 +1091,7 @@ void pots ()
       }
       
       lastbutton[chan] = valore / 4 ;
+   }
    }
    else                                                       // pot working in MIDI mode
    {
