@@ -3,8 +3,8 @@
 
 void ledControl (byte chann, byte stat)   // stat significa status 1 = acceso 0 = spento
 {
-   
-   if (valuetable[general_mempos] == 0) // se siamo in modalita MOBO 
+   //  if (valuetable[general_mempos] == 0 )
+   if (valuetable[general_mempos] == 0) // se siamo in modalita MOBO - 
    {  if (stat >0 ) 
    buttonefx = 0; // ampiezza dell'effetto
  

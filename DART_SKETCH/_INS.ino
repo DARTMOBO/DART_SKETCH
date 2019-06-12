@@ -114,7 +114,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
 
  ///////////////////////////////////////////////////////////////////   
  
-  if (valuetable[general_mempos] == 0 ) // nomobo setup
+  if (valuetable[general_mempos] !=1 ) // nomobo setup
  setPlexer(channel); // all 4051's are set on the channel to be read
  
  for(plexer = 0; plexer < 

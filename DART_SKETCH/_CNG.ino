@@ -1,3 +1,5 @@
+// POSSIBILITà disattivare solo gli shifters e non i multiplexers. avendo accessoa ai solo pin digitali d10 d11 d12 ler led attaccati direttamete alla board. basta mettere valuetable[general_mempos] su 2
+
 // risolto problema relativo al riposizionalemte dell'encoder secondario. si annullava la lettura del fader (dart one)
 
 // la nuova funzione qwerty sui pot , porta problemi in modalità autodetect. da risolvere - ok dovrebbe essere risolto.
