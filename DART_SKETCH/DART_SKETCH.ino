@@ -31,13 +31,13 @@
  #include "_DART_Touch_Sensor.h"
 
 #if (stratos == 1 )
-CapacitiveSensor   cs_4_2 = CapacitiveSensor(8,9); // stratos
+CapacitiveSensor   cs_4_2[1] = {CapacitiveSensor(8,9);} // stratos
 
 #endif
 
 #if (stratos == 0 )
-  CapacitiveSensor   cs_4_2 = CapacitiveSensor(8,7);
-  CapacitiveSensor   cs_4_3 = CapacitiveSensor(8,9);  // one - stratos
+  CapacitiveSensor   cs_4_2[2] = {CapacitiveSensor(8,7),CapacitiveSensor(8,9)};
+ //  CapacitiveSensor   cs_4_3 = CapacitiveSensor(8,9);  // one - stratos
  #endif
  
 #endif
@@ -186,9 +186,9 @@ volatile  unsigned int padVal2; //
 //////////////////////////////////////////////////////////////////////////////////   touch sensor
  byte limit_touch = 250;
 
-volatile byte  readingsXen[3] ;      // the readings from the analog input
+volatile byte  readingsXen[2][3] ;      // the readings from the analog input
 // byte readingsXenn = 250;
-volatile byte readingsXen2[3];
+// volatile byte readingsXen2[3];
 // volatile byte readingsXenn2;
 //const byte Xenlimit = 6;
 // const byte Xendivider = 2;
@@ -339,9 +339,12 @@ if (cycletimer < 250 ) cycletimer++;
 
     
   
- 
+ indexXen++; if (indexXen == 3) indexXen = 0;
    #if (capacitivesensor_active > 0)
-     touch_sensors();
+     touch_sensors(0);
+          #if (stratos == 0)
+          touch_sensors(1);
+          #endif
     #endif
 
   #if (stratos == 1)  

@@ -335,65 +335,52 @@ if (padDecay[padNum] == 1)  midiOut(typetable[PADS_mempos+(page)],valuetable[PAD
 
  #if (capacitivesensor_active > 0)
  
-void touch_sensors() {
+/*void touch_sensors() {
   
   if (decaysensor[0] > 0 ) decaysensor[0]--;
   if (decaysensor[1] > 0 ) decaysensor[1]--;
 
- #if (capacitivesensor_active ==1 )
+ #if (capacitivesensor_active ==1 ) // primo touch sempre in lettura 
  #if touch_version == 1
- readingsXen[indexXen]  = (cs_4_2.capacitiveSensorRaw(72));
+ readingsXen[indexXen]  = (cs_4_2[0].capacitiveSensorRaw(72));
  #endif
   #if touch_version == 2
- // readingsXen[indexXen]  = (cs_4_2.capacitiveSensorRaw(4096)/32);
- readingsXen[indexXen]  = (cs_4_2.capacitiveSensorRaw(8000)/64);
+
+ readingsXen[indexXen]  = (cs_4_2[0].capacitiveSensorRaw(8000)/64);
   #endif
   #endif
 
- #if (capacitivesensor_active ==1 && stratos == 0)
-  if (dmxtable[general_mempos] >1)  
+ #if (capacitivesensor_active ==1 && stratos == 0)                   // lettura secondo touch
+ // if (dmxtable[general_mempos] >1)                                   // solo se il secondo spinner è in lettura.
+ if (touch_mempos[1] >0)                                               // solo se il preset contiene i settings del secondo touch
    #if touch_version == 1
-  readingsXen2[indexXen] = (cs_4_3.capacitiveSensorRaw(72));
+   readingsXen2[indexXen] = (cs_4_2[1].capacitiveSensorRaw(72));
    #endif
-    #if touch_version == 2
+   #if touch_version == 2
    //  readingsXen2[indexXen] = (cs_4_3.capacitiveSensorRaw(4096)/32);
-   readingsXen2[indexXen] = (cs_4_3.capacitiveSensorRaw(8000)/64);
- #endif
+   readingsXen2[indexXen] = (cs_4_3[1].capacitiveSensorRaw(8000)/64);
   #endif
-
- //readingsXen2[indexXen/Xendivider]  = (lettura+readingsXenn2)/2;
- //readingsXenn2 = lettura;
+  #endif
 
   indexXen++; if (indexXen == 3) indexXen = 0;
-  
- // totalXen[0]=  readingsXen[0] + readingsXen[1] + readingsXen[2] ;
- 
- // totalXen[1]= readingsXen2[0] + readingsXen2[1]+ readingsXen2[2] ;
                      
   averageXen[0] = ((readingsXen[0] + readingsXen[1] + readingsXen[2])  / 3) ;  
 
   #if ( stratos == 0 )
   averageXen[1] = ((readingsXen2[0] + readingsXen2[1] + readingsXen2[2])  / 3) ; 
- 
- #endif
- /*
-  Serial.println("readingsXen");
-  Serial.println(readingsXen[0] );
-  Serial.println(readingsXen[1] );
-  Serial.println(readingsXen[2] );
-  */
-  // averageXen[1] = (totalXen[1] / 3) ; 
+  #endif
+  
    
 ///////////////////////////////////////////////////////////////////////////////////////////
- if (lightable[touch_mempos[0]] == 0)  touch_execute(0);
+  if (lightable[touch_mempos[0]] == 0)  touch_execute(0); // lightable : 0-capacitive, 1-virtual, 2-monitoring.
   else if  (lightable[touch_mempos[0]] == 2) { noteOn(176, 127,   averageXen[0] ,0);  delay(20); } // monitoring
 ////////////////////////////////////////////////////////////////////////////////////////////////
-  if (minvalue[general_mempos] == 0) {
-if ( lightable[touch_mempos[1]] == 0) touch_execute(1);   
-else if  (lightable[touch_mempos[1]] == 2) { noteOn(177, 127, averageXen[1],0); delay(20);   }  // monitoring
+  if (minvalue[general_mempos] == 0) { // extraplex disattivato
+  if ( lightable[touch_mempos[1]] == 0) touch_execute(1);   
+  else if  (lightable[touch_mempos[1]] == 2) { noteOn(177, 127,   averageXen[1] ,0);  delay(20); }  // monitoring
 
   }
-//if (cycletimer > 200) 
+
 {
 if (averageXen[0] > higher_Xen[0])  higher_Xen[0] = averageXen[0] ;
 if (averageXen[0] < lower_Xen[0] && averageXen[0] == readingsXen[indexXen] )  lower_Xen[0] = averageXen[0] ;
@@ -410,16 +397,77 @@ if (averageXen[1] < lower_Xen[1] && averageXen[1] == readingsXen2[indexXen])  lo
 // questo sistema rende retrocompatibile l'algoritmo di sensing nche con i circuiti vecchi, che eramo molto piÃ¹ sensibili e necessitavano di piÃ¹ letture
 // piÃ¹ letture richiedono piÃ¹ tempo, rendendo il touchsensor piÃ¹ soggetto a interferenze da parte del DMX o di allungamenti e accorciamenti del loop principale
 // dovuti all'uso del side spinner per esempio...
-/*
- Serial.println("averageXen");
- Serial.println(averageXen[0]);
- Serial.println(lower_Xen[0]);
- Serial.println(higher_Xen[0]);
- Serial.println(limit_touch);
+
+}
 */
-// Serial.println("-");
+void touch_sensors(byte T_numero) {
+  
+  if (decaysensor[T_numero] > 0 ) decaysensor[T_numero]--;
+ // if (decaysensor[1] > 0 ) decaysensor[1]--;
+
+ #if (capacitivesensor_active ==1 ) // primo touch sempre in lettura 
+ if (touch_mempos[T_numero] >0)                    
+     #if touch_version == 1
+     readingsXen[T_numero][indexXen] = (cs_4_2[T_numero].capacitiveSensorRaw(72));
+     #endif
+     #if touch_version == 2
+     readingsXen[T_numero][indexXen]  = (cs_4_2[T_numero].capacitiveSensorRaw(8000)/64);
+     #endif
+ #endif
+
+ /*#if (capacitivesensor_active ==1 && stratos == 0)                   // lettura secondo touch
+
+ if (touch_mempos[1] >0)                                               // solo se il preset contiene i settings del secondo touch
+   #if touch_version == 1
+   readingsXen2[indexXen] = (cs_4_2[1].capacitiveSensorRaw(72));
+   #endif
+   #if touch_version == 2
+   //  readingsXen2[indexXen] = (cs_4_3.capacitiveSensorRaw(4096)/32);
+   readingsXen2[indexXen] = (cs_4_3[1].capacitiveSensorRaw(8000)/64);
+  #endif
+  #endif
+  */
+
+  
+                     
+  averageXen[T_numero] = ((readingsXen[T_numero][0] + readingsXen[T_numero][1] + readingsXen[T_numero][2])  / 3) ;  
+
+  /* #if ( stratos == 0 )
+  averageXen[1] = ((readingsXen2[0] + readingsXen2[1] + readingsXen2[2])  / 3) ; 
+  #endif
+  */
+  
+   
+///////////////////////////////////////////////////////////////////////////////////////////
+  if (lightable[touch_mempos[T_numero]] == 0)  touch_execute(T_numero); // lightable : 0-capacitive, 1-virtual, 2-monitoring.
+  else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, 127,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
+////////////////////////////////////////////////////////////////////////////////////////////////
+ /* if (minvalue[general_mempos] == 0) { // extraplex disattivato
+  if ( lightable[touch_mempos[1]] == 0) touch_execute(1);   
+  else if  (lightable[touch_mempos[1]] == 2) { noteOn(177, 127,   averageXen[1] ,0);  delay(20); }  // monitoring
+  }
+  */
+
+{
+if (averageXen[T_numero] > higher_Xen[T_numero])  higher_Xen[T_numero] = averageXen[T_numero] ;                                       
+if (averageXen[T_numero] < lower_Xen[T_numero] && averageXen[T_numero] == readingsXen[T_numero][indexXen] )  lower_Xen[T_numero] = averageXen[T_numero] ;    
+ // limite superiore e inferiore si adattano ale circostanze ambientali, in tel modo la soglia decisa via editor è sempre relativa al range
 
 
+/*#if (stratos == 0)
+if (averageXen[1] > higher_Xen[1])  higher_Xen[1] = averageXen[1] ;
+if (averageXen[1] < lower_Xen[1] && averageXen[1] == readingsXen2[indexXen])  lower_Xen[1] = averageXen[1] ;
+#endif
+*/
+
+/// limit_touch = constrain( map ( lower_Xen[0],0,43,50,255) ,0,255)   ;
+}
+              
+// sistema di autolimiting : 
+// in base alla lettura touch piÃ¹ bassa viene stabilito il limite di velocitÃ  delle letture (interno alla libreria capacitivetouch)
+// questo sistema rende retrocompatibile l'algoritmo di sensing nche con i circuiti vecchi, che eramo molto piÃ¹ sensibili e necessitavano di piÃ¹ letture
+// piÃ¹ letture richiedono piÃ¹ tempo, rendendo il touchsensor piÃ¹ soggetto a interferenze da parte del DMX o di allungamenti e accorciamenti del loop principale
+// dovuti all'uso del side spinner per esempio...
 
 }
 
@@ -1062,7 +1110,7 @@ void pots ()
     if (abs((lastbutton[chan] * 4)  - valore) > 10 
        )                                                     // the potentiometer has been moved
        
-   if (qwertyvalue[chan] > 0 && eeprom_preset_active != 0) {                             // pot working in qwerty mode
+   if (qwertyvalue[chan] > 0 && eeprom_preset_active != 0) {                             // pot working in qwerty mode - slo se non siamo in autodetect e qwerty ha un valore
    {
     if (valore > upper_val ) {
       
@@ -1094,6 +1142,8 @@ void pots ()
    }
    }
    else                                                       // pot working in MIDI mode
+
+   
    {
 
  lastbutton[chan] = valore / 4 ;

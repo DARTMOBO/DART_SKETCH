@@ -394,7 +394,7 @@ bitWrite(scala[numero+2],i+7,  bitRead(maxvalue[encoder_mempos[numero]+max_modif
     qwertyvalue[general_mempos]=0; // no efx
     maxvalue[general_mempos] = 34; // no pads
     minvalue[general_mempos] = 0; // no extraplex
-    dmxtable[general_mempos] = 4; // 0 no enc 1 top enc 2 top&side enc
+    dmxtable[general_mempos] = 4; // 0 no enc 1 top enc 2 top&side enc 3 generic encoders. 
    
    
  }
@@ -537,10 +537,8 @@ if (EEPROM.read(i+128) == note) EEPROM.write(i+128,19);}  }
    }*/
   
 // EEPROM.write(memoryposition+128+512-64,note);
-  EEPROM.write(memoryposition+192,velocity); // dmx memoryposition
-//   Serial.print("-memorypos-scrivo-dmx1-");Serial.println(memoryposition);
-//  Serial.print("-velocity-scrivo-dmx1-");Serial.println(velocity);
-//   EEPROM.write(memoryposition+448,type-128); //     LED
+  EEPROM.write(memoryposition+192,velocity); // dmx 
+
  
  } else{
    
@@ -551,8 +549,7 @@ if (EEPROM.read(i+128) == note) EEPROM.write(i+128,19);}  }
    EEPROM.write(memoryposition+128+512-64,note); // MODE 2ND
 
   EEPROM.write(memoryposition+192+512-64,velocity); // dmx 2nd
-//   Serial.print("-velocity-scrivo-dmx2-");Serial.println(velocity);
-  // EEPROM.write(memoryposition+896,type-128); //              led
+
    }
      break;
    

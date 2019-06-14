@@ -1,3 +1,11 @@
+// è possibile mettere un argomento [] alla funzione void touch_sensors, in questo modo si possono saltare del tutto, quando non è presente un touch nel preset.
+// indexxen bisogna metterlo fuori, è un contatore usato per entrambi i touch.
+
+//  if ( modetable[i] == 24) touch_mempos[1] = i;
+
+// il note off mi manda un segnale off in più
+
+
 // POSSIBILITà disattivare solo gli shifters e non i multiplexers. avendo accessoa ai solo pin digitali d10 d11 d12 ler led attaccati direttamete alla board. basta mettere valuetable[general_mempos] su 2
 
 // risolto problema relativo al riposizionalemte dell'encoder secondario. si annullava la lettura del fader (dart one)
