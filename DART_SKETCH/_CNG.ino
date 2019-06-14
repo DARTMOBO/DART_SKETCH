@@ -1,3 +1,9 @@
+// v1.63 i touch sono indipendenti dalla quantità di encoders attivi, dipende se nel preset ho attivato un item touch- touch_mempos[] deve esser > 0 per attivare
+
+
+// ogni tanto il touch smette di funzionare, deve essere il fatto che la autocalbrazione del minimo e del massimo viene ritriggerata dal page switch,
+// si dovrebbe ideare un modo per ripristinare il touch 
+
 // è possibile mettere un argomento [] alla funzione void touch_sensors, in questo modo si possono saltare del tutto, quando non è presente un touch nel preset.
 // indexxen bisogna metterlo fuori, è un contatore usato per entrambi i touch.
 
