@@ -1,4 +1,5 @@
 void noteOn(byte cmd, byte pitch, byte velocity, byte filter) {
+  #if (MIDI_OUT_block == 0)
 if (filter ==1){  if (cmd != old_cmd || pitch != old_pitch || velocity != old_velocity){
 
 midiOut(cmd,pitch,velocity);
@@ -14,9 +15,11 @@ else {midiOut(cmd,pitch,velocity);
 //old_velocity = velocity;
 
 }
+#endif
 }
 
 void midiOut(byte cmd, byte pitch, byte velocity) {
+   #if (MIDI_OUT_block == 0)
 
 // velocity = constrain(velocity,0,127)
   #if defined (__AVR_ATmega32U4__)  
@@ -36,11 +39,13 @@ void midiOut(byte cmd, byte pitch, byte velocity) {
   Serial.write(pitch);
   Serial.write(velocity);
   #endif
-
+#endif
 }
 
 void button (byte cmd, byte pitch, byte velocity, byte filterr)
 {
+  #if (MIDI_OUT_block == 0)
+  
 switch ((cmd-144)  /16)
 {
  case 0 :   noteOn(cmd,pitch,velocity,filterr); break; // note
@@ -50,6 +55,7 @@ switch ((cmd-144)  /16)
  case 4 :   noteOn(cmd,velocity,0,filterr);  break; // channel AT
  case 5 :  { noteOn(cmd,velocity,velocity,filterr); }
 }
+#endif
 }
 
 

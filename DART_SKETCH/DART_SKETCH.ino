@@ -5,19 +5,20 @@
 // www.dartmobo.com      //
 ///////////////////////////
 
-#define main_encoder 0               // 1 = enabled // 0 = disabled // MAIN ENCODER_ 
+#define main_encoder 1               // 1 = enabled // 0 = disabled // MAIN ENCODER_ 
 #define capacitivesensor_active 1    // 1 = enabled // 0 = disabled // CAPACITIVE SENSORS_
 #define shifter_active  1            // 1 = enabled // 0 = disabled // SHIFT REGISTERS_
-#define DMX_active  1                // 1 = enabled // 0 = disabled // disable also from dmxsimple.cpp to free more memory
+#define DMX_active  0                // 1 = enabled // 0 = disabled // disable also from dmxsimple.cpp to free more memory
 #define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
 #define stratos 0                    // 1 = enabled // 0 = disabled // Stratos sketch version.
 #define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
 #define mouse_block 1                //  mouse messages are stopped after 2 seconds of repeated activity
 #define arrows_block 1               //  arrow key messages are stopped after 2 seconds of repeated activity
-#define page_LEDs 0
+#define page_LEDs 1
 #define LED_rings 0
 #define encoders_generic 0           // 1 = enabled 
 #define MIDI_IN_block 0              // 1 = MIDI IN blocked
+#define MIDI_OUT_block 0             // 1 = MIDI out blocked
 
 //---------------------------------------------
 
