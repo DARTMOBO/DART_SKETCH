@@ -1,3 +1,8 @@
+
+// 1.64 risolto problema pagina vuota.
+// il problema del fatto che alla classe di dario il controller smetteva di funzionare dopo aver uppato un preset dipendeva dal fato che il controller si avviava su una pagina vuota.
+
+
 // min 316... non credo che le corrispondenze dei pin siano esatte... non vanno rimappate?
 
 
