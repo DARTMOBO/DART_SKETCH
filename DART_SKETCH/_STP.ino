@@ -144,7 +144,7 @@ void setup()
   /////////////////////////////////////////////////////////////////////
 
 #if (stratos == 0 )
-if (eeprom_preset_active == 1) // 1 = c'è un preset nella eeprom // eeprom_preset_active
+if (eeprom_preset_active == 1 && page_mempos > 0) // 1 = c'è un preset nella eeprom // eeprom_preset_active
 {
   setPlexer((page_mempos)-((page_mempos/8)*8)); 
   lastbutton[page_mempos] = map(analogRead((page_mempos/8)), 0 ,1024, 0, 2); // read page switch state.

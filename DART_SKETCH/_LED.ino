@@ -42,7 +42,21 @@ else
  
 }
 
+void LED_rings_ ()
+{
+shifter.setAll(HIGH);
+for (byte i = 0; i < 16; i++) { 
+//  shifter.setPin((i/2)+16, 1);                                     // spegni tutti li led di controllo mettendoli a  +5
+  shifter.setPin(i, boolean(lightable[channel] / (i*16+16)) ); // accendi il led ring in base al valore della lightable degli item da 9 a 16
+}  
 
+//shifter.setPin(9, 0);
+ // if (channel == 0) 
+ // if (LED_counter == 16)
+   {shifter.setPin(channel+16, 0);}
+   
+ 
+}
 
 #endif
 

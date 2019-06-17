@@ -96,8 +96,15 @@ for( channel = 0; channel < 18; channel++)
  { 
 for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del multiplexer vado poi a leggere tutti gli ingressi analogici (cioè l'uscita di ogni plexer)
 { 
-  
+
+      #if (LED_rings == 1)
+   LED_rings_ ();
+   shifter.write();
+   #endif
+   
+   #if (main_encoder == 1) 
  if (lastbutton[encoder_mempos[0]] == 64 || dmxtable[general_mempos] == 0) // 64 = no encoder action - the MAIN spinner has priority over any other action.
+#endif
 {
     virtual_touch_end(0);
     
@@ -171,6 +178,8 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
      #endif
      
     else if (modetable[chan] < 19)     valore = analogRead(plexer); // pots 
+
+   #if (encoders_generic == 1)
     else if (modetable[chan] == 19)                                 // encoders
     {
        #if defined (__AVR_ATmega32U4__)
@@ -187,6 +196,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
      #endif
       
       }
+      #endif
   
     }
 
@@ -223,10 +233,14 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
   
   
   }   
- else {
+  #if (main_encoder == 1)
+  else {
    encoder(encoder_mempos[0]);                           
   }
- 
+  #endif
+
+  
+
 
    } // end PLEXER
    } // end ain
@@ -319,9 +333,11 @@ void diversifica_valuetable ()
 
       
     }
+    #if (encoders_generic == 1)
     else if (modetable[chan] == 19) {updateEncoder(chan); 
   //  Serial.println(lastbutton[chan]); delay(100);
     encoder(chan); }
+    #endif
     
 
     #if defined (__AVR_ATmega32U4__)  

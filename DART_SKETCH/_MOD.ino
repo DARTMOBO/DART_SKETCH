@@ -633,7 +633,7 @@ void encoder(byte numero) //
      cycletimer = 0;
      
     // MODIFICO // encoder_block[numero] = encoder_block[numero]+(lastbutton[encoder_mempos[numero]] -64);
-    if (modetable[numero]>20) //  solo se modetable è 21 o 22 devi eseguire i comendi in parentesi 
+    if (modetable[numero]>20) // no encoder generico -  solo se modetable è 21 o 22 devi eseguire i comendi in parentesi 
                               //- nota: in encoder() entreranno solo "numero" 19, 21 e 22 - quindi l'encoder generico è escluso da correlazioni col touch
        {
         numero2 = modetable[numero]-21;
@@ -664,7 +664,7 @@ V_touch_regulator[numero2] = 0; // lastbutton encoder 1 e 2 mempos si possono us
  //-------------------------------------------------------------------------------------------------------------------------------
  
  
-  if (dmxtable[general_mempos] >= numero2  ) // vedi se gli spinner sono attivati e quali
+  if (dmxtable[general_mempos] >= numero2  ) // vedi se gli spinner sono attivati e quali 0-nessuno 1-top 2-top+side 3 top+side+generico
   //if (dmxtable[general_mempos] == 100 )
   {
    if (dmxtable[numero] > 1  )  // la dmxtable definisce la modalita  - 0 e 1 endless - 2 e 3 pot e scale
@@ -716,9 +716,10 @@ V_touch_regulator[numero2] = 0; // lastbutton encoder 1 e 2 mempos si possono us
    button(typetable[numero+(page)]+boolean(qwertyvalue[numero])*tocco,
    valuetable[numero+(page)], 
    constrain(-(lastbutton[numero]-64)*127, 0,127),0);}
+   
    encled = encled + (lastbutton[numero]-64)*(minvalue[numero]-32); }
 #if (shifter_active == 1 && stratos == 0)
-   led_enc_exe();
+    if (modetable[numero]>20) led_enc_exe();
    #endif
  }
 //-------------------------------------------------------------------------------------------------------------------------------
@@ -855,7 +856,8 @@ lastbutton[numero] = 64; //
 {
   
 
- encodervaluepot[numero2]               
+ encodervaluepot[numero2]                                                               // contiene il valore-posizione attuale dello spinner 1 o 2
+        
 = (constrain(encodervaluepot[numero2] - (lastbutton[chan_]-64)*(moltiplicatore-32),
 0, 1023));  
 // spegazione: si aggiunge il valore speed, positio o negativo a seconda del verso.
@@ -863,7 +865,7 @@ lastbutton[numero] = 64; //
  }
  else
  {
-  lightable[chan_]               
+  lightable[chan_]                                                                       // contiene il valore-posizione attuale dell'encoder generico
 = (constrain( lightable[chan_]  - (lastbutton[chan_]-64)*(moltiplicatore-32),
  0, 255));  
 

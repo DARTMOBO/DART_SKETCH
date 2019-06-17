@@ -5,7 +5,7 @@
 // www.dartmobo.com      //
 ///////////////////////////
 
-#define main_encoder 1               // 1 = enabled // 0 = disabled // MAIN ENCODER_ 
+#define main_encoder 0               // 1 = enabled // 0 = disabled // MAIN ENCODER_ 
 #define capacitivesensor_active 1    // 1 = enabled // 0 = disabled // CAPACITIVE SENSORS_
 #define shifter_active  1            // 1 = enabled // 0 = disabled // SHIFT REGISTERS_
 #define DMX_active  1                // 1 = enabled // 0 = disabled // disable also from dmxsimple.cpp to free more memory
@@ -14,7 +14,10 @@
 #define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
 #define mouse_block 1                //  mouse messages are stopped after 2 seconds of repeated activity
 #define arrows_block 1               //  arrow key messages are stopped after 2 seconds of repeated activity
-#define page_LEDs 1
+#define page_LEDs 0
+#define LED_rings 0
+#define encoders_generic 0           // 1 = enabled 
+#define MIDI_IN_block 0              // 1 = MIDI IN blocked
 
 //---------------------------------------------
 
@@ -56,6 +59,8 @@ CapacitiveSensor   cs_4_2[1] = {CapacitiveSensor(8,9);} // stratos
 #if (shifter_active == 1 && stratos == 0)
 #include "_DART_Shifter.h"
 #endif
+
+
 
 
   byte do_; // serve per diminuire la velocità i lettura encoder, daltando tot cicli.
@@ -300,6 +305,11 @@ byte scala_reset;
 
 void loop () {
 if (cycletimer < 250 ) cycletimer++;
+
+
+#if (MIDI_IN_block == 0)
+
+  
     #if defined (__AVR_ATmega32U4__)               // USB MIDI in
   do {                                         
     rx = MidiUSB.read();
@@ -333,7 +343,8 @@ if (cycletimer < 250 ) cycletimer++;
   #endif
 
       
-  if (openeditor != 1)   
+  if (openeditor != 1) 
+  #endif 
    
   {
 
@@ -366,9 +377,12 @@ if (cycletimer < 250 ) cycletimer++;
   pageswitch();
     
    
-      
+
+ //shifter.setAll(LOW);     
+// if (valuetable[general_mempos] == 0)  shifter.write();
      #if (shifter_active == 1 && stratos == 0)
-    if (shifterwrite ==1 && valuetable[general_mempos] == 0)  {shifter.write(); shifterwrite=0;}
+     if (shifterwrite ==1 && valuetable[general_mempos] == 0)  {shifter.write(); shifterwrite=0;
+      }
      #endif
  
   }
@@ -379,6 +393,7 @@ if (cycletimer < 250 ) cycletimer++;
 
  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////7
  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 /*

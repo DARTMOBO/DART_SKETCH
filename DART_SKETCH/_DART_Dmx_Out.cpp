@@ -146,6 +146,8 @@ void dmxEnd()
 #if defined(__AVR__)                               // arduino
 void dmxSendByte(volatile uint8_t value)
 {
+  
+  {
   uint8_t bitCount, delCount;
   __asm__ volatile (
     "cli\n"
@@ -182,10 +184,12 @@ void dmxSendByte(volatile uint8_t value)
       [value] "r" (value)
   );
 }
+}
 #elif defined(__arm__)                    // teenzy
 void dmxSendByte(uint8_t value)
 {
-	uint32_t begin, target;
+	// if (valuetable[general_mampos] > 5)
+	{uint32_t begin, target;
 	uint8_t mask;
 
 	noInterrupts();
@@ -204,6 +208,7 @@ void dmxSendByte(uint8_t value)
 	target += (F_CPU / 125000);
 	while (ARM_DWT_CYCCNT - begin < target) ; // wait, 2 stops bits
 	interrupts();
+	}
 }
 #endif
 

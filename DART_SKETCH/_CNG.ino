@@ -1,3 +1,20 @@
+// min 316... non credo che le corrispondenze dei pin siano esatte... non vanno rimappate?
+
+
+// problemi... ogni volta che uppo il general settings in modalità BLIND, devo spegnere e riattaccare il dispositivo per avere la modalità autodetect.
+// non dovrebbe succedere, 
+// inoltre, si è verificato quel problema descritto da dario, dopo 'upload tutto rimane completamente inattivo!
+
+
+// si potrebbe aggiungere la possibilità di scegliere se l'encoder generico debba controllare un proprio ledring o inluire su ENCLED come fanno gli spinner
+// si potrebbe dare la possibilità di assegnare un ledring a uno spinner (si tratterebbe di riversare encled su un lightable[] che la funzione LED_rings possa leggere.
+
+
+// i led rings non funzionano bene quando è attiva la funzione DMX out, la luminosità è incostante.
+
+// la void dmxSendByte si potrebbe rendere dipendente da una variabile regolata da editor, 
+// in questo modo si potrebbe automaticamente eliminare il send di messaggi dmx quando vengono attivati i ledrings 
+
 // v1.63 i touch sono indipendenti dalla quantità di encoders attivi, dipende se nel preset ho attivato un item touch- touch_mempos[] deve esser > 0 per attivare
 
 

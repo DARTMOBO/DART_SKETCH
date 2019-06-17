@@ -24,7 +24,7 @@
      }
      }
      
-    else ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    else ///////////////////////////     
 
     if (   incomingByte>= 128 && incomingByte<= 191)
     {   action=1;
@@ -197,20 +197,21 @@ if (valuetable[ledE+max_modifiers]==note && bit_read(3,ledE+max_modifiers) ==1  
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void load_preset_base() {
-    for (int i = 0; i <max_modifiers; i++) {
+void load_preset_base() {       //carica le variabili che devono restare in memoria indipendentemnte per le due pagine, per gestire il feedback. 
+   
+  for (int i = 0; i <max_modifiers; i++) {
   typetable[i] = EEPROM.read(i);
   valuetable[i] = EEPROM.read(i+64);
   typetable[i+max_modifiers] = EEPROM.read(i+(512));
   valuetable[i+max_modifiers] = EEPROM.read(i+64+(512));
- // lightable[i] = EEPROM.read(i+448);
- }
+  }
+ 
 }
 
    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-     void load_preset(boolean numero) // numero is the page to load  - 0 1 
+     void load_preset(boolean numero) // numero is the page to load  - 0 1 // carica le variabili dalla EEPROM alla memoria esectiva, secondo la pagnica in cui ci si trova.
   {
     #if (shifter_active == 1 && stratos == 0)
      if (valuetable[general_mempos] == 0 ) {shifter.setAll(HIGH); shifter.write();} // flash di luci quando viene caricato il preset
@@ -220,8 +221,9 @@ void load_preset_base() {
 eeprom_preset_active = 0;
 
    for (byte i = 0; i <max_modifiers; i++) {
+    
     modetable[i]= EEPROM.read(i+128+(numero*512));
-    setup_mempos(i);                                // dopo aver caricato la modetable ÃƒÂ¨ possibile fare il settaggio macchina
+    setup_mempos(i);                                // dopo aver caricato la modetable facciamo il settaggio macchina
     
   dmxtable[i]= EEPROM.read(i+192+(numero*512));
   if (i == mouse_mempos) {
@@ -251,10 +253,10 @@ eeprom_preset_active = 0;
    if (valuetable[general_mempos] == 0 ) {shifter.setAll(LOW); shifter.write();}
   #endif
   
-     //test1();
+  
        if ( eeprom_preset_active == 0) // aux viene impostato su 1 dalla void setup_mempos richamata sopra - alla riga 194 - se ÃƒÂ¨ presente un general mempos.
        { aux_preset();
-     //   valuetable[0]=60;
+ 
    
        }else  {   
         for (byte i = 0; i <max_modifiers; i++)  
@@ -311,7 +313,7 @@ bitWrite(scala[numero+2],i+7,  bitRead(maxvalue[encoder_mempos[numero]+max_modif
   if ( modetable[i] == 20) PADS_mempos = i;
   if ( modetable[i] == 17) page_mempos = i; 
   if ( modetable[i] == 26) {general_mempos = i; eeprom_preset_active = 1;}
-  if (dmxtable[general_mempos] >  1) { modetable[45] = 0; modetable[37] =0;} // disattiva lo scanning sugli input dedicati al secondo encoder
+  if ( dmxtable[general_mempos] >  1) { modetable[45] = 0; modetable[37] =0;} // disattiva lo scanning sugli input dedicati al secondo encoder
   
   }
 
