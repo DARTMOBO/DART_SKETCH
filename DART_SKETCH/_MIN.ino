@@ -1,6 +1,7 @@
 
   void midifeedback ()
   {
+
   
   {
     // read the incoming byte:
@@ -65,9 +66,14 @@
   
  if (velocity!=0 )                                            // ricevuto segnale ACCESO
  {
+   
   if (type < 160) scale_learn(note); 
+  
+  #if (MIDI_thru == 1)
+   if (type < 160)   noteOn(type,note,127,0); else   noteOn(type,note,velocity,0);   // le note vengono sempre sparate fuori al massimo.
+  #endif
  
-for(int ledD = 0; ledD < max_modifiers; ledD++) { // 
+for(int ledD = 0; ledD < max_modifiers; ledD++) {                                     // elaborazione led feedback
     
 if (valuetable[ledD]==note && bit_read(3,ledD) == 1   )  {    // prima pagina
       bit_write(1, lightable[ledD], 1);                       // il led relativo al pulsante (ricevuto) viene memorizzato come acceso
@@ -133,7 +139,12 @@ if (valuetable[ledD+max_modifiers]==note && bit_read(3,ledD+max_modifiers) == 1)
  
  
 if (velocity==0 ){
-      for(int ledE = 0; ledE < max_modifiers; ledE++) { // shifter.setPin(led, ledstatus2[led]);
+
+  #if (MIDI_thru == 1)
+  noteOn(type,note,velocity,0);
+  #endif
+  
+      for(int ledE = 0; ledE < max_modifiers; ledE++) { // shifter.setPin(led, ledstatus2[led]);   // elaborazione led feedback
       
 if (valuetable[ledE]==note && bit_read(3,ledE) ==1    )    {   
    bit_write(1, lightable[ledE], 0); // ledstatus
@@ -559,9 +570,9 @@ if (EEPROM.read(i+128) == note) EEPROM.write(i+128,19);}  }
      case 3 : ///////////////////////////// keyboard - miditype
      if (memoryposition < 64) {
 // EEPROM.write(memoryposition+448,note);
-  EEPROM.write(memoryposition,type-176+(velocity*16)+144); // type // velocity ÃƒÆ’Ã‚Â¨ il miditype proveniente dall'editor numerato da 0 a 6 - viene moltiplicato per 16 e sistemato da 144 in poi a seconda del canale
+  EEPROM.write(memoryposition,type-176+(velocity*16)+144); // TYPE // velocity = miditype proveniente dall'editor numerato da 0 a 6 - viene moltiplicato per 16 e sistemato da 144 in poi a seconda del canale
  // type contiene ovviamente anche l'informazione del canale
-     EEPROM.write(memoryposition+384,note); //  Ãƒâ€šÃ‚Â  memorizzato a partire dalla posizione 384
+     EEPROM.write(memoryposition+384,note); //  =  memorizzato a partire dalla posizione 384
  } else{
 
 

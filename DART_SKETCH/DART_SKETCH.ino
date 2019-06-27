@@ -12,13 +12,15 @@
 #define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
 #define stratos 0                    // 1 = enabled // 0 = disabled // Stratos sketch version.
 #define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
-#define mouse_block 1                //  mouse messages are stopped after 2 seconds of repeated activity
-#define arrows_block 1               //  arrow key messages are stopped after 2 seconds of repeated activity
-#define page_LEDs 1
-#define LED_rings 0
+#define mouse_block 1                // mouse messages are stopped after 2 seconds of repeated activity
+#define arrows_block 1               // arrow key messages are stopped after 2 seconds of repeated activity
+#define page_LEDs 0                  // 1 = page LEDs active
+#define LED_rings 0                  // 1 = LED rings active
 #define encoders_generic 0           // 1 = enabled 
 #define MIDI_IN_block 0              // 1 = MIDI IN blocked
 #define MIDI_OUT_block 0             // 1 = MIDI out blocked
+#define MIDI_thru 0                  // 1 = MIDI Thru active
+#define autosend 1
 
 //---------------------------------------------
 
@@ -372,8 +374,9 @@ if (cycletimer < 250 ) cycletimer++;
     #endif
  
  
- 
-  
+ #if (autosend == 1)
+ // autosend_();
+  #endif
       
   pageswitch();
     
@@ -395,7 +398,35 @@ if (cycletimer < 250 ) cycletimer++;
  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////7
  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+void autosend_()
+{
+for(byte c=0; c<48; c++)
+{
+  if (c == 25)
+  {
+    Serial.print("value: "); Serial.println(valuetable[c]);
+    Serial.print("mode: "); Serial.println(modetable[c]);
+    Serial.print("position: "); Serial.println(c);
+    Serial.println("-----");
+    }
+    
+  }
+  delay(1000);
+/*  for(byte c=0; c<48; c++)
+  if (valuetable[c] == 25) Serial.println(modetable[c]);
+  
+  for(byte c=0; c<48; c++)
+  {
+      if (modetable[c] == 11) 
+      for (byte i = 0 ; i <7; i ++)
+        {
+        noteOn(177, valuetable[c+64], i*16, 0);
+        delay(10);
+        }
+  }
+  */
+  
+  }
 
 /*
 void test1() // startup test code
