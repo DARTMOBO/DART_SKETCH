@@ -17,8 +17,11 @@
        load_preset_base();
        load_preset(page);        // load preset from eerom memory after upload     
     for(int led = 0; led < 8; led++)    {   
-    bit_status[4][led]=0; bit_status[5][led]=0;
-    bit_status[0][led]=0; bit_status[1][led]=0;    } // all leds and toggles off
+   // bit_status[4][led]=0; bit_status[5][led]=0;
+    bit_status[0][led]=0; bit_status[1][led]=0;   
+    bit_status[2][led]=0; bit_status[3][led]=0; 
+    
+    } // all leds and toggles off
     #if (shifter_active == 1 && stratos == 0)
     shifter.setAll(0); shifterwrite =0;
     #endif
@@ -237,13 +240,13 @@ eeprom_preset_active = 0;
     setup_mempos(i);                                // dopo aver caricato la modetable facciamo il settaggio macchina
     
   dmxtable[i]= EEPROM.read(i+192+(numero*512));
-  if (i == mouse_mempos) {
+  if (i == mouse_mempos && mouse_mempos > 0) {
     minvalue[i] = remapper(EEPROM.read(i+256+(numero*512))-1); 
     maxvalue[i] = remapper(EEPROM.read(i+320+(numero*512))-1);
     
     if (dmxtable[i] != 0) // quando vengono attivate le funzioni MOUSE, XY del joystick vengono impostate su BLIND INPUT - in tal modo si evitano conflitti
-    {modetable[minvalue[mouse_mempos]] = 19;
-    modetable[maxvalue[mouse_mempos]] = 19;}
+    {modetable[minvalue[mouse_mempos]] = 27;
+    modetable[maxvalue[mouse_mempos]] = 27;}
   }
   else {
     minvalue[i]= EEPROM.read(i+256+(numero*512)); // if (dmxtable[mouse_mempos] == 2)
@@ -258,6 +261,7 @@ eeprom_preset_active = 0;
  
 
  }
+// if (mouse
 
     delay(5);
   #if (shifter_active == 1 && stratos == 0)

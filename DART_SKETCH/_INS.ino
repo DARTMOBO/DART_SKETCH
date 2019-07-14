@@ -177,7 +177,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
      valore = digitalRead(plexer+14)*1020; //
      #endif
      
-    else if (modetable[chan] < 19)     valore = analogRead(plexer); // pots 
+    else if (modetable[chan] < 19 || modetable[chan] == 27)     valore = analogRead(plexer); // pots 
 
    #if (encoders_generic == 1)
     else if (modetable[chan] == 19)                                 // encoders
@@ -339,10 +339,10 @@ void diversifica_valuetable ()
     encoder(chan); }
     #endif
     
-
     #if defined (__AVR_ATmega32U4__)  
     if (mouse_mempos > 0 ) mouse_control () ;
     #endif
+    
 }
 
 

@@ -1,5 +1,5 @@
 ///////////////////////////
-// DART_SKETCH   v1.64   //
+// DART_SKETCH   v1.66   //
 // Massimiliano Marchese //
 // Piero pappalardo      //
 // www.dartmobo.com      //
@@ -12,15 +12,15 @@
 #define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
 #define stratos 0                    // 1 = enabled // 0 = disabled // Stratos sketch version.
 #define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
-#define mouse_block 1                // mouse messages are stopped after 2 seconds of repeated activity
-#define arrows_block 1               // arrow key messages are stopped after 2 seconds of repeated activity
+#define mouse_block 0                // mouse messages are stopped after 2 seconds of repeated activity
+#define arrows_block 0               // arrow key messages are stopped after 2 seconds of repeated activity
 #define page_LEDs 0                  // 1 = page LEDs active
 #define LED_rings 0                  // 1 = LED rings active
 #define encoders_generic 0           // 1 = enabled 
 #define MIDI_IN_block 0              // 1 = MIDI IN blocked
 #define MIDI_OUT_block 0             // 1 = MIDI out blocked
 #define MIDI_thru 0                  // 1 = MIDI Thru active
-#define autosend 1
+#define autosend 0
 
 //---------------------------------------------
 
@@ -357,7 +357,7 @@ if (cycletimer < 250 ) cycletimer++;
    #if (capacitivesensor_active > 0)
      touch_sensors(0);
           #if (stratos == 0)
-          touch_sensors(1);
+         if (dmxtable[general_mempos] >1) touch_sensors(1);
           #endif
     #endif
 

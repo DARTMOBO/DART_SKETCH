@@ -1,6 +1,9 @@
+// 1.66 - risolto il problema della lettura valori del mouse X Y . il MODEtable di X e Y vengono portate al valore 27, che serve solo per fare leggere il valore analogico
 
 // 1.64 risolto problema pagina vuota.
 // il problema del fatto che alla classe di dario il controller smetteva di funzionare dopo aver uppato un preset dipendeva dal fato che il controller si avviava su una pagina vuota.
+// se la seconda pagina non veniva compilata e il page switch veniva associato alla memoryposition 0, il controller poteva partire e non dare più sgni di vita...
+
 
 
 // min 316... non credo che le corrispondenze dei pin siano esatte... non vanno rimappate?

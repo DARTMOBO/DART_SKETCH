@@ -3,10 +3,11 @@ void mouse_control ()
    #if defined (__AVR_ATmega32U4__)  
   if (mouse_mempos != 0)
   { /// tutta la sezione mouse
-  if (chan == minvalue[mouse_mempos] )   {// sezione mouse  // asse X
-  
+  if (chan == (minvalue[mouse_mempos]) )   {// sezione mouse  // asse X
+ 
   mousex = 119 + (((valore+1)/64)) ;  
- if (mousex >133 ) {if ( qwertyvalue[mouse_mempos] < 255 ) qwertyvalue[mouse_mempos]++;} else  {qwertyvalue[mouse_mempos]= 0;}
+ if (mousex >133 ) {if ( qwertyvalue[mouse_mempos] < 255 ) qwertyvalue[mouse_mempos]++; 
+ } else  {qwertyvalue[mouse_mempos]= 0;} // mouse block praparazione
 
 #if (mouse_block == 1)
 if (qwertyvalue[mouse_mempos] < 230)
@@ -37,7 +38,7 @@ if (qwertyvalue[mouse_mempos] < 230)
  
  }
  
-   else if (chan == maxvalue[mouse_mempos])  { // asse Y
+   else if (chan == (maxvalue[mouse_mempos]))  { // asse Y
   
    mousex = 119 + (((valore+1)/64)) ;
    if (mousex >133 ) {if ( mousey < 255 ) mousey++;} else  {mousey= 0;}
@@ -193,6 +194,10 @@ void pageswitch(){ //----------------------------------------------------- PAGE 
     ledrestore(page);
     #endif
   //  incomingByte = boolean(page);
+ 
+ /// Serial.println(minvalue[mouse_mempos]);
+  // Serial.println(maxvalue[mouse_mempos]);
+  //  Serial.println("----");
 
 midiOut(typetable[page_mempos],valuetable[page_mempos],minvalue[page_mempos]);
 
@@ -249,6 +254,10 @@ else
     ledrestore(page);
     #endif
    // incomingByte = boolean(page);
+ //   Serial.println(minvalue[mouse_mempos]);
+ //   Serial.println(maxvalue[mouse_mempos]);
+ //   Serial.println("----");
+    
  midiOut(typetable[page_mempos],valuetable[page_mempos],maxvalue[page_mempos]);
 
  #if (page_LEDs == 1)
@@ -440,7 +449,7 @@ void touch_sensors(byte T_numero) {
    
 ///////////////////////////////////////////////////////////////////////////////////////////
   if (lightable[touch_mempos[T_numero]] == 0)  touch_execute(T_numero); // lightable : 0-capacitive, 1-virtual, 2-monitoring.
-  else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, 127,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
+  else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, T_numero,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
 ////////////////////////////////////////////////////////////////////////////////////////////////
  /* if (minvalue[general_mempos] == 0) { // extraplex disattivato
   if ( lightable[touch_mempos[1]] == 0) touch_execute(1);   
