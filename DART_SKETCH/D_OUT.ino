@@ -79,11 +79,13 @@ switch (onoff)
      #if defined (__AVR_ATmega32U4__)  
       if (eeprom_preset_active == 1) // se esiste un preset in memoria
       qwerty_out(1,qwertyvalue[chan_],0);
-   /*   {
+      
+       /*   {
     if (qwertyvalue[chan_] < 25 && qwertyvalue[chan_] > 0) Keyboard.press(pgm_read_byte(qwertymod+qwertyvalue[chan_]));
   else if (qwertyvalue[chan_] > 31 ) Keyboard.press(qwertyvalue[chan_]); // normale tabella ascii // 
   else if (qwertyvalue[chan_] != 31 ) Mouse.press(qwertyvalue[chan_]-24); // 25 26 27 28 29 30 - 
       }*/
+      
   #endif
      break;
      

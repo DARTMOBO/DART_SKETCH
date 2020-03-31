@@ -222,5 +222,11 @@ if (valuetable[general_mempos] != 0) {
  note = 255;  // out of range (0-127) value
 
  lastbutton[encoder_mempos[0]] = 64;
+
+ 
  
  }
+
+
+ 
+ ////////////////////////////////////////////////////////////////////////////////////////////////

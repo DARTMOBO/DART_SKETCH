@@ -1,3 +1,37 @@
+// 1.71 ho sistemato il led feedback nel caso in cui il numero led specificato sia 0 - adesso nessuna luce si accende se led è zero
+
+// il midi thru non mi pare sia programmato in modo serio... bisogna migliorarlo se lo si vuole offrire
+
+// i movimenti del mouse hanno una sorta di ritorno indietro stranissimo e molto fastidioso, capire perchè - risolto
+
+// 1.70 ho sistemato il problema del mouse, se mancava l'item MOUSE sull'editor, succedevano azioni mouse e freccette indesiderate
+// accadeva perchè la variabile mouse_mampos veniva inizializzata sul valore 58, non ricordo perchè... 
+// adesso rimane sempre zero e viene riportata a zero dopo ogni upload
+
+// verificare che l'input 6 che non funziona al tipo che mi ha scritto via mail, non sia una cosa dovuta all'attivazione dell'encoder secondario.
+
+//1.69 tutti i toggle funzionano senza bug e senza rischi premendo più pulsanti.
+// 1.68 al momento ho sistemato la gestione del side spinner leggendolo dentro AIN una sola volta per ciclo, come un normale encoder
+//
+// muovendo il main encoder vengono inviati fuori segnali anche del side spinner... non disturbano molto ma bisogna capire perchè!
+// problema elettrico?
+// no, il problema naturalmente è sul firmware, ha a che fare con gli interrupt del main encoder che influenzano la lettura del side spinner
+// ho notato che se la lettura dell'encoder secondario (con caricamento delle variabili msb lsb) è immediatamente preceduta da void setplexer, funziona bene
+
+// possibile rinominare in modo impersonale le tables , perchè può essere spesso fuorviante vedere una table che si chiama DMXtable, utilizzata per altro...
+
+// 1.67 provare a fare modalità radio button - ok fatta , da perfezionare
+
+// la modalità toggle e radio unziona male quando si premono più pulanti insieme - risolto
+
+// sembra che il touch sensor riporti sempre l'animazione dei led a zero, anche senza touch reset
+// sezione _mod riga 502 - per ora disattivato il reset dell'animazione
+
+// fare in modo che se non è presente l'item "mouse" in un preset... il mouse sia spento di default
+
+// C'è UN PROBLEMA COL LED FEEDBACK - i potenziometri fanno accendere i led dei pulsanti! - ved korova
+
+
 // 1.66 - risolto il problema della lettura valori del mouse X Y . il MODEtable di X e Y vengono portate al valore 27, che serve solo per fare leggere il valore analogico
 
 // 1.64 risolto problema pagina vuota.

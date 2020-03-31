@@ -1,5 +1,5 @@
 ///////////////////////////
-// DART_SKETCH   v1.66   //
+// DART_SKETCH   v1.71   //
 // Massimiliano Marchese //
 // Piero pappalardo      //
 // www.dartmobo.com      //
@@ -8,11 +8,11 @@
 #define main_encoder 1               // 1 = enabled // 0 = disabled // MAIN ENCODER_ 
 #define capacitivesensor_active 1    // 1 = enabled // 0 = disabled // CAPACITIVE SENSORS_
 #define shifter_active  1            // 1 = enabled // 0 = disabled // SHIFT REGISTERS_
-#define DMX_active  0                // 1 = enabled // 0 = disabled // disable also from dmxsimple.cpp to free more memory
+#define DMX_active   0               // 1 = enabled // 0 = disabled // disable also from _DART_Dmx_out.cpp to free more memory
 #define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
 #define stratos 0                    // 1 = enabled // 0 = disabled // Stratos sketch version.
 #define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
-#define mouse_block 0                // mouse messages are stopped after 2 seconds of repeated activity
+#define mouse_block 1 // mouse messages are stopped after 2 seconds of repeated activity
 #define arrows_block 0               // arrow key messages are stopped after 2 seconds of repeated activity
 #define page_LEDs 0                  // 1 = page LEDs active
 #define LED_rings 0                  // 1 = LED rings active
@@ -74,7 +74,7 @@ const int minbeam = 290;
 
 ///////////////////////////////////////////////////////////////////////
 
-   const byte encledtable[16]= { 4,5,6,7, 12,13,14,15, 3,2,1,0, 11,10,9,8,};  // dart one 
+ //  const byte encledtable[16]= { 4,5,6,7, 12,13,14,15, 3,2,1,0, 11,10,9,8,};  // dart one 
  
  // const byte encledtable[16]= { 4,5,6,7, 12,13,14,15, 3,2,1,16, 11,10,9,8,};  // dart one - darietto
   
@@ -87,7 +87,7 @@ const int minbeam = 290;
  // const byte encledtable[16] = { 8,8,9,9,10,10,11,11,12,12,13,13,14,14,15,15};  // vector inverted
 
 
- // const byte encledtable[16] = { 12,13,14,14,15,0,7,7,1,6,2,2,5,3,4,4};  // kombat
+  const byte encledtable[16] = { 12,13,14,14,15,0,7,7,1,6,2,2,5,3,4,4};  // kombat
 
 //const byte  encledtable2[16]  = {11,10,9,8,60,60,60,60,8,9,10,11,0,1,2,3,};
 
@@ -164,7 +164,7 @@ byte mouse_wheel_speed_counter;
 volatile byte encoder_mempos[2];             // da editor si scegli quale sarÃƒÆ’Ã‚Â  la memoryposition dell'encoder - la cosa rende piÃƒÆ’Ã‚Â¹ semplice creare un nuovo layout editor - masta mettere mode su encoder1
 volatile byte touch_mempos[2];
 byte V_touch_regulator[2] = {1,1};
-byte mouse_mempos = 58;
+byte mouse_mempos ;
 byte PADS_mempos;
 byte distance_mempos;
 byte page_mempos;
