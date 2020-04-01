@@ -12,6 +12,7 @@
         ) {
         
         
+        
       lastbutton[chan] = 0;
       if (modetable[chan] >= 3) offgroup(chan,1);      // da 3 in poi ci sono i toggle groups e radio groups
       
@@ -24,6 +25,8 @@
            #if defined (__AVR_ATmega32U4__)  
             HOT_keys(chan,1);    
             #endif  
+             //  Serial.println(" premuto ");Serial.println(chan);
+             
             outnucleo (1,chan);
            // lower_Xen[0] = 200;
             if (typetable[chan+page] < 160) scale_learn(valuetable[chan+page]);   

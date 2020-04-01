@@ -1,3 +1,9 @@
+// 1.72 problema risolto sul pulsante b6 che corrisponde alla circuitposition 0 
+// se l'encoder principale non viene inserito (non c'è il relativo item , nel preset editor) succedeva che lastbutton veniva portato a 64
+// ciò impediva di funzionare al pulsante
+// alla riga 224 di  d_stp ho ovviato al problema, ma bisognerebbe associare delle memoryposition certe agli item "critici" come l'enc principale
+// attualmente se non viene espresamente disattivato l'enc principale ( dall'item General) il problema può ripresentarsi.
+
 // 1.71 ho sistemato il led feedback nel caso in cui il numero led specificato sia 0 - adesso nessuna luce si accende se led è zero
 
 // il midi thru non mi pare sia programmato in modo serio... bisogna migliorarlo se lo si vuole offrire

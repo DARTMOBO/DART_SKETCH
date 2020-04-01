@@ -221,7 +221,7 @@ if (valuetable[general_mempos] != 0) {
  openeditor = 0;
  note = 255;  // out of range (0-127) value
 
- lastbutton[encoder_mempos[0]] = 64;
+if (dmxtable[general_mempos] >0)  lastbutton[encoder_mempos[0]] = 64;
 
  
  

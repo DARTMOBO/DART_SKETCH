@@ -8,7 +8,6 @@
   typetable[i+max_modifiers] = EEPROM.read(i+(512));
   valuetable[i+max_modifiers] = EEPROM.read(i+64+(512));
   }
- 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -28,17 +27,20 @@ eeprom_preset_active = 0;
 
    for (byte i = 0; i <max_modifiers; i++) {
     
-    modetable[i]= EEPROM.read(i+128+(numero*512));
-    setup_mempos(i);                                // dopo aver caricato la modetable facciamo il settaggio macchina
+   modetable[i]= EEPROM.read(i+128+(numero*512));
+   setup_mempos(i);                                // dopo aver caricato la modetable facciamo il settaggio macchina
+
+
+    
     
   dmxtable[i]= EEPROM.read(i+192+(numero*512));
   if (i == mouse_mempos && mouse_mempos > 0) {
-    minvalue[i] = remapper(EEPROM.read(i+256+(numero*512))-1); 
-    maxvalue[i] = remapper(EEPROM.read(i+320+(numero*512))-1);
+  minvalue[i] = remapper(EEPROM.read(i+256+(numero*512))-1); 
+  maxvalue[i] = remapper(EEPROM.read(i+320+(numero*512))-1);
     
-    if (dmxtable[i] != 0) // quando vengono attivate le funzioni MOUSE, XY del joystick vengono impostate su BLIND INPUT - in tal modo si evitano conflitti
-    {modetable[minvalue[mouse_mempos]] = 27;
-    modetable[maxvalue[mouse_mempos]] = 27;}
+  if (dmxtable[i] != 0) // quando vengono attivate le funzioni MOUSE, XY del joystick vengono impostate su BLIND INPUT - in tal modo si evitano conflitti
+  {modetable[minvalue[mouse_mempos]] = 27;
+  modetable[maxvalue[mouse_mempos]] = 27;}
   }
   else {
     minvalue[i]= EEPROM.read(i+256+(numero*512)); // if (dmxtable[mouse_mempos] == 2)
@@ -79,8 +81,8 @@ void setup_mempos (byte i)  // richiamato da load_preset
    
      if ( modetable[i] == 18) distance_mempos = i;
   //____________________________________________________________________________
-  if ( modetable[i] == 21) {encoder_mempos[0] = i;update_scala(0);}
-  if ( modetable[i] == 22) {encoder_mempos[1] = i;update_scala(1);}
+  if ( modetable[i] == 21) {encoder_mempos[0] = i; update_scala(0);}
+  if ( modetable[i] == 22) {encoder_mempos[1] = i; update_scala(1);}
   //______________________________________________________________________________
   if ( modetable[i] == 23) touch_mempos[0] = i;
   if ( modetable[i] == 24) touch_mempos[1] = i;

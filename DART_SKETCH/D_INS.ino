@@ -10,10 +10,12 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
    LED_rings_ ();
    shifter.write();
    #endif
-   
+  
 #if (main_encoder == 1) 
-     if (lastbutton[encoder_mempos[0]] == 64 || dmxtable[general_mempos] == 0) // 64 = no encoder action - the MAIN spinner has priority over any other action.
+      if (lastbutton[encoder_mempos[0]] == 64 || dmxtable[general_mempos] == 0)
+      // 64 = no encoder action - the MAIN spinner has priority over any other action.
 #endif
+
 {
   
 
@@ -47,7 +49,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
  
 
  ///////////////////////////////////////////////////////////////////////////////////// autodetect
-  if (eeprom_preset_active == 0) // se non trovo un preset nella eeprom 
+  if (eeprom_preset_active == 0) // se NON trovo un preset nella eeprom 
   {
     valore = analogRead(plexer);
     
@@ -70,7 +72,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
   }
 ////////////////////////////////////////////////////////////////////////////////////////////////// fine autodetect
   
-  else
+  else      // trovo un preset nella eeprom
   {
    
      if (modetable[chan] < 11) //                                 per tutti i pulsanti si usa digitalread, che legge in modo più rapido
@@ -81,11 +83,11 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
      valore = digitalRead(plexer+14)*1020; //
      #endif
      
-    else if (modetable[chan] < 19 || modetable[chan] == 27)     valore = analogRead(plexer); // si usa analogread per i pots 
+     else if (modetable[chan] < 19 || modetable[chan] == 27)     valore = analogRead(plexer); // si usa analogread per i pots 
 
-  #if (encoders_generic == 1)
-    else if (modetable[chan] == 19)                                 // encoders
-
+     #if (encoders_generic == 1)
+     else if (modetable[chan] == 19)                                 // encoders
+ 
     {
        #if defined (__AVR_ATmega32U4__)
       MSB[1]=   digitalRead(plexer+18); //
@@ -164,22 +166,16 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
    void ain_nucleo()
-{
-
-
-
-    
+{    
     #if defined (__AVR_ATmega32U4__)  
     if (mouse_mempos > 0 ) mouse_control () ;
     #endif
   
-   if ( modetable[chan] == 0) {}
+  if ( modetable[chan] == 0) {}
   else if ( modetable[chan] > 0 && modetable[chan]< 11) {push_buttons(); }
   else if (modetable[chan] < 17)  pots();  // pots + hypercurves - 11, 12,13,14,15,
-   else if (modetable[chan] == 17)   { if (valore < 512) lastbutton[page_mempos] =0; else lastbutton[page_mempos] =1;} // page switch
+  else if (modetable[chan] == 17)   { if (valore < 512) lastbutton[page_mempos] =0; else lastbutton[page_mempos] =1;} // page switch
 
-
- 
    else if (modetable[chan] == 18) {                  // beam
       #if defined (__AVR_ATmega32U4__)
     digitalWrite(18+plexer, LOW);   // tolgo la pullup
