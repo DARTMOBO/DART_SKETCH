@@ -68,7 +68,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
    //  test1();
     }    
   }
- qwertyvalue[chan] = valore /32; // registra la lettura per un futuro confronto in un range 0-255
+ qwertyvalue[chan] = valore /32;                                // registra la lettura per un futuro confronto in un range 0-255
   }
 ////////////////////////////////////////////////////////////////////////////////////////////////// fine autodetect
   

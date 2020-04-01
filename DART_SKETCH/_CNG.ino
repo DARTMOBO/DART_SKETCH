@@ -1,4 +1,5 @@
-// 1.72 problema risolto sul pulsante b6 che corrisponde alla circuitposition 0 
+// 1.73 il pulsante b6 (posizione 0) aveva altri conflitti col pageswitch (qualora non fosse attivo come item nell'editor... adesso dovrebbe andare
+// 1.72 problema risolto sul pulsante B6 che corrisponde alla circuitposition 0 
 // se l'encoder principale non viene inserito (non c'è il relativo item , nel preset editor) succedeva che lastbutton veniva portato a 64
 // ciò impediva di funzionare al pulsante
 // alla riga 224 di  d_stp ho ovviato al problema, ma bisognerebbe associare delle memoryposition certe agli item "critici" come l'enc principale

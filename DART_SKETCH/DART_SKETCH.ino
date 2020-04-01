@@ -1,5 +1,5 @@
 ///////////////////////////
-// DART_SKETCH   v1.72   //
+// DART_SKETCH   v1.73   //
 // Massimiliano Marchese //
 // Piero pappalardo      //
 // www.dartmobo.com      //
@@ -378,7 +378,7 @@ if (cycletimer < 250 ) cycletimer++;
  // autosend_();
   #endif
       
-  pageswitch();
+  if (page_mempos > 0 ) pageswitch();
     
    
 

@@ -97,8 +97,8 @@ void setup()
     
 
     
-   attachInterrupt(0, lettura_enc_principale, CHANGE); 
-   attachInterrupt(1, lettura_enc_principale, CHANGE);
+ //  attachInterrupt(0, lettura_enc_principale, CHANGE); 
+ //  attachInterrupt(1, lettura_enc_principale, CHANGE);
 
  //#if (stratos == 1)
  //attachInterrupt(2, lettura_enc_principale2, CHANGE); 
@@ -143,9 +143,17 @@ void setup()
   
   /////////////////////////////////////////////////////////////////////
 
+if (dmxtable[general_mempos] >0){
+   attachInterrupt(0, lettura_enc_principale, CHANGE); 
+   attachInterrupt(1, lettura_enc_principale, CHANGE);
+}
+
 #if (stratos == 0 )
+
 if (eeprom_preset_active == 1 && page_mempos > 0) // 1 = c'è un preset nella eeprom // eeprom_preset_active
 {
+
+  
   setPlexer((page_mempos)-((page_mempos/8)*8)); 
   lastbutton[page_mempos] = map(analogRead((page_mempos/8)), 0 ,1024, 0, 2); // read page switch state.
 
@@ -221,7 +229,8 @@ if (valuetable[general_mempos] != 0) {
  openeditor = 0;
  note = 255;  // out of range (0-127) value
 
-if (dmxtable[general_mempos] >0)  lastbutton[encoder_mempos[0]] = 64;
+ if (dmxtable[general_mempos] >0) 
+ lastbutton[encoder_mempos[0]] = 64;
 
  
  

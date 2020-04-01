@@ -39,8 +39,8 @@ eeprom_preset_active = 0;
   maxvalue[i] = remapper(EEPROM.read(i+320+(numero*512))-1);
     
   if (dmxtable[i] != 0) // quando vengono attivate le funzioni MOUSE, XY del joystick vengono impostate su BLIND INPUT - in tal modo si evitano conflitti
-  {modetable[minvalue[mouse_mempos]] = 27;
-  modetable[maxvalue[mouse_mempos]] = 27;}
+  {modetable[minvalue[mouse_mempos]] = 0;
+  modetable[maxvalue[mouse_mempos]] = 0;}
   }
   else {
     minvalue[i]= EEPROM.read(i+256+(numero*512)); // if (dmxtable[mouse_mempos] == 2)
@@ -63,7 +63,7 @@ eeprom_preset_active = 0;
   #endif
   
   
-       if ( eeprom_preset_active == 0) // aux viene impostato su 1 dalla void setup_mempos richamata sopra - alla riga 194 - se ÃƒÂ¨ presente un general mempos.
+       if ( eeprom_preset_active == 0) // aux viene impostato su 1 dalla void setup_mempos richamata sopra - alla riga 194 - se e' presente un general mempos.
        { aux_preset();
  
    
@@ -79,7 +79,7 @@ eeprom_preset_active = 0;
 void setup_mempos (byte i)  // richiamato da load_preset
   {
    
-     if ( modetable[i] == 18) distance_mempos = i;
+  if ( modetable[i] == 18) distance_mempos = i;
   //____________________________________________________________________________
   if ( modetable[i] == 21) {encoder_mempos[0] = i; update_scala(0);}
   if ( modetable[i] == 22) {encoder_mempos[1] = i; update_scala(1);}
