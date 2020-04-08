@@ -48,7 +48,10 @@ void button (byte cmd, byte pitch, byte velocity, byte filterr)
   
 switch ((cmd-144)  /16)
 {
- case 0 :   noteOn(cmd,pitch,velocity,filterr); break; // note
+  #if (note_off == 1)
+  case -1 :  noteOn(cmd,pitch,velocity,filterr); break; // note
+  #endif
+   case 0 :   noteOn(cmd,pitch,velocity,filterr); break; // note
  case 1 :   noteOn(cmd,pitch,velocity,filterr); break; // poly AT
  case 2 :   noteOn(cmd,pitch,velocity,filterr); break; // cc
  case 3 :   noteOn(cmd,velocity,0,filterr); // pc
@@ -78,17 +81,11 @@ switch (onoff)
  
      #if defined (__AVR_ATmega32U4__)  
       if (eeprom_preset_active == 1) // se esiste un preset in memoria
-      qwerty_out(1,qwertyvalue[chan_],0);
-      
-       /*   {
-    if (qwertyvalue[chan_] < 25 && qwertyvalue[chan_] > 0) Keyboard.press(pgm_read_byte(qwertymod+qwertyvalue[chan_]));
-  else if (qwertyvalue[chan_] > 31 ) Keyboard.press(qwertyvalue[chan_]); // normale tabella ascii // 
-  else if (qwertyvalue[chan_] != 31 ) Mouse.press(qwertyvalue[chan_]-24); // 25 26 27 28 29 30 - 
-      }*/
-      
+      qwerty_out(1,qwertyvalue[chan_],0);  
   #endif
      break;
      
+     #if (note_off == 0)
  case 0: 
    if (eeprom_preset_active == 1) {
    if (qwertyvalue[chan_] == 0 ) 
@@ -103,15 +100,33 @@ switch (onoff)
       #if defined (__AVR_ATmega32U4__)  
       if (eeprom_preset_active == 1)
       qwerty_out(0,qwertyvalue[chan_],0);
-     /* {
-    //  else if (qwertyvalue[chan_] < 25 ) Keyboard.release(qwertymod[qwertyvalue[chan_]]); 
-       if (qwertyvalue[chan_] < 25 && qwertyvalue[chan_] > 0 ) Keyboard.release(pgm_read_byte(qwertymod+qwertyvalue[chan_]));
-   else if (qwertyvalue[chan_] > 31 ) Keyboard.release(qwertyvalue[chan_]);
-    else  if (qwertyvalue[chan_] != 31 ) Mouse.release(qwertyvalue[chan_]-24);   
-      }
-      */
+     
     #endif
      break;
+#endif
+     #if (note_off == 1)
+case 0: 
+byte note_off_;
+if (valuetable[chan_+page] < 160) note_off_ = 16;
+
+if (eeprom_preset_active == 1) {
+   if (qwertyvalue[chan_] == 0 ) 
+   { 
+    button(typetable[chan_+page]-note_off_,valuetable[chan_+page],0,1);
+    #if (DMX_active == 1  && stratos == 0)
+   DmxSimple.write(dmxtable[chan_], minvalue[chan_]*2);
+   #endif
+   }}
+   else button(typetable[chan_+page]-note_off_,valuetable[chan_+page],0,1);
+   
+     
+      #if defined (__AVR_ATmega32U4__)  
+      if (eeprom_preset_active == 1)
+      qwerty_out(0,qwertyvalue[chan_],0);
+     
+    #endif
+     break;
+     #endif
   }
   
   }

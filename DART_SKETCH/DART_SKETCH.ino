@@ -1,10 +1,11 @@
 ///////////////////////////
-// DART_SKETCH   v1.73   //
+// DART_SKETCH   v1.74   //
 // Massimiliano Marchese //
-// Piero pappalardo      //
+// Piero Pappalardo      //
 // www.dartmobo.com      //
 ///////////////////////////
 
+#define note_off 0                   // 1 = enabled // 0 = disabled // send NOTE-OFF messages on button release
 #define main_encoder 1               // 1 = enabled // 0 = disabled // MAIN ENCODER_ 
 #define capacitivesensor_active 1    // 1 = enabled // 0 = disabled // CAPACITIVE SENSORS_
 #define shifter_active  1            // 1 = enabled // 0 = disabled // SHIFT REGISTERS_
@@ -12,8 +13,8 @@
 #define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
 #define stratos 0                    // 1 = enabled // 0 = disabled // Stratos sketch version.
 #define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
-#define mouse_block 1 // mouse messages are stopped after 2 seconds of repeated activity
-#define arrows_block 0               // arrow key messages are stopped after 2 seconds of repeated activity
+#define mouse_block 1                // 1 = enabled // 0 = disabled // mouse messages are stopped after 2 seconds of repeated activity
+#define arrows_block 0               // 1 = enabled // 0 = disabled // arrow key messages are stopped after 2 seconds of repeated activity
 #define page_LEDs 0                  // 1 = page LEDs active
 #define LED_rings 0                  // 1 = LED rings active
 #define encoders_generic 0           // 1 = enabled 
@@ -258,12 +259,6 @@ volatile byte lightable[65] // ho provato a scendere a 64 - ma si creavano stran
 
 
 
-volatile byte bit_status[4][max_modifiers/4]; // bit_status ÃƒÆ’Ã‚Â¨ un multiarray che contiene le vecchie tabelle di riferimento per far funzionare il toggle, il feedback e i led
-
- // 1 - ledstatus 1 e 2
- // 2 - feedback_bit1
- // 3 - feedback_bit2
- // 4 - bit_toggle 1 e 2
 
 
  byte  valuetable[max_modifiers*2] ;
@@ -273,6 +268,16 @@ volatile byte bit_status[4][max_modifiers/4]; // bit_status ÃƒÆ’Ã‚Â¨ u
  byte  modetable[max_modifiers] ; // 
  byte  qwertyvalue[max_modifiers];
  byte  dmxtable[max_modifiers];
+
+ ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ 
+volatile byte bit_status[4][max_modifiers/4]; // bit_status e' un multiarray che contiene le vecchie tabelle di riferimento per far funzionare il toggle, 
+                                              // il feedback e i led
+
+ // 1 - ledstatus 1 e 2
+ // 2 - feedback_bit1
+ // 3 - feedback_bit2
+ // 4 - bit_toggle 1 e 2
 
  byte feedop2 (byte input) { // used in midi feedback bit operations
  return input/8; }

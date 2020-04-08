@@ -16,40 +16,51 @@
       lastbutton[chan] = 0;
       if (modetable[chan] >= 3) offgroup(chan,1);      // da 3 in poi ci sono i toggle groups e radio groups
       
-            if (bit_read(4,page+chan)==0)              // something happens only if the button is off in the toggletable
+            if (bit_read(4,page+chan)==0)              // 4 = toggletable // something happens only if the button is off in the toggletable
             { 
                if ( eeprom_preset_active == 0 ) dmxtable[chan]++;    // ????
                
         
      //  Serial.println(mouse_mempos);
-           #if defined (__AVR_ATmega32U4__)  
+            #if defined (__AVR_ATmega32U4__)  
             HOT_keys(chan,1);    
             #endif  
-             //  Serial.println(" premuto ");Serial.println(chan);
              
-            outnucleo (1,chan);
-           // lower_Xen[0] = 200;
-            if (typetable[chan+page] < 160) scale_learn(valuetable[chan+page]);   
+             
+            
+         
+            if (typetable[chan+page] < 160) scale_learn(valuetable[chan+page]);   // sotto 160 ci sono note on e off 
+             
             #if (shifter_active == 1 && stratos == 0)    
             ledControl(chan, 1);
             ledrestore(page);
+          
             #endif
-          //  test3();   
-          if (modetable[chan] > 6) bit_write(4,chan+page,true);   // r-groups
+            
+          
+       
+          if (modetable[chan] > 6) bit_write(4,chan+page,true);   // r-groups // ricordare che: 4 = togletable
            else if (modetable[chan] >= 2   )  bit_write(4,chan+page,!bit_read(4,page+chan));     
+
+             outnucleo (1,chan);
             } 
             
-            else if (modetable[chan] <7   )
+            else     /// se il pulsante è acceso nella toggletable
+            
+            if (modetable[chan] <7   )
             {
                #if defined (__AVR_ATmega32U4__)  
             HOT_keys(chan,0);    
             #endif  
-              outnucleo (0,chan);
+             
                #if (shifter_active == 1 && stratos == 0)    
             ledControl(chan, 0);
             ledrestore(page);
+     
             #endif
             bit_write(4,chan+page,!bit_read(4,page+chan)); 
+
+             outnucleo (0,chan);
               }
               
       cycletimer = 0;
@@ -65,7 +76,7 @@
       {
         if (modetable[chan] >= 2   ) // se il pulsante = toggle o t-group o r-group
         {
-         if( modetable[chan] < 7  )  {  //                                                      7 8 9 10 sono r-group
+         if( modetable[chan] < 7  )  {  //                                                      7 8 9 10 sono RADIO group
             /*
              if (bit_read(4,page+chan) == 1) { // se il pulsante e' in toggle ed e' acceso
              #if defined (__AVR_ATmega32U4__)  
@@ -91,13 +102,15 @@
             #if defined (__AVR_ATmega32U4__)  
               HOT_keys(chan,0);
               #endif
-             outnucleo (0,chan);
+            
              #if (shifter_active == 1 && stratos == 0)
-              if (bit_read(4,page+chan) == 0)  ledControl(chan,0);
+              if (bit_read(4,page+chan) == 0)  
+              ledControl(chan,0);  
+      
               #endif
               }
                bit_write(4,chan+page,0);
-             
+              outnucleo (0,chan);
              }
             
              }
@@ -259,7 +272,7 @@ void pageswitch(){ //----------------------------------------------------- PAGE 
 midiOut(typetable[page_mempos],valuetable[page_mempos],minvalue[page_mempos]);
 
  #if (page_LEDs == 1)
-if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {
+if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {  // nomobo setup disattivo 
  shifter.setPin((dmxtable[page_mempos]-1), 1); 
  bit_write(1,(dmxtable[page_mempos]-1)+page,1);
  shifter.setPin((lightable[page_mempos]-1), 0); 

@@ -1,24 +1,50 @@
+
+#if (shifter_active == 1 && stratos == 0)
+
+void ledrestore (boolean numero) { // riscrive sullo shifter la pagina 1 con luci accese o spente
+
+  for(int led = 0; led < max_modifiers; led++) 
+{ 
+  
+shifter.setPin(led, bit_read(1,led+(numero*max_modifiers)) );
+// if (lastbutton[touch_mempos[0]] == 1)  shifter.setPin(4+numero,HIGH); 
+// if (lastbutton[touch_mempos[1]] == 1)  shifter.setPin(5+numero,HIGH); 
+} 
+  }
+  #endif
+
+  
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #if (shifter_active == 1 && stratos == 0)
 
 
 void ledControl (byte chann, byte stat)   // stat significa status 1 = acceso 0 = spento
-{
-   //  if (valuetable[general_mempos] == 0 )
-   if (valuetable[general_mempos] == 0) // se siamo in modalita MOBO - 
+{ 
+if (valuetable[general_mempos] == 0) // se siamo in modalita MOBO - 
+ 
    {  if (stat >0 ) 
    buttonefx = 0; // ampiezza dell'effetto
  
    for (byte i = 0; i < 16; i++)
    {
-   if (encledtable[i] == (lightable[chann]-1)) {buttonefxd = i; break;} else buttonefxd = 60;  // effetti led
+   if (encledtable[i] == (lightable[chann]-1)) {buttonefxd = i; break;} else buttonefxd = 60;  // effetti led // buttonefxd è il centro dell'effetto 
    }
 
    shifter.setPin((lightable[chann]-1), stat); 
 
-   bit_write(1,(lightable[chann]-1)+page,stat);
+   bit_write(1,(lightable[chann]-1)+page,stat);  
+   // memorizzo lo stato del LED in modo che, anche muovendo i pot, 
+   // si possa tornare a visualizzare la corretta configurazione
+ // bit table
+ // 1 - ledstatus 1 e 2
+ // 2 - feedback_bit1
+ // 3 - feedback_bit2
+ // 4 - bit_toggle 1 e 2
 
 }
-else 
+
+else    // se siamo in modalità no-mobo
 
 {
    //Serial.println(lightable[chann]);
@@ -42,6 +68,9 @@ else
  
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+# if (LED_rings == 1) 
 void LED_rings_ ()
 {
 shifter.setAll(HIGH);
@@ -57,6 +86,7 @@ for (byte i = 0; i < 16; i++) {
    
  
 }
+#endif
 
 #endif
 
@@ -157,18 +187,3 @@ if (encled < 240 ) shifter.setPin((encledtable[ripristino_led] ), bit_read(1,enc
   #endif
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#if (shifter_active == 1 && stratos == 0)
-
-void ledrestore (boolean numero) { // riscrive sullo shifter la pagina 1 con luci accese o spente
-
-  for(int led = 0; led < max_modifiers; led++) 
-{ 
-  
-shifter.setPin(led, bit_read(1,led+(numero*max_modifiers)) );
-// if (lastbutton[touch_mempos[0]] == 1)  shifter.setPin(4+numero,HIGH); 
-// if (lastbutton[touch_mempos[1]] == 1)  shifter.setPin(5+numero,HIGH); 
-} 
-  }
-  #endif

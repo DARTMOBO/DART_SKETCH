@@ -1,3 +1,11 @@
+// 1.75 ho aggiustato il led feedback, adesso può essere ricevuto da traktor senza problemi anche a ridosso della pressione di un pulsante.
+
+// sistemare e testare feedback anche su radiogroups e su entrambe le pagine
+
+// d_min riga 90 - non ricordo perche old_pitch viene settato a 126 !
+
+// 1.74 inserisco l'opzione note-off nel tab principale
+
 // 1.73 il pulsante b6 (posizione 0) aveva altri conflitti col pageswitch (qualora non fosse attivo come item nell'editor... adesso dovrebbe andare
 // 1.72 problema risolto sul pulsante B6 che corrisponde alla circuitposition 0 
 // se l'encoder principale non viene inserito (non c'è il relativo item , nel preset editor) succedeva che lastbutton veniva portato a 64

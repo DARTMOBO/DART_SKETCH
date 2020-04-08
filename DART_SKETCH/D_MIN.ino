@@ -70,7 +70,7 @@ else if ( (action==1)&&(note!=255) ){ // ...and then the velocity
 
 
      
- else {  // normali procedure di feedback midi
+ else {  // normali procedure di feedback midi // se openeditor == 0
 
   
  if (velocity!=0 )                                            // ricevuto segnale ACCESO
@@ -79,55 +79,67 @@ else if ( (action==1)&&(note!=255) ){ // ...and then the velocity
   if (type < 160) scale_learn(note); 
   
   #if (MIDI_thru == 1)
-   if (type < 160)   noteOn(type,note,127,0); else   noteOn(type,note,velocity,0);   // le note vengono sempre sparate fuori al massimo.
+   if (type < 160)   noteOn(type,note,127,0); else noteOn(type,note,velocity,0);   // le note vengono sempre sparate fuori al massimo.
   #endif
+
+ // bit tables:
+ // 1 - ledstatus 1 e 2
+ // 2 - feedback_bit1
+ // 3 - feedback_bit2
+ // 4 - bit_toggle 1 e 2
  
 for(int ledD = 0; ledD < max_modifiers; ledD++) {                                     // elaborazione led feedback
     
 if (valuetable[ledD]==note && bit_read(3,ledD) == 1   )  {    // prima pagina
-      bit_write(1, lightable[ledD], 1);                       // il led relativo al pulsante (ricevuto) viene memorizzato come acceso
-      old_pitch = 126;
-        if (modetable[ledD] >= 3) offgroup(ledD,1);
+      bit_write(1, lightable[ledD]-1, 1);                     // il led relativo al pulsante (ricevuto) viene memorizzato come acceso
       
-      if (page==0) {                                          // agisci solo se la pagina = 0
-       if ( lightable[ledD] > 0 ) {
-        #if (shifter_active == 1 && stratos == 0)
-       
-        shifter.setPin(lightable[ledD]-1,1); shifterwrite=1;    
-        // il led viene acceso 
-        // da notare il "-1" , che serve per allineare la numerazione dell'editor, che parte da 1
-      #endif
+      old_pitch = 126;                                        //  old_pitch viene usato nel filtro anti-doppioni interno alla void NoteOn 
+                                                              //  (che invia i messagi midi definitivamente)
+                                                              
+        if (modetable[ledD] >= 3) offgroup(ledD,1);           // se il pulsante è in un gruppo toggle, spengo gli altri pulsanti nel gruppo
       
-      if (valuetable[general_mempos] != 0 ) {   // nomobo
-         ledControl(ledD, 1);
-     
-        }
+      if (page==0) {                                          // accendi un led  SOLO SE la pagina = 0
+       if ( lightable[ledD] > 0 ) {                           // se al pulsante è effettivamente associato un led. //  0 = nessun effetto visivo
+        
+   #if (shifter_active == 1 && stratos == 0)    
+   shifter.setPin(lightable[ledD]-1,1); 
+   shifterwrite=1; // il led viene acceso // da notare il "-1" , che serve per allineare la numerazione dell'editor, che parte da 1                          
+   #endif
+      
+      if (valuetable[general_mempos] != 0 )                      // nomobo mode  
+      {ledControl(ledD, 1); }                                    // ??? // gestione effetti 
+      
        }
         
        #if (DMX_active == 1  && stratos == 0)
-    DmxSimple.write(dmxtable[ledD], velocity);
-      #endif
+       DmxSimple.write(dmxtable[ledD], velocity);
+       #endif
       }
       
-     // if (cycletimer < 3 ) 
-      {   // midi feedback su toggle
+                         // if (cycletimer < 3 )                             
+                            {   // midi feedback su toggle
                               
-                            if (modetable[ledD] >1 && modetable[ledD] < 11)  // se il pulsante e' in toggle e togglegroups
-                            { lastbutton[ledD]=0;   bit_write(4,ledD,0);  } 
-                            
+                            if (modetable[ledD] >1 && modetable[ledD] < 11)     // se il pulsante e' in toggle e togglegroups
+                          //  { lastbutton[ledD]=0;   bit_write(4,ledD,0);  }     // 4 = toggletable
+                              { //lastbutton[ledD]=0;  
+                              bit_write(4,ledD,1); 
+                                   }
                             else 
                             
-                            if (modetable[ledD] == 1)                        // se il pulsante e' button mode semplice
-                            {  bit_write(4,ledD,1); 
+                            if (modetable[ledD] == 1)                           // se il pulsante e' button mode semplice
+                            {  bit_write(4,ledD,1);                             // 4 = toggletable
                             // lastbutton[ledD] = 0;
                             } 
-                            } } // nb: lastbutton viene usato in modo diverso per pulsanti o pot! 
+                            
+                            } 
+                            
+                            } // nb: lastbutton viene usato in modo diverso per pulsanti o pot! 
 
-
+// -------------------------------------------------- 
                             
  
 if (valuetable[ledD+max_modifiers]==note && bit_read(3,ledD+max_modifiers) == 1)  {  // seconda pagina
-      bit_write(1, lightable[ledD]+max_modifiers, 1);
+      bit_write(1, lightable[ledD]+max_modifiers-1, 1);
       old_pitch = 126;
       
       if (page!=0) {                                            // agisci solo se sei su seconda pagina
@@ -147,13 +159,17 @@ if (valuetable[ledD+max_modifiers]==note && bit_read(3,ledD+max_modifiers) == 1)
       } 
     //  if (cycletimer < 3 ) 
       {   //  delay for midi feedback-loops - avoids prblems with midi loops and doubled messages                         
-      if (modetable[ledD] >1 && modetable[ledD] < 11)  { lastbutton[ledD]=0;  bit_write(4,ledD+max_modifiers,0); }  
+      if (modetable[ledD] >1 && modetable[ledD] < 11)  { //lastbutton[ledD]=0;  bit_write(4,ledD+max_modifiers,0); 
+       bit_write(4,ledD+max_modifiers,1); 
+      }  
        else if  (modetable[ledD] == 1) {  bit_write(4,ledD+max_modifiers,1); } 
       } }
   }  
  } 
  
- 
+ ///////////////////////
+ //////////////////////  ---------------------------------------------------------------------------------------------------------------
+ /////////////////////
 if (velocity==0 ){
 
   #if (MIDI_thru == 1)
@@ -162,8 +178,8 @@ if (velocity==0 ){
   
       for(int ledE = 0; ledE < max_modifiers; ledE++) { // shifter.setPin(led, ledstatus2[led]);   // elaborazione led feedback
       
-if (valuetable[ledE]==note && bit_read(3,ledE) ==1    )    {   
-   bit_write(1, lightable[ledE], 0); // ledstatus
+if (valuetable[ledE]==note && bit_read(3,ledE) ==1    )    {                                // prima pagina
+   bit_write(1, lightable[ledE]-1, 0); // ledstatus // memorizzo il ledstgatus come spento 
    bit_write(3,ledE,0);              // feedback2
    
    if (page==0) {
@@ -171,27 +187,32 @@ if (valuetable[ledE]==note && bit_read(3,ledE) ==1    )    {
     #if (shifter_active == 1 && stratos == 0)
     shifter.setPin(lightable[ledE]-1,0); shifterwrite=1;
    #endif
-    if (valuetable[general_mempos] != 0 ) {
-        ledControl(ledE, 0);
-        }
+    if (valuetable[general_mempos] != 0 )  // nomobo
+        { ledControl(ledE, 0);}
+        
     }
         
     #if (DMX_active == 1  && stratos == 0)
    DmxSimple.write(dmxtable[ledE], 0);
    #endif
    }
-                  // toggletable
-      if (modetable[ledE] >1 && modetable[ledE] < 11){ lastbutton[ledE]=1; 
-      // nota: nella void push_button, lastbutton viene portato a zero quando un pulsante ÃƒÂ¨ PREMUTO
-      // - viene autorizzato a mandare midiON solo se lastbutton ÃƒÂ¨ 1
-      bit_write(4,ledE,0); 
-      // nota: quando la toggletable (4) ÃƒÂ¨ == 1 , la presione del pulsante genera midiout (ved void pushbuttons)
+                                                                  // gestione toggletable
+      if (modetable[ledE] >1 && modetable[ledE] < 11)            // se il pulsante è in toggle o togglegroups
+      { //lastbutton[ledE]=1; 
+                                                                 // nota: nella void push_button, lastbutton viene portato a zero quando un pulsante e' PREMUTO
+                                                                 // - viene abilitato a mandare midiON solo se lastbutton e' 1
+     
+      bit_write(4,ledE,0);                                       // 4 = toggletable
+                                                                 // nota: quando la toggletable (4) e' = 1 , 
+                                                                 // la pressione del pulsante genera midiout (ved void pushbuttons)
       } 
-        else if  (modetable[ledE] == 1) {  bit_write(4,ledE,0); } 
+        else if  (modetable[ledE] == 1)                          // se il pulsante è in modalità normale
+        {  bit_write(4,ledE,0); } 
+        
       } 
   
-if (valuetable[ledE+max_modifiers]==note && bit_read(3,ledE+max_modifiers) ==1    )   {
-   bit_write(1, lightable[ledE]+max_modifiers, 0); 
+if (valuetable[ledE+max_modifiers]==note && bit_read(3,ledE+max_modifiers) ==1    )   {         //    secoda pagina
+   bit_write(1, lightable[ledE]+max_modifiers-1, 0); 
    bit_write(3,ledE+max_modifiers,0);  
    
  
@@ -225,6 +246,7 @@ if (valuetable[ledE+max_modifiers]==note && bit_read(3,ledE+max_modifiers) ==1  
     }   
   }  
   } 
+    
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -331,7 +353,8 @@ if (EEPROM.read(i+128) == note) EEPROM.write(i+128,19);}  }
      case 3 : ///////////////////////////// keyboard - miditype
      if (memoryposition < 64) {
 // EEPROM.write(memoryposition+448,note);
-  EEPROM.write(memoryposition,type-176+(velocity*16)+144); // TYPE // velocity = miditype proveniente dall'editor numerato da 0 a 6 - viene moltiplicato per 16 e sistemato da 144 in poi a seconda del canale
+  EEPROM.write(memoryposition,type-176+(velocity*16)+144); 
+ // TYPE // velocity = miditype proveniente dall'editor numerato da 0 a 6 - viene moltiplicato per 16 e sistemato da 144 in poi a seconda del canale
  // type contiene ovviamente anche l'informazione del canale
      EEPROM.write(memoryposition+384,note); //  =  memorizzato a partire dalla posizione 384
  } else{
