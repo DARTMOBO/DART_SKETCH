@@ -1,3 +1,5 @@
+// 1.76 è possibile scegliere dal main tab quale sarà il pattern per le animazioni LED
+
 // 1.75 ho aggiustato il led feedback, adesso può essere ricevuto da traktor senza problemi anche a ridosso della pressione di un pulsante.
 
 // sistemare e testare feedback anche su radiogroups e su entrambe le pagine

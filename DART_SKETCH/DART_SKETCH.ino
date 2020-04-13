@@ -5,10 +5,11 @@
 // www.dartmobo.com      //
 ///////////////////////////
 
-#define note_off 0                   // 1 = enabled // 0 = disabled // send NOTE-OFF messages on button release
+#define note_off 0                   // 1 = enabled // 0 = disabled // send NOTE-OFF messages on button release -  if NOTE Type has been selected
 #define main_encoder 1               // 1 = enabled // 0 = disabled // MAIN ENCODER_ 
 #define capacitivesensor_active 1    // 1 = enabled // 0 = disabled // CAPACITIVE SENSORS_
 #define shifter_active  1            // 1 = enabled // 0 = disabled // SHIFT REGISTERS_
+#define LED_pattern 0                // 0 = dart one // 1 = kombat // - Led animation pattern used by buttons and pots
 #define DMX_active   0               // 1 = enabled // 0 = disabled // disable also from _DART_Dmx_out.cpp to free more memory
 #define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
 #define stratos 0                    // 1 = enabled // 0 = disabled // Stratos sketch version.
@@ -74,27 +75,22 @@ const int maxbeam = 520;
 const int minbeam = 290;
 
 ///////////////////////////////////////////////////////////////////////
-
- //  const byte encledtable[16]= { 4,5,6,7, 12,13,14,15, 3,2,1,0, 11,10,9,8,};  // dart one 
+#if (LED_pattern == 0) 
+   const byte encledtable[16]= { 4,5,6,7, 12,13,14,15, 3,2,1,0, 11,10,9,8,};  // dart one 
+ #endif
  
  // const byte encledtable[16]= { 4,5,6,7, 12,13,14,15, 3,2,1,16, 11,10,9,8,};  // dart one - darietto
   
-// const byte *const encledtable_MEM[16] PROGMEM = { 4,5,6,7, 12,13,14,15, 3,2,1,0, 11,10,9,8,};  // dart one
-
-
  
 //  const byte encledtable[16] = { 15,15,14,14,13,13,12,12,11,11,10,10,9,9,8,8,};  // vector
 
  // const byte encledtable[16] = { 8,8,9,9,10,10,11,11,12,12,13,13,14,14,15,15};  // vector inverted
 
-
+ #if (LED_pattern == 1) 
   const byte encledtable[16] = { 12,13,14,14,15,0,7,7,1,6,2,2,5,3,4,4};  // kombat
+#endif
 
-//const byte  encledtable2[16]  = {11,10,9,8,60,60,60,60,8,9,10,11,0,1,2,3,};
-
-//const byte  encledtable3[16]  = {32,32,32,32,4,5,6,7,12,13,14,15,32,32,32,32};
-
- //  const byte qwertymod[2];
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
  const PROGMEM  byte qwertymod[33] = { // da 0 a 24 ci sono i modificatori - da 25 a 32 controlli mouse
