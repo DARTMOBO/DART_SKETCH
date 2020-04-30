@@ -1,3 +1,10 @@
+//   1.77
+//   ho modificato shifter.h // byte _shiftRegisters[24] adesso è byte _shiftRegisters[8]; 
+//   void setPin(int index, boolean val) adesso è  void setPin(byte index, boolean val);
+//   ho modificato shifter.h
+
+ // correggere - mancano gli offgroup sulla seconda pagina - lato feedback dall'esterno
+
 // 1.76 è possibile scegliere dal main tab quale sarà il pattern per le animazioni LED
 
 // 1.75 ho aggiustato il led feedback, adesso può essere ricevuto da traktor senza problemi anche a ridosso della pressione di un pulsante.
@@ -27,7 +34,7 @@
 
 // verificare che l'input 6 che non funziona al tipo che mi ha scritto via mail, non sia una cosa dovuta all'attivazione dell'encoder secondario.
 
-//1.69 tutti i toggle funzionano senza bug e senza rischi premendo più pulsanti.
+// 1.69 tutti i toggle funzionano senza bug e senza rischi premendo più pulsanti.
 // 1.68 al momento ho sistemato la gestione del side spinner leggendolo dentro AIN una sola volta per ciclo, come un normale encoder
 //
 // muovendo il main encoder vengono inviati fuori segnali anche del side spinner... non disturbano molto ma bisogna capire perchè!
@@ -98,6 +105,7 @@
 
 // v1.60 adesso si possono collegare tanti encoders - l'encoder secondario (side spinner) va collegato a pins 33 e 41 - da testare, ma dovrebbe funzionare molto meglio
 
+ 
 // 1.59 aggiunta possibilità controllo due leds con page switch
 
 // voglio provare a controllare due led con lo switch page - uso ledcontrol(chan,1);

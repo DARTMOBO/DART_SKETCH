@@ -1,5 +1,5 @@
 ///////////////////////////
-// DART_SKETCH   v1.74   //
+// DART_SKETCH   v1.77   //
 // Massimiliano Marchese //
 // Piero Pappalardo      //
 // www.dartmobo.com      //
@@ -8,8 +8,9 @@
 #define note_off 0                   // 1 = enabled // 0 = disabled // send NOTE-OFF messages on button release -  if NOTE Type has been selected
 #define main_encoder 1               // 1 = enabled // 0 = disabled // MAIN ENCODER_ 
 #define capacitivesensor_active 1    // 1 = enabled // 0 = disabled // CAPACITIVE SENSORS_
-#define shifter_active  1            // 1 = enabled // 0 = disabled // SHIFT REGISTERS_
-#define LED_pattern 0                // 0 = dart one // 1 = kombat // - Led animation pattern used by buttons and pots
+#define shifter_active  1            // 1 = enabled // 0 = disabled // SHIFT REGISTERS_ // if enabled, Matrix_pads must be disabled
+#define Matrix_Pads 0                // 1 = enabled // 0 = disabled // max7219 chips
+#define LED_pattern 1                // 0 = dart one // 1 = kombat // - Led animation pattern used by buttons and pots
 #define DMX_active   0               // 1 = enabled // 0 = disabled // disable also from _DART_Dmx_out.cpp to free more memory
 #define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
 #define stratos 0                    // 1 = enabled // 0 = disabled // Stratos sketch version.
@@ -31,39 +32,36 @@
 #include "_DART_MIDI.h"
 #include <Mouse.h>
 #include <Keyboard.h>
-
- midiEventPacket_t rx;
+midiEventPacket_t rx;
 #endif
 
- #if (capacitivesensor_active == 1)
- #include "_DART_Touch_Sensor.h"
+#if (capacitivesensor_active == 1)
 
+#include "_DART_Touch_Sensor.h"
 #if (stratos == 1 )
 CapacitiveSensor   cs_4_2[1] = {CapacitiveSensor(8,9);} // stratos
-
 #endif
-
 #if (stratos == 0 )
-  CapacitiveSensor   cs_4_2[2] = {CapacitiveSensor(8,7),CapacitiveSensor(8,9)};
- //  CapacitiveSensor   cs_4_3 = CapacitiveSensor(8,9);  // one - stratos
- #endif
+CapacitiveSensor   cs_4_2[2] = {CapacitiveSensor(8,7),CapacitiveSensor(8,9)};
+#endif
  
 #endif
 
 
-
- // #if defined DMX_active 
- #if (DMX_active == 1 && stratos == 0)
-
+#if (DMX_active == 1 && stratos == 0)
 #include "_DART_DMX_Out.h"
 #endif
-
 
 #include "_DART_EEPROM.h"
 
 #if (shifter_active == 1 && stratos == 0)
 #include "_DART_Shifter.h"
 #endif
+
+// #if (Matrix_Pads == 1 && stratos == 0)
+ #include "LedControl.h"
+// #endif
+
 
 
 
@@ -127,13 +125,12 @@ const int minbeam = 290;
  };
 
 
+   const byte matrix_remap[] = {1, 6, 2, 5, 7,11, 0, 4, 3,10, 8,9 ,12, 3, 0, 8};
 
-// const byte input_remap[] = {6,8,4,2,7,1,5,3,};
-// byte remapper(byte input) {return  ((input_remap[((input)-(((input)/8)*8))]+(((input)/8)*8))) -1;}
+// const PROGMEM byte matrix_remap[] = {1, 6, 2, 5, 7,11, 0, 4, 3,10, 8,9 ,12, 3, 0, 8};
 
-
-
- const PROGMEM byte  input_remap[]  = {6,8,4,2,7,1,5,3,};
+const PROGMEM byte  input_remap[]  = {6,8,4,2,7,1,5,3,};
+ 
 byte remapper(byte input) 
 {return  (( pgm_read_byte(input_remap + ((input)-(((input)/8)*8)) ) +(((input)/8)*8))) -1;}
 
@@ -219,7 +216,7 @@ byte higher_Xen[2] = {40,40};
  byte buttonefxd = 0;
  byte buttonefxu = 0;
  byte shifterwrite = 1; // led refresh
- int encled; //  used for encoder led animation
+ int encled[2]; //  used for encoder led animation
 
 //////////////////////////////////////////////////////////////////////////////////////
 #if (shifter_active == 1 && stratos == 0)
@@ -229,6 +226,24 @@ byte higher_Xen[2] = {40,40};
 #define NUM_REGISTERS 4 // how many registers are in the chain
 Shifter shifter(SER_Pin, RCLK_Pin, SRCLK_Pin, NUM_REGISTERS);
 #endif 
+
+#if (Matrix_Pads == 1 && stratos == 0)
+byte max_units = 12;
+LedControl lc=LedControl(10,11,12,max_units); 
+// LedControl(int dataPin, int clkPin, int csPin, int numDevices) 
+
+//byte order_line[8] = {5,6,0,1,3,4,7,2};
+ // const byte order_row[8] = {6,1,5,3,7,2,4,0};
+
+ void set_unit(byte number_of_unit){ 
+  lc.shutdown(number_of_unit,false);
+  /* Set the brightness to a medium values */
+  lc.setIntensity(number_of_unit,1); // luminosita' da 1 a 15
+  /* and clear the display */
+  lc.clearDisplay(number_of_unit); 
+   }
+   
+#endif
 
 //////////////////////////////////////////////////////////////////////////////////////
 //byte contoencoder;
@@ -303,102 +318,46 @@ byte scala_counter;
 byte scala_reset;
 
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+ /////////////////////////////////////////////////////////////////////////////////////////////////////////////////7
+ ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void loop () {
-if (cycletimer < 250 ) cycletimer++;
-
-
-#if (MIDI_IN_block == 0)
-
+#if (Matrix_Pads == 1 && stratos == 0)
+void single_h(byte number_of_unit,byte sprite, byte invert) { // quale pad, quale simbolo, inversione immagine
   
-    #if defined (__AVR_ATmega32U4__)               // USB MIDI in
-  do {                                         
-    rx = MidiUSB.read();
-    if (rx.header != 0) {
- incomingByte  = rx.byte1; midifeedback();
- incomingByte  = rx.byte2; midifeedback();
- incomingByte  = rx.byte3; midifeedback();
-    }
-  } while (rx.header != 0);
- 
-   #if ( stratos == 0) 
-                                                  // DIN MIDI in
-  if (Serial1.available() > 0) { 
-  incomingByte = Serial1.read();
-  midifeedback(); 
-  } 
-  else 
-  #endif
-  
+  byte sprite_pos = remapper(sprite); // in quale posizione di memoria è memorizzato il simbolo? // fare il remapper della numerazione di "led" (cioè lightable-1)
+
+if (invert == 0 )
+{
+lc.setRow(number_of_unit,6, valuetable[sprite_pos]);
+lc.setRow(number_of_unit,1, maxvalue[sprite_pos]);
+lc.setRow(number_of_unit,5, minvalue[sprite_pos]);
+lc.setRow(number_of_unit,3, modetable[sprite_pos]);
+
+lc.setRow(number_of_unit,7, dmxtable[sprite_pos]);
+lc.setRow(number_of_unit,2, qwertyvalue[sprite_pos]);
+lc.setRow(number_of_unit,4, typetable[sprite_pos]);
+lc.setRow(number_of_unit,0, lightable[sprite_pos]);
+}
+else 
+{
+  lc.setRow(number_of_unit,6, ~valuetable[sprite_pos]);
+lc.setRow(number_of_unit,1, ~maxvalue[sprite_pos]);
+lc.setRow(number_of_unit,5, ~minvalue[sprite_pos]);
+lc.setRow(number_of_unit,3, ~modetable[sprite_pos]);
+
+lc.setRow(number_of_unit,7, ~dmxtable[sprite_pos]);
+lc.setRow(number_of_unit,2, ~qwertyvalue[sprite_pos]);
+lc.setRow(number_of_unit,4, ~typetable[sprite_pos]);
+lc.setRow(number_of_unit,0, ~lightable[sprite_pos]);
+  }
+}
 #endif
 
 
 
 
-
-  #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
- if (Serial.available() > 0) { 
-  incomingByte = Serial.read();
-  midifeedback();  } 
-  else 
-  #endif
-
-      
-  if (openeditor != 1) 
-  #endif 
-   
-  {
-
-    
-  
- indexXen++; if (indexXen == 3) indexXen = 0;
-   #if (capacitivesensor_active > 0)
-     touch_sensors(0);
-          #if (stratos == 0)
-         if (dmxtable[general_mempos] >1) touch_sensors(1);
-          #endif
-    #endif
-
-  #if (stratos == 1)  
-  AIN_stratos();
-   #endif
-  #if (stratos == 0)  
-  AIN();
-   #endif
-
-
-    #if (shifter_active == 1 && stratos == 0)
-  if (qwertyvalue[general_mempos] > 2)    buttonledefx();  
-    #endif
- 
- 
- #if (autosend == 1)
- // autosend_();
-  #endif
-      
-  if (page_mempos > 0 ) pageswitch();
-    
-   
-
- //shifter.setAll(LOW);     
-// if (valuetable[general_mempos] == 0)  shifter.write();
-     #if (shifter_active == 1 && stratos == 0)
-     if (shifterwrite ==1 && valuetable[general_mempos] == 0)  {shifter.write(); shifterwrite=0;
-      }
-     #endif
- 
-  }
-
-}
-
-
-
- /////////////////////////////////////////////////////////////////////////////////////////////////////////////////7
- ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+#if (autosend == 1)
 void autosend_()
 {
 for(byte c=0; c<48; c++)
@@ -413,54 +372,7 @@ for(byte c=0; c<48; c++)
     
   }
   delay(1000);
-/*  for(byte c=0; c<48; c++)
-  if (valuetable[c] == 25) Serial.println(modetable[c]);
-  
-  for(byte c=0; c<48; c++)
-  {
-      if (modetable[c] == 11) 
-      for (byte i = 0 ; i <7; i ++)
-        {
-        noteOn(177, valuetable[c+64], i*16, 0);
-        delay(10);
-        }
-  }
-  */
+
   
   }
-
-/*
-void test1() // startup test code
-{
- Serial.println(valore/32); //
- Serial.println(mouse_mempos);
- Serial.println("   ");
- // delay (1);
-
-}
-*/
-
-
-
-
-/*
-void test2() // touchsensors test code
-{
-
-
-}
-
-void test3() // on button pressure test code
-{
-
-
-
- // Serial.println("-----   ");
-  
-  
-//Serial.print("-encoder_mempos-");Serial.println(encoder_mempos[0]);
-//Serial.print("eeprom-dmx-1--");Serial.println(EEPROM.read(58+192));
-//Serial.print("eeprom-dmx-2--");Serial.println(EEPROM.read(58+192+512));
-
-}
-*/
+#endif

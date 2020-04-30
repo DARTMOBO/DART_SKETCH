@@ -9,7 +9,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
       #if (LED_rings == 1)
    LED_rings_ ();
    shifter.write();
-   #endif
+   #endif 
   
 #if (main_encoder == 1) 
       if (lastbutton[encoder_mempos[0]] == 64 || dmxtable[general_mempos] == 0)
@@ -173,7 +173,8 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
   
   if ( modetable[chan] == 0) {}
   else if ( modetable[chan] > 0 && modetable[chan]< 11) {push_buttons(); }
-  else if (modetable[chan] < 17)  pots();  // pots + hypercurves - 11, 12,13,14,15,
+  else if (modetable[chan] < 16)  pots();  // pots + hypercurves - 11, 12,13,14,15,
+  else if  (modetable[chan] == 16) user_item();
   else if (modetable[chan] == 17)   { if (valore < 512) lastbutton[page_mempos] =0; else lastbutton[page_mempos] =1;} // page switch
 
    else if (modetable[chan] == 18) {                  // beam
@@ -316,30 +317,7 @@ bitWrite(scala[numero+2],i+7,  bitRead(maxvalue[encoder_mempos[numero]+max_modif
 
   
 ////////////////////////////////////////////////////////
-   void offgroup (byte canale, byte midiout)
-   
-   {    for (int i = 0; i <56; i++) { 
-if (modetable[i] == modetable[canale] && i!=canale)  // se i pulsanti sono nello stesso gruppo e sono accesi, spegnere lucetta e memorizzare status toggle
-  {
-
- if (
- bit_read(4,i) == 1
- || 
- bit_read(4,i+max_modifiers) == 1
- )
-  
-  
-{  if (midiout ==1) outnucleo(0,i);
- }  
- #if (shifter_active == 1 && stratos == 0)
-  shifter.setPin(lightable[i]-1, 0); 
-  #endif 
-  
-  bit_write(4,i+page,0);
- bit_write(1,lightable[i]+page-1,0);
-  } 
-  }
-}
+ 
 //////////////////////////////////////////////////////////
 
 #if (stratos == 0 )

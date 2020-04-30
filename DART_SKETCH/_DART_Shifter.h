@@ -4,6 +4,7 @@
 // Include the standard types
 #include <Arduino.h>
 
+
 // Define the Shifter class
 class Shifter
 {
@@ -11,7 +12,10 @@ class Shifter
     // Constructor
     Shifter(byte SER_Pin, byte RCLK_Pin, byte SRCLK_Pin, byte Number_of_Registers);
    	void write();
+    
    	void setPin(int index, boolean val);
+     // void setPin(byte  index, boolean val);
+     
    	void setAll(boolean val);
    	//void clear();
 
@@ -22,7 +26,7 @@ class Shifter
   	byte _RCLK_Pin;
   	byte _SRCLK_Pin;
   	byte _Number_of_Registers;
-  	byte _shiftRegisters[25];
+  	byte _shiftRegisters[8]; // byte _shiftRegisters[24];
 };
 
 #endif //Shifter_h

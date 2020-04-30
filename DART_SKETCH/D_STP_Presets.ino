@@ -3,8 +3,8 @@
  void load_preset_base() {       //carica le variabili che devono restare in memoria indipendentemnte per le due pagine, per gestire il feedback. 
    
   for (int i = 0; i <max_modifiers; i++) {
-  typetable[i] = EEPROM.read(i);
-  valuetable[i] = EEPROM.read(i+64);
+  typetable[i] = EEPROM.read(i);                        // note cc pc at  + channel
+  valuetable[i] = EEPROM.read(i+64);                    // 0-127 che nota è
   typetable[i+max_modifiers] = EEPROM.read(i+(512));
   valuetable[i+max_modifiers] = EEPROM.read(i+64+(512));
   }
@@ -27,7 +27,7 @@ eeprom_preset_active = 0;
 
    for (byte i = 0; i <max_modifiers; i++) {
     
-   modetable[i]= EEPROM.read(i+128+(numero*512));
+   modetable[i]= EEPROM.read(i+128+(numero*512));    
    setup_mempos(i);                                // dopo aver caricato la modetable facciamo il settaggio macchina
 
 

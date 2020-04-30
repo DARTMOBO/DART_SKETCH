@@ -90,6 +90,49 @@ for (byte i = 0; i < 16; i++) {
 
 #endif
 
+
+//_____________________________________________________________________________________________________
+
+#if (shifter_active == 1 && stratos == 0)
+
+void led_enc_exe ()
+{
+
+if (qwertyvalue[general_mempos] > 0) // verifico che nelle impostazioni GENERAL siano attivati gli effetti // 0 = no / 1 = pots / 2 = spinners / 3 = buttons
+  {
+                                                                                      // se encled supera il valore massimo o minimo
+                                                                                      // per esempio girando un encoder...
+                                                                                      // l'effetto luminoso deve ricominciare ni nuovo dal basso o dall'alto
+                                                                                              
+   if (encled[0] <0) { encled[0] = 255 ; 
+  shifter.setPin(encledtable[0], bit_read(1,encledtable[0]+(page)));
+  shifter.setPin(encledtable[1], bit_read(1,encledtable[1]+(page)));
+ } else
+
+
+if (encled[0] >255) { encled[0] = 0; 
+ shifter.setPin(encledtable[15], bit_read(1,encledtable[15]+(page))); 
+  shifter.setPin(encledtable[14], bit_read(1,encledtable[14]+(page))); 
+ } 
+
+ if (cycletimer <  10) {shifter.setPin(encledtable[constrain(encled[0]/16,0,15)] , 1);  } // accendo effettivamente il led secondo il valore "encled"
+                                                                                          // che farà riferimento alla tabella "encledtable"
+                                                                                          // encled è 0-255 // diviso per 16 da luogo a 16 posizioni
+                                                                                          // (che può cambiare da modello a modello - kombat / one etc etc)
+ 
+ byte ripristino_led = (encled[0]/16) -2;                                                            // adesso vado a spegnere i led che ho acceso prima
+ shifter.setPin((encledtable[ripristino_led] ), bit_read(1,encledtable[ripristino_led]+(page)));     // se un led era acceso nella tabella bitstatus, rimarrà acceso
+ ripristino_led = (encled[0]/16) +2;                                                                 // spengo anche nella direzione opposta
+if (encled[0] < 240 ) 
+ shifter.setPin((encledtable[ripristino_led] ), bit_read(1,encledtable[ripristino_led]+(page)));
+
+  shifterwrite=1; // on viene ripetuto ad ogni ciclo, ma solo quando vene mosso l'encoder
+}
+  }
+  #endif
+
+//----------------------------------------------------------------------------------------------------------------------------
+/*
 #if (shifter_active == 1 && stratos == 0)
 
 void led_enc_exe ()
@@ -98,28 +141,151 @@ void led_enc_exe ()
 if (qwertyvalue[general_mempos] > 0)
   {
 
-   if (encled <0) { encled = 255 ; 
+   if (encled[0] <0) { encled[0] = 255 ; 
   shifter.setPin(encledtable[0], bit_read(1,encledtable[0]+(page)));
   shifter.setPin(encledtable[1], bit_read(1,encledtable[1]+(page)));
  } else
 
 
-if (encled >255) { encled = 0; 
+if (encled[0] >255) { encled[0] = 0; 
  shifter.setPin(encledtable[15], bit_read(1,encledtable[15]+(page))); 
   shifter.setPin(encledtable[14], bit_read(1,encledtable[14]+(page))); 
  } 
 
- if (cycletimer <  10) {shifter.setPin(encledtable[constrain(encled/16,0,15)] , 1);  }
+ if (cycletimer <  10) {shifter.setPin(encledtable[constrain(encled[0]/16,0,15)] , 1);  }
  
-byte ripristino_led = (encled/16) -2;
+byte ripristino_led = (encled[0]/16) -2;
  shifter.setPin((encledtable[ripristino_led] ), bit_read(1,encledtable[ripristino_led]+(page))); 
-  ripristino_led = (encled/16) +2;
-if (encled < 240 ) shifter.setPin((encledtable[ripristino_led] ), bit_read(1,encledtable[ripristino_led]+(page)));
+  ripristino_led = (encled[0]/16) +2;
+if (encled[0] < 240 ) shifter.setPin((encledtable[ripristino_led] ), bit_read(1,encledtable[ripristino_led]+(page)));
 
   shifterwrite=1; // on viene ripetuto ad ogni ciclo, ma solo quando vene mosso l'encoder
 }
   }
   #endif
+  
+*/
+  //_____________________________________________________________________________________________________________________________________________
+
+  #if (Matrix_Pads == 1 )
+
+void led_enc_exe_matrix ()
+{
+   byte pad_;
+ 
+
+  byte A[]={0,0,0};
+ 
+if (qwertyvalue[general_mempos] > 0) // verifico che nelle impostazioni GENERAL siano attivati gli effetti // 0 = no / 1 = pots / 2 = spinners / 3 = buttons
+  {
+                                                                                      // se encled supera il valore massimo o minimo
+                                                                                      // per esempio girando un encoder...
+                                                                                      // l'effetto luminoso deve ricominciare ni nuovo dal basso o dall'alto
+   if (encled[0] <0) { encled[0] = 255 ;}
+   else
+   if (encled[0] >255) {encled[0] = 0;} 
+
+ //_________________________________________________________________________
+
+ if (cycletimer <  10) { //shifter.setPin(encledtable[constrain(encled/16,0,15)] , 1);  
+   pad_ = encled[0];
+   if (pad_ >7) pad_=pad_ -8;
+   if (pad_ >7) pad_=pad_ -8;
+  byte pad_2 = encled[0]/8;
+ bitWrite(A[pad_2], pad_   ,true);
+
+ // Serial.print(encled); Serial.print(" - "); Serial.print(pad_);  Serial.print(" - "); Serial.println(pad_2*4);
+  
+  for (byte i = 0 ; i < 7; i++)
+  {
+    if ( bitRead(A[pad_2],i) == true) { 
+   lc.Parola_diretta(pad_2*4, order_row[i],1 ); 
+     lc.Parola_diretta(pad_2*4, order_row[i+1],1 ); 
+    }
+    }
+
+
+    //----------------
+
+    pad_ = encled[1];
+   if (pad_ >7) pad_=pad_ -8;
+   if (pad_ >7) pad_=pad_ -8;
+   pad_2 = encled[1]/8;
+   A[pad_2]= 0;
+   
+      // if (encled[0]/8 != pad_2)
+      Serial.print(encled[0]); Serial.print(" - "); Serial.print(encled[1]);  Serial.print(" - "); Serial.println(pad_2*4);
+      //if (abs(encled[0]-encled[1]) >0)
+      if (encled[0] != encled[1])
+{
+ bitWrite(A[pad_2], pad_   ,true);
+
+     for (byte i = 0 ; i < 7; i++)
+  {
+    if ( bitRead(A[pad_2],i) == true) { 
+   lc.Parola_diretta(pad_2*4, order_row[i],0 ); 
+     lc.Parola_diretta(pad_2*4, order_row[i+1],0 ); 
+    }
+    }
+ }
+ 
+  encled[1] = encled[0];
+    
+  //lc.setRow(number_of_unit,0, lightable[sprite_pos]);
+  
+ //lc.clearDisplay(pad_*4);
+ // lc.setRow(pad_*4,  order_row[row_], 255);
+//  lc.setRow(pad_*4+1,order_row[row_], 255);
+//  lc.setRow(pad_*4+2,order_row[row_], 255);
+//  lc.setRow(pad_*4+3,order_row[row_], 255);
+
+ //  pad_ = ((encled+24)/85);
+ //  byte row_ = (encled/11)-(8*(pad_));
+ //  lc.setRow(pad_*4,order_row[row_], 255);
+  //lc.setRow(pad_*4+1,row_, 255);
+  //lc.setRow(pad_*4+2,row_, 255);
+ // lc.setRow(pad_*4+3,row_, 255);
+  
+ } 
+                                                                                       // accendo effettivamente il led secondo il valore "encled"
+                                                                                       // che farà riferimento alla tabella "encledtable"
+                                                                                       // encled è 0-255 // diviso per 16 da luogo a 16 posizioni
+                                                                                       // (che può cambiare da modello a modello - kombat / one etc etc)
+
+
+                                                                                       
+ 
+ // byte ripristino_led = (encled/32) -1;                                                            // adesso vado a spegnere i led che ho acceso prima
+ // shifter.setPin((encledtable[ripristino_led] ), bit_read(1,encledtable[ripristino_led]+(page)));  
+ //lc.setRow(encled/85,order_row[(encled/11)-(8*(encled/85))], 255);
+ // byte pad_ = (encled/85);
+
+ //pad_ = ((encled+46)/85);
+ // byte row_ = (encled/11)-(8*(pad_));
+ // lc.setRow(pad_*4,order_row[row_], 0);
+ 
+ // lc.setRow(pad_*4+1,row_, 0);
+ // lc.setRow(pad_*4+2,row_, 0);
+  //lc.setRow(pad_*4+3,row_, 0);
+                                                                                                  // se un led era acceso nella tabella bitstatus, rimarrà acceso
+ // ripristino_led = (encled/32) +1;                                                                 // spengo anche nella direzione opposta
+ // if (encled < 240 ) {}
+ //shifter.setPin((encledtable[ripristino_led] ), bit_read(1,encledtable[ripristino_led]+(page)));
+ //lc.setRow(0,order_row[ripristino_led], 0);
+ 
+  // byte pad_ = (encled/85);
+  //byte row_ = order_row[(encled/11-2)-(8*(pad_))];
+  //lc.setRow(pad_*4,row_, 0);
+  //lc.setRow(pad_*4+1,row_, 0);
+ // lc.setRow(pad_*4+2,row_, 0);
+ // lc.setRow(pad_*4+3,row_, 0);
+
+  // shifterwrite=1; // on viene ripetuto ad ogni ciclo, ma solo quando vene mosso l'encoder
+}
+  }
+  #endif
+
+  //_____________________________________________________________________________________________________________________________________________
 
   #if (shifter_active == 1 && stratos == 0)
  
@@ -181,9 +347,36 @@ if (encled < 240 ) shifter.setPin((encledtable[ripristino_led] ), bit_read(1,enc
    void beamefx()
  {
      cycletimer = 0;
-      encled = lightable[distance_mempos] *2;
+      encled[0] = lightable[distance_mempos] *2;
         led_enc_exe();
   }
   #endif
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------
+
+    void offgroup (byte canale, byte midiout) // canale == il chan del pulsante premuto
+   
+   {    for (int i = 0; i <56; i++) { 
+if (modetable[i] == modetable[canale] && i!=canale)  // se i pulsanti sono nello stesso gruppo e sono accesi, spegnere lucetta e memorizzare status toggle
+  {
+
+ if ( bit_read(4,i) == 1 || bit_read(4,i+max_modifiers) == 1)
+  
+ if (midiout ==1) outnucleo(0,i); // invia messaggio OFF - se il parametro midiout e' 1
+   
+     #if (shifter_active == 1 && stratos == 0)
+     shifter.setPin(lightable[i]-1, 0);                 // spegni il led
+     #endif 
+
+     #if (Matrix_Pads == 1 )
+     single_h(matrix_remap[i-16],lightable[i]-1,0);  // 
+     #endif
+  
+  bit_write(4,i+page,0);
+  bit_write(1,lightable[i]+page-1,0);
+  } 
+  }
+}
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////

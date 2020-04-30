@@ -76,7 +76,7 @@ V_touch_regulator[numero2] = 0; // lastbutton encoder 1 e 2 mempos si possono us
     valuetable[numero+page], 
           constrain((lastbutton[numero]-63)*64, 0,127),0);   }   
            
-    encled = encled + (lastbutton[numero]-64)*(minvalue[numero]-32) ; } // endless mode 0-127
+    encled[0] = encled[0] + (lastbutton[numero]-64)*(minvalue[numero]-32) ; } // endless mode 0-127
    
   else{  // - minvalue sotto 32 inverte il funzionamento ----------------------------------------------------
     
@@ -89,7 +89,7 @@ V_touch_regulator[numero2] = 0; // lastbutton encoder 1 e 2 mempos si possono us
    valuetable[numero+(page)], 
    constrain(-(lastbutton[numero]-64)*127, 0,127),0);}
    
-   encled = encled + (lastbutton[numero]-64)*(minvalue[numero]-32); }
+   encled[0] = encled[0] + (lastbutton[numero]-64)*(minvalue[numero]-32); }
 #if (shifter_active == 1 && stratos == 0)
     if (modetable[numero]>20) led_enc_exe();
    #endif
@@ -212,7 +212,7 @@ lastbutton[numero] = 64; //
 #if (shifter_active == 1 && stratos == 0)
  ledrestore(page);
   // encled = abs((encodervaluepot[numero2]/4)-255);
-  encled = abs((valuepot/4)-255);
+  encled[0] = abs((valuepot/4)-255);
   #endif
   
  

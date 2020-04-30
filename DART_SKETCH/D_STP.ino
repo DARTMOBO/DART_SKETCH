@@ -1,5 +1,27 @@
 void setup()
 {
+  
+#if (Matrix_Pads == 1 && stratos == 0)
+  {
+
+  set_unit(0);
+  set_unit(1);
+  set_unit(2);
+  set_unit(3);
+  
+  set_unit(4);
+  set_unit(5);
+  set_unit(6);
+  set_unit(7);
+  
+  set_unit(8);
+  set_unit(9);
+  set_unit(10);
+  set_unit(11);
+}
+#endif
+
+
  // Mouse.begin();
 
   #if (DMX_active == 1  && stratos == 0)

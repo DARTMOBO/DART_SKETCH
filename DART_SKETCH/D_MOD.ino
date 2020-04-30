@@ -34,8 +34,20 @@
             #if (shifter_active == 1 && stratos == 0)    
             ledControl(chan, 1);
             ledrestore(page);
-          
             #endif
+                
+            #if (Matrix_Pads == 1 )
+            single_h(matrix_remap[chan-16],lightable[chan]-1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
+            #endif
+     //_________________________________ test invio parola direttamente ai max7219
+     {
+      // for(int i=0;i<24;i++)
+      //  spidata[i]=(byte)0; 
+      // lc.Parola_diretta(); ok // posso controllare la stessa riga di molte matrici in una sola parola - 
+                                 // quindi si possono creare degli effetti visivi
+                                 // senza appesantire il ciclo
+      }
+     //_________________________________
             
           
        
@@ -56,8 +68,14 @@
                #if (shifter_active == 1 && stratos == 0)    
             ledControl(chan, 0);
             ledrestore(page);
-     
             #endif
+          
+
+           #if (Matrix_Pads == 1 )
+           single_h(matrix_remap[chan-16],lightable[chan]-1,0);
+        //   single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
+           #endif
+             
             bit_write(4,chan+page,!bit_read(4,page+chan)); 
 
              outnucleo (0,chan);
@@ -106,8 +124,13 @@
              #if (shifter_active == 1 && stratos == 0)
               if (bit_read(4,page+chan) == 0)  
               ledControl(chan,0);  
-      
               #endif
+
+               #if (Matrix_Pads == 1 )
+               single_h(matrix_remap[chan-16],lightable[chan]-1,0);
+             // single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
+              #endif
+              
               }
                bit_write(4,chan+page,0);
               outnucleo (0,chan);
@@ -174,6 +197,10 @@ void pots ()
 
  lastbutton[chan] = valore / 4 ;
  
+ #if (Matrix_Pads == 1 )
+ encled[0]= valore/44;
+ #endif
+ 
       if (modetable[chan] ==11) if ((typetable[chan + (page)]) < 224) valore = map(valore, 63, 960, minvalue[chan], maxvalue[chan]) ;  
       else if (modetable[chan  ] == 12) { valore = map(valore, 63, 256, minvalue[chan], maxvalue[chan]) ;                             // hypercurve 1
       #if (shifter_active == 1 && stratos == 0)
@@ -199,16 +226,23 @@ void pots ()
      else 
      if (valore > 684) { { valore = map(valore, 684, 960, 64, 127) ; } }
      else valore= 64;    }
-     potOut = constrain(valore,0,127);
 
-     
-      encled = abs( 15 - ((potOut) / 8)) * 16 ;
+      potOut = constrain(valore,0,127);
+      
+      #if (shifter_active == 1 )     
+      encled[0] = abs( 15 - ((potOut) / 8)) * 16 ;
+      #endif
+
+      // #if (Matrix_Pads == 1 )
+      // encled = potOut ;
+      // #endif
+      
       switch ( (typetable[chan + (page)] - 144)  / 16)
       {
         case 0 :   noteOn(typetable[chan + (page)]+32, valuetable[chan + (page)],  potOut, 1) ; break; // if (chan < 8) noteOn(176, chan,  valore/8, 0) ; break;// note
         case 1 :   noteOn(typetable[chan + (page)], valuetable[chan + (page)],  potOut, 1) ; break; // poly AT
         case 2 :   noteOn(typetable[chan + (page)], valuetable[chan + (page)],  potOut, 1) ;
- 
+                   //Serial.println(encled);
         break; // cc
         case 3 :   //noteOn(176, chan,  valore/8, 0) ; break; // pc
         case 4 :   noteOn(typetable[chan + (page)], potOut,  0, 1) ; break; // channel AT
@@ -216,7 +250,7 @@ void pots ()
            valore =constrain(map(valore,24,1000, 0,1024),0,1023);                                           // PB
          // valore = constrain(map(valore,24,1000, 0,1024),0,1023);
             noteOn(typetable[chan + (page)], (valore - ((valore / 8) * 8)) * 16,  valore / 8 , 1) ;
-             encled = abs( 15 - ((valore) / 64)) * 16 ;
+             encled[0] = abs( 15 - ((valore) / 64)) * 16 ;
           }
           break; // PB
       }
@@ -227,6 +261,10 @@ void pots ()
 
        #if (shifter_active == 1 && stratos == 0)
        if (lightable[chan] > 0) led_enc_exe();
+       #endif
+
+       #if (Matrix_Pads == 1 )
+       if (lightable[chan] > 0) led_enc_exe_matrix();
        #endif
 
        #if (DMX_active == 1  && stratos == 0)
@@ -244,6 +282,12 @@ void pots ()
 
   }
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void user_item ()
+{}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -750,7 +794,7 @@ shifterwrite=1;};// opencalibration[1]=HIGH;
   
       if (cycletimer == 10) 
       { 
-      encled=0;
+      encled[0]=0;
       
       // utilizzo inomingbyte (boolean(page) - ÃƒÆ’Ã‚Â¨ na variabile normalmente utilizzata per il midi-in, per on creare nuove variabili la riutilizzo
       if (V_touch_regulator[numero] == 0 
