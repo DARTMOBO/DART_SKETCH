@@ -29,19 +29,20 @@ eeprom_preset_active = 0;
     
    modetable[i]= EEPROM.read(i+128+(numero*512));    
    setup_mempos(i);                                // dopo aver caricato la modetable facciamo il settaggio macchina
-
-
-    
     
   dmxtable[i]= EEPROM.read(i+192+(numero*512));
-  if (i == mouse_mempos && mouse_mempos > 0) {
-  minvalue[i] = remapper(EEPROM.read(i+256+(numero*512))-1); 
-  maxvalue[i] = remapper(EEPROM.read(i+320+(numero*512))-1);
-    
-  if (dmxtable[i] != 0) // quando vengono attivate le funzioni MOUSE, XY del joystick vengono impostate su BLIND INPUT - in tal modo si evitano conflitti
-  {modetable[minvalue[mouse_mempos]] = 0;
-  modetable[maxvalue[mouse_mempos]] = 0;}
-  }
+  
+             if (i == mouse_mempos && mouse_mempos > 0) 
+             {  
+             minvalue[i] = remapper(EEPROM.read(i+256+(numero*512))-1); 
+             maxvalue[i] = remapper(EEPROM.read(i+320+(numero*512))-1);   
+             if (dmxtable[i] != 0) // quando vengono attivate le funzioni MOUSE, XY del joystick vengono impostate su BLIND INPUT - 
+                                   // in tal modo si evitano conflitti
+                                   // correzione - dato che poi gli input non verebbero letti (analogread verrebbe saltato da AIN) tolgo questa parte
+             {modetable[minvalue[mouse_mempos]] = 0;
+             modetable[maxvalue[mouse_mempos]] = 0;} 
+             }
+  
   else {
     minvalue[i]= EEPROM.read(i+256+(numero*512)); // if (dmxtable[mouse_mempos] == 2)
     maxvalue[i] =EEPROM.read(i+320+(numero*512));
@@ -91,6 +92,7 @@ void setup_mempos (byte i)  // richiamato da load_preset
   if ( modetable[i] == 17) page_mempos = i; 
   if ( modetable[i] == 26) {general_mempos = i; eeprom_preset_active = 1;}
   if ( dmxtable[general_mempos] >  1) { modetable[45] = 0; modetable[37] =0;} // disattiva lo scanning sugli input dedicati al secondo encoder
+                                                                              // se il secondo encoder è attivo
   
   }
 

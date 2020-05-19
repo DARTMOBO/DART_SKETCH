@@ -94,7 +94,7 @@ else if ( (action==1)&&(note!=255) ){ // ...and then the velocity
  
 for(int ledD = 0; ledD < max_modifiers; ledD++) {                                     // elaborazione led feedback
     
-if (valuetable[ledD]==note && bit_read(3,ledD) == 1   )  {    // prima pagina
+if (valuetable[ledD]==note && bit_read(3,ledD) == 1 && modetable[ledD] < 11  )  {    // prima pagina
      
       bit_write(1, lightable[ledD]-1, 1);                     // il led relativo al pulsante (ricevuto) viene memorizzato come acceso
       
@@ -161,7 +161,9 @@ if (valuetable[ledD]==note && bit_read(3,ledD) == 1   )  {    // prima pagina
 // -------------------------------------------------- 
                             
  
-if (valuetable[ledD+max_modifiers]==note && bit_read(3,ledD+max_modifiers) == 1)  {  // seconda pagina
+if (valuetable[ledD+max_modifiers]==note && bit_read(3,ledD+max_modifiers) == 1 
+&& modetable[ledD+max_modifiers] < 11 )                         // feedback solo per i pulsanti
+{                                                               // seconda pagina
       
       bit_write(1, lightable[ledD]+max_modifiers-1, 1);         // il led relativo al pulsante (ricevuto) viene memorizzato come acceso
       
@@ -223,7 +225,12 @@ if (velocity==0 ){
   
       for(int ledE = 0; ledE < max_modifiers; ledE++) { // shifter.setPin(led, ledstatus2[led]);   // elaborazione led feedback
       
-if (valuetable[ledE]==note && bit_read(3,ledE) ==1    )    {                                // prima pagina
+if (valuetable[ledE]==note && bit_read(3,ledE) ==1   
+&& modetable[ledE] < 11               // il feedback visivo funziona solo per i pulsanti, non per i pot e altro
+)    {                                // prima pagina
+
+
+  
    bit_write(1, lightable[ledE]-1, 0); // ledstatus // memorizzo il ledstgatus come spento 
    bit_write(3,ledE,0);              // feedback2
    
@@ -271,7 +278,10 @@ if (valuetable[ledE]==note && bit_read(3,ledE) ==1    )    {                    
         
       } 
   
-if (valuetable[ledE+max_modifiers]==note && bit_read(3,ledE+max_modifiers) ==1    )   {         //    secoda pagina
+if (valuetable[ledE+max_modifiers]==note && bit_read(3,ledE+max_modifiers) ==1  
+&& modetable [ledE+max_modifiers] <11 )   // feedback solo per pulsanti
+{         //    secoda pagina
+  
    bit_write(1, lightable[ledE]+max_modifiers-1, 0); 
    bit_write(3,ledE+max_modifiers,0);  
    

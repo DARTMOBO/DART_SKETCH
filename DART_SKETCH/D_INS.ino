@@ -76,35 +76,40 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
   {
    
      if (modetable[chan] < 11) //                                 per tutti i pulsanti si usa digitalread, che legge in modo più rapido
-     #if defined (__AVR_ATmega32U4__)
-     valore = digitalRead(plexer+18)*1020; //
-     #endif
-     #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
-     valore = digitalRead(plexer+14)*1020; //
-     #endif
+         #if defined (__AVR_ATmega32U4__)
+         valore = digitalRead(plexer+18)*1020; //
+         #endif
+         #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
+         valore = digitalRead(plexer+14)*1020; //
+         #endif
      
      else if (modetable[chan] < 19 || modetable[chan] == 27)     valore = analogRead(plexer); // si usa analogread per i pots 
 
-     #if (encoders_generic == 1)
-     else if (modetable[chan] == 19)                                 // encoders
- 
-    {
-       #if defined (__AVR_ATmega32U4__)
+   #if (encoders_generic == 1)
+      else if (modetable[chan] == 19)                                 // encoders 
+      {
+      #if defined (__AVR_ATmega32U4__)
       MSB[1]=   digitalRead(plexer+18); //
       LSB[1]=   digitalRead(plexer+19); //
-
-     #endif
-     #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
-     MSB[1] = digitalRead(plexer+14); //
-     LSB[1]=   digitalRead(plexer+15);
-     #endif
-  
+      #endif
+   
+      #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
+      MSB[1] = digitalRead(plexer+14); //
+      LSB[1]=   digitalRead(plexer+15);
+      #endif
       }
-     #endif
+   #endif
 
    if (channel == 5 && dmxtable[general_mempos] >1) { // gestione del SIDE SPINNER 
+      #if defined (__AVR_ATmega32U4__)
       MSB[1]=   digitalRead(22);
       LSB[1]=   digitalRead(23);
+      #endif
+      #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
+      MSB[1]=   digitalRead(18);
+      LSB[1]=   digitalRead(19);
+      #endif
+      
       updateEncoder(encoder_mempos[1]); 
       encoder(encoder_mempos[1]);
                        }
@@ -127,21 +132,22 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
   /////////////////////////////
   
  if (minvalue[general_mempos] > 0)  // vedi se il plexer EXTRA è attivato
-  { 
-    #if (pullups_active == 1)
-    digitalWrite(9, HIGH);
-    #endif
+            { 
+            #if (pullups_active == 1)
+            digitalWrite(9, HIGH);
+            #endif
     
-       #if defined (__AVR_ATmega32U4__)  
-    valore = analogRead(9); //if ( valuetable[general_mempos] >= 7) 
-    #endif
+            #if defined (__AVR_ATmega32U4__)  
+            valore = analogRead(9); 
+            #endif
 
-  #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
-  valore = 1000*(!digitalRead(9)); 
-  #endif
+            #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
+            valore = 1000*(!digitalRead(9)); 
+            #endif
   
-  chan = channel + 48;// else chan = 48;
-  ain_nucleo();  }
+            chan = channel + 48;
+            ain_nucleo(); 
+            }
 
   
   

@@ -1,3 +1,13 @@
+// 1.79 ho limitato il feedback visivo ai soli pulsanti // modetable < 11
+
+// il feedback led ha dei problemi sui pulsanti extraplex.. e un'altro problema riguarda il fatto che si accende un led b20 quando viene ricevuto un CC
+
+
+// 1.78 ho eliminato un bug che riguardava il mouse, che non aveva a disposizione una lettura sulla variabile "valore" per funionare
+// inoltre ho stabilizzato il centro del joystick, evitando spostamenti minimi del mouse quando il joystick non tiene bene il centro.
+
+
+
 //   1.77
 //   ho modificato shifter.h // byte _shiftRegisters[24] adesso è byte _shiftRegisters[8]; 
 //   void setPin(int index, boolean val) adesso è  void setPin(byte index, boolean val);

@@ -50,14 +50,14 @@ void Shifter::write(){
 }
 }
 	
-void Shifter::setPin(int  index, boolean val){
-  // void Shifter::setPin(byte   index, boolean val){
+//void Shifter::setPin(int  index, boolean val){ // versione originale
+   void Shifter::setPin(byte   index, boolean val){
   
-	int byteIndex = index/8;
-	int  bitIndex = index % 8;
+//	int byteIndex = index/8;
+//	int  bitIndex = index % 8;
   
- // byte byteIndex = index/8;
- // byte   bitIndex = index % 8;
+  byte byteIndex = index/8;
+  byte   bitIndex = index % 8;
 	
 	byte current = _shiftRegisters[byteIndex];
 	

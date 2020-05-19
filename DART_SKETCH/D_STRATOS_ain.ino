@@ -7,6 +7,7 @@
 for( channel = 0; channel < 18; channel++)    
 { 
   chan = channel;
+  
    #if (main_encoder == 1)
    if (lastbutton[encoder_mempos[0]] == 64 || dmxtable[general_mempos] == 0
    ) // 64 = no encoder action - the MAIN spinner has priority over any other action.
@@ -29,51 +30,38 @@ for( channel = 0; channel < 18; channel++)
 
 
  
-   if (channel == 1) {  digitalWrite(14, LOW); digitalWrite(15, HIGH); digitalWrite(16, HIGH); 
+   if (channel == 1) {  digitalWrite(14, LOW); digitalWrite(15, HIGH);  // SERIE DIODI 1
+   digitalWrite(16, HIGH); // accendi il LED
       valore = (!(digitalRead(5)))*1000;   ain_nucleo();  }
       
       else  
       if (channel == 2) {  if (lastbutton[touch_mempos[0]] == 1 ) 
-      digitalWrite(16, LOW); 
+      digitalWrite(16, LOW);  // spegni il LED - dipende dal touch
       valore = (!(digitalRead(4)))*1000;   ain_nucleo();}
       
         else if (channel == 3) { valore = (!(digitalRead(6)))*1000;   ain_nucleo(); }
    else if (channel == 4)  { valore = (!(digitalRead(7)))*1000;   ain_nucleo(); }
    else if (channel == 5) { valore = (!(digitalRead(19)))*1000;   ain_nucleo(); }
-   else if (channel == 6) { valore = (!(digitalRead(18)))*1000;   ain_nucleo(); 
-   }
-
-
+   else if (channel == 6) { valore = (!(digitalRead(18)))*1000;   ain_nucleo();  }
    
-    else if (channel == 7) {  digitalWrite(15, LOW);digitalWrite(14, HIGH);
-    valore = (!(digitalRead(5)))*1000;   ain_nucleo(); }
+    else if (channel == 7) {  digitalWrite(15, LOW);digitalWrite(14, HIGH);  // SERIE DIODI 2
+    valore = (!(digitalRead(5)))*1000;   ain_nucleo(); 
+    }   
     else if (channel == 8) { valore = (!(digitalRead(6)))*1000;   ain_nucleo(); }
     else if (channel == 9) { valore = (!(digitalRead(7)))*1000;   ain_nucleo();   }
     else if (channel == 10) { valore = (!(digitalRead(19)))*1000;   ain_nucleo();  }
-    else if (channel == 11) { valore = (!(digitalRead(18)))*1000;   ain_nucleo(); 
-    }
-
-       else if (channel == 13) { MSB[1] = (!(digitalRead(21)));   }
-       else if (channel == 14) { LSB[1] = (!(digitalRead(20)));//   delay(30);
-     updateEncoder(channel); 
-  
-   //   if (lastbutton[14] != 64) { do_ ++; if (do_ > 3) do_ = 0;  }
-  
-      //  if (do_ == 0)
-        encoder(channel); 
-      //  else    lastbutton[14] = 64  ;
-       } // primo encoder extra
-       
-     //  else if (channel == 15) { MSB[1] = (!(digitalRead(0)));   }
-     //  else if (channel == 16) { LSB[1] = (!(digitalRead(1)));   updateEncoder(channel); encoder(channel);} // primo encoder extra
-
-//Serial.println(bitRead(channel,0));
- // delay(200); 
-  // else if (channel == 16) { 
- 
- // encoder(channel);}
-
-
+    else if (channel == 11) { valore = (!(digitalRead(18)))*1000;   ain_nucleo();  }
+    else if (channel == 13) { MSB[1] = (!(digitalRead(21)));   }
+    else if (channel == 14) { LSB[1] = (!(digitalRead(20)));//   delay(30);
+    updateEncoder(channel); 
+    encoder(channel);   
+       } 
+    else if (channel == 15) { MSB[1] = (!(digitalRead(0)));   }
+    else if (channel == 16) { LSB[1] = (!(digitalRead(1)));//   delay(30);
+    updateEncoder(channel); 
+    encoder(channel);   
+       } 
+     
   }   
  #if (main_encoder == 1)
   else {

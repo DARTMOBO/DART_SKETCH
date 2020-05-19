@@ -1,4 +1,6 @@
 void mouse_control () 
+
+
 {
  
   
@@ -9,26 +11,26 @@ void mouse_control ()
 
     
  if (chan == (minvalue[mouse_mempos]) )   {         // sezione mouse  // asse X 
-
+ valore = analogRead(plexer);
 
 
  
  mousex = 119 + (((valore+1)/64)) ;    
  // spiegazione: valore/64 produce un risultato che va da 0 a 16
- // 119 = 127 - (16/2)
+ // 119 = 127 - (16/2) dove 16/2 sarebbe il centro, quindi 127 è il centro, 135 il massimo a destra e 111 il minimo a sinistra.
 
  #if (mouse_block == 1)
  if (mousex >133 )  // il massimo sarebbe 135
  {if ( qwertyvalue[mouse_mempos] < 255 ) qwertyvalue[mouse_mempos]++; } // qwertyvalue[mouse_mempos] è usata come contatore 
  else  {qwertyvalue[mouse_mempos]= 0;} // mouse block praparazione
 
-
-if (qwertyvalue[mouse_mempos] < 230)  // superata la sogli di 230 cicli viene interrotta la funzionalità
-#endif
+ if (qwertyvalue[mouse_mempos] < 230)  // superata la sogli di 230 cicli viene interrotta la funzionalità
+ #endif
 
 
   if  (dmxtable[mouse_mempos] == 1){  // 1 =  mouse  attivato
-   Mouse.move( (mousex-127)
+  if (abs(mousex-127) >1 ) // cerco di evitare spostamenti minimi quando il joystick non tiene benissimo il centro
+    Mouse.move( (mousex-127)
   *((boolean(lightable[mouse_mempos])*2  ) -1) // inversione di direzione: questa operazione restituisce "1" oppure "-1"
  , 0, 0); 
  }
@@ -52,8 +54,8 @@ if (qwertyvalue[mouse_mempos] < 230)  // superata la sogli di 230 cicli viene in
  }
  
    else if (chan == (maxvalue[mouse_mempos]))  { // asse Y
-  
-   mousex = 119 + (((valore+1)/64)) ;
+  valore = analogRead(plexer);
+   mousex = 119 + (((valore+1)/64)) ; // viene usato lo stesso la variabile mousex anche per l'asse Y
    if (mousex >133 ) {if ( mousey < 255 ) mousey++;} else  {mousey= 0;}
  
   #if (mouse_block == 1)
@@ -61,7 +63,7 @@ if (qwertyvalue[mouse_mempos] < 230)  // superata la sogli di 230 cicli viene in
   #endif
  {
  if  (dmxtable[mouse_mempos] == 1) { 
-    
+    if (abs(mousex-127) > 1 )
  Mouse.move( 0 , (mousex-127)*((boolean(lightable[mouse_mempos])*2) -1), 0); }
  }
   

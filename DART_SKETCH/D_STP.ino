@@ -74,7 +74,10 @@ void setup()
     digitalWrite(5, HIGH);
     digitalWrite(6, HIGH);
     digitalWrite(7, HIGH); 
-      
+    
+       digitalWrite(18, HIGH);
+        digitalWrite(19, HIGH);
+        
      digitalWrite(20, HIGH); // enc 2 // in analogici
     digitalWrite(21, HIGH);  
        digitalWrite(2, HIGH); // enc 1

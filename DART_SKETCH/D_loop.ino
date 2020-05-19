@@ -48,7 +48,7 @@ if (cycletimer < 250 ) cycletimer++;
     
   
  indexXen++; if (indexXen == 3) indexXen = 0;
-   #if (capacitivesensor_active > 0)
+   #if (capacitivesensor_active == 1)
      touch_sensors(0);
           #if (stratos == 0)
          if (dmxtable[general_mempos] >1) touch_sensors(1);
@@ -58,6 +58,7 @@ if (cycletimer < 250 ) cycletimer++;
   #if (stratos == 1)  
   AIN_stratos();
    #endif
+   
   #if (stratos == 0)  
   AIN();
    #endif
@@ -71,9 +72,10 @@ if (cycletimer < 250 ) cycletimer++;
  #if (autosend == 1)
  // autosend_();
   #endif
-      
-  if (page_mempos > 0 ) pageswitch();
-    
+
+     #if (page_active == 1)  
+   if (page_mempos > 0 ) pageswitch();
+     #endif
    
 
  //shifter.setAll(LOW);     

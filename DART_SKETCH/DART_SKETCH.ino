@@ -1,5 +1,5 @@
 ///////////////////////////
-// DART_SKETCH   v1.77   //
+// DART_SKETCH   v1.79   //
 // Massimiliano Marchese //
 // Piero Pappalardo      //
 // www.dartmobo.com      //
@@ -10,9 +10,10 @@
 #define capacitivesensor_active 1    // 1 = enabled // 0 = disabled // CAPACITIVE SENSORS_
 #define shifter_active  1            // 1 = enabled // 0 = disabled // SHIFT REGISTERS_ // if enabled, Matrix_pads must be disabled
 #define Matrix_Pads 0                // 1 = enabled // 0 = disabled // max7219 chips
-#define LED_pattern 1                // 0 = dart one // 1 = kombat // - Led animation pattern used by buttons and pots
-#define DMX_active   0               // 1 = enabled // 0 = disabled // disable also from _DART_Dmx_out.cpp to free more memory
+#define LED_pattern 0                // 0 = dart one // 1 = kombat // - Led animation pattern used by buttons and pots
+#define DMX_active   0               // 1 = enabled // 0 = disabled // enable-disable also from _DART_Dmx_out.cpp !!!!!!!!!
 #define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
+#define page_active 1                // 1 = enabled // 0 = disabled // page_switch
 #define stratos 0                    // 1 = enabled // 0 = disabled // Stratos sketch version.
 #define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
 #define mouse_block 1                // 1 = enabled // 0 = disabled // mouse messages are stopped after 2 seconds of repeated activity
@@ -39,7 +40,7 @@ midiEventPacket_t rx;
 
 #include "_DART_Touch_Sensor.h"
 #if (stratos == 1 )
-CapacitiveSensor   cs_4_2[1] = {CapacitiveSensor(8,9);} // stratos
+CapacitiveSensor   cs_4_2[1] = {CapacitiveSensor(8,9)}; // stratos
 #endif
 #if (stratos == 0 )
 CapacitiveSensor   cs_4_2[2] = {CapacitiveSensor(8,7),CapacitiveSensor(8,9)};

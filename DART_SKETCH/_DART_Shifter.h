@@ -13,8 +13,8 @@ class Shifter
     Shifter(byte SER_Pin, byte RCLK_Pin, byte SRCLK_Pin, byte Number_of_Registers);
    	void write();
     
-   	void setPin(int index, boolean val);
-     // void setPin(byte  index, boolean val);
+   	// void setPin(int index, boolean val);
+      void setPin(byte  index, boolean val);
      
    	void setAll(boolean val);
    	//void clear();
