@@ -286,7 +286,10 @@ void pots ()
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void user_item ()
-{}
+{
+
+  
+  }
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -642,23 +645,28 @@ void touch_sensors(byte T_numero) {
  // if (decaysensor[1] > 0 ) decaysensor[1]--;
 
  #if (capacitivesensor_active ==1 ) // primo touch sempre in lettura 
- if (touch_mempos[T_numero] >0)                    
-     #if touch_version == 1
-     readingsXen[T_numero][indexXen] = (cs_4_2[T_numero].capacitiveSensorRaw(72));
-     #endif
-     #if touch_version == 2
-     readingsXen[T_numero][indexXen]  = (cs_4_2[T_numero].capacitiveSensorRaw(8000)/64);
-     #endif
- #endif
+     if (touch_mempos[T_numero] >0)  
+     {                  
+       #if touch_version == 1
+       readingsXen[T_numero][indexXen] = (cs_4_2[T_numero].capacitiveSensorRaw(72));
+       #endif
+       #if touch_version == 2
+       readingsXen[T_numero][indexXen]  = (cs_4_2[T_numero].capacitiveSensorRaw(8000)/64);
+       #endif
+ 
 
                      
   averageXen[T_numero] = ((readingsXen[T_numero][0] + readingsXen[T_numero][1] + readingsXen[T_numero][2])  / 3) ;  
 
    
 ///////////////////////////////////////////////////////////////////////////////////////////
+
   if (lightable[touch_mempos[T_numero]] == 0)  touch_execute(T_numero); // lightable : 0-capacitive, 1-virtual, 2-monitoring.
   else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, T_numero,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
+
 ///////////////////////////////////////////////////////////////////////////////////////////
+     }
+#endif
 
 {
 if (averageXen[T_numero] > higher_Xen[T_numero])  higher_Xen[T_numero] = averageXen[T_numero] ;                                       
@@ -677,6 +685,8 @@ if (averageXen[T_numero] < lower_Xen[T_numero] && averageXen[T_numero] == readin
 }
 
 #endif
+
+
 
 #if (capacitivesensor_active > 0)
  

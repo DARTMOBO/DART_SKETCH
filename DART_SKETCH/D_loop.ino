@@ -51,7 +51,8 @@ if (cycletimer < 250 ) cycletimer++;
    #if (capacitivesensor_active == 1)
      touch_sensors(0);
           #if (stratos == 0)
-         if (dmxtable[general_mempos] >1) touch_sensors(1);
+         if (dmxtable[general_mempos] >1)  // attiva il secondo touch solo se è attivo il secondo spinner
+         touch_sensors(1);
           #endif
     #endif
 

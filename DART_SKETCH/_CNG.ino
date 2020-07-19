@@ -1,3 +1,7 @@
+// bug: se in un prest manca il touch 2 (come nel korva noir) - si creano problemi -- c'è un invio continuo di messaggi midi 176 1 0 - che rallentano tutto
+
+// modifico d_mod_enc riga 95
+
 // 1.79 ho limitato il feedback visivo ai soli pulsanti // modetable < 11
 
 // il feedback led ha dei problemi sui pulsanti extraplex.. e un'altro problema riguarda il fatto che si accende un led b20 quando viene ricevuto un CC

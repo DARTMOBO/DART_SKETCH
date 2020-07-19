@@ -90,8 +90,11 @@ V_touch_regulator[numero2] = 0; // lastbutton encoder 1 e 2 mempos si possono us
    constrain(-(lastbutton[numero]-64)*127, 0,127),0);}
    
    encled[0] = encled[0] + (lastbutton[numero]-64)*(minvalue[numero]-32); }
+   
 #if (shifter_active == 1 && stratos == 0)
-    if (modetable[numero]>20) led_enc_exe();
+   // if (modetable[numero]>20)   // tolgo questa limitazione - impediva gli effetti visivi sul side spinner
+    led_enc_exe();
+   // Serial.println(modetable[numero]);
    #endif
  }
 //-------------------------------------------------------------------------------------------------------------------------------
