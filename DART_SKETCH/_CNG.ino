@@ -1,4 +1,7 @@
-// bug: se in un prest manca il touch 2 (come nel korva noir) - si creano problemi -- c'è un invio continuo di messaggi midi 176 1 0 - che rallentano tutto
+
+// 1.80
+// bug: se in un prest manca il touch 2 (come nel korva noir) 
+// - si creano problemi -- c'è un invio continuo di messaggi midi 176 1 0 - che rallentano tutto     // fixed
 
 // modifico d_mod_enc riga 95
 
