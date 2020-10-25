@@ -58,7 +58,9 @@ eeprom_preset_active = 0;
  }
  
  if (encoder_mempos[0] == 0 ) {
- 
+ // 181 risolto il problema tra b6 (input in posizione reale = 0 ) e lo spinner1 (quando non viene dichiarato nel preset.
+// da adesso , quando encoder_mempos[0] = 0 il controller va a verificare che non ci sia un conflitto con un item in memoryposition 0 
+// se si va a posizionare lo spinner1 altrove in memoria, dove c'è spazio inutilizzato.
   if  ( modetable[0] != 21)
   {
     for (byte i = 0; i <max_modifiers; i++) {

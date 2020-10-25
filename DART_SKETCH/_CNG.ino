@@ -1,3 +1,7 @@
+// 181 risolto il problema tra b6 (input in posizione reale = 0 ) e lo spinner1 (quando non viene dichiarato nel preset.
+// da adesso , quando encoder_mempos[0] = 0 il controller va a verificare che non ci sia un conflitto con un item in memoryposition 0 
+// ved d_stp_presets riga 60 
+
 // 181 ho inserito il pattern led kombatNB - 
 
 

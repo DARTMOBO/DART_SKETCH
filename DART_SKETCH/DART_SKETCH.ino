@@ -1,5 +1,5 @@
 ///////////////////////////
-// DART_SKETCH   v1.81   //
+// DART_SKETCH   v1.82   //
 // Massimiliano Marchese //
 // Piero Pappalardo      //
 // www.dartmobo.com      //
