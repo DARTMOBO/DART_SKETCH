@@ -1,3 +1,5 @@
+// 181 ho inserito il pattern led kombatNB - 
+
 
 // 1.80
 // bug: se in un prest manca il touch 2 (come nel korva noir) 

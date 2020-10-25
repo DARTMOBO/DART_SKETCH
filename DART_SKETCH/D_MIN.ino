@@ -16,7 +16,9 @@ void midifeedback ()
       } else {    
         reset_mempos();       
        load_preset_base();
+       // load_preset(0);
        load_preset(page);        // load preset from eerom memory after upload     
+       lastbutton[encoder_mempos[0]] = 0; // 
     for(int led = 0; led < 8; led++)    { // reset di tutti i led e tutti i banchi toggle   
    // bit_status[4][led]=0; bit_status[5][led]=0;
     bit_status[0][led]=0; bit_status[1][led]=0;   
@@ -333,6 +335,7 @@ if (valuetable[ledE+max_modifiers]==note && bit_read(3,ledE+max_modifiers) ==1
 void reset_mempos ()
 {
 mouse_mempos =0;
+encoder_mempos[0]=0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

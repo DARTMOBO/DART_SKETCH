@@ -168,10 +168,7 @@ void setup()
   
   /////////////////////////////////////////////////////////////////////
 
-if (dmxtable[general_mempos] >0){
-   attachInterrupt(0, lettura_enc_principale, CHANGE); 
-   attachInterrupt(1, lettura_enc_principale, CHANGE);
-}
+
 
 #if (stratos == 0 )
 
@@ -253,9 +250,14 @@ if (valuetable[general_mempos] != 0) {
 
  openeditor = 0;
  note = 255;  // out of range (0-127) value
-
- if (dmxtable[general_mempos] >0) 
- lastbutton[encoder_mempos[0]] = 64;
+ 
+if (dmxtable[general_mempos] >0 //&& encoder_mempos[0] >0
+){
+   attachInterrupt(0, lettura_enc_principale, CHANGE); 
+   attachInterrupt(1, lettura_enc_principale, CHANGE);
+}
+ //if (dmxtable[general_mempos] >0) 
+ //lastbutton[encoder_mempos[0]] = 64;
 
  
  

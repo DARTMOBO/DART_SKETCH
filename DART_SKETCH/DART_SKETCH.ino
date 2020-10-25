@@ -1,5 +1,5 @@
 ///////////////////////////
-// DART_SKETCH   v1.80   //
+// DART_SKETCH   v1.81   //
 // Massimiliano Marchese //
 // Piero Pappalardo      //
 // www.dartmobo.com      //
@@ -10,7 +10,7 @@
 #define capacitivesensor_active 1    // 1 = enabled // 0 = disabled // CAPACITIVE SENSORS_
 #define shifter_active  1            // 1 = enabled // 0 = disabled // SHIFT REGISTERS_ // if enabled, Matrix_pads must be disabled
 #define Matrix_Pads 0                // 1 = enabled // 0 = disabled // max7219 chips
-#define LED_pattern 2                // 0 = dart one // 1 = kombat // 2 = NB-boards // - Led animation pattern used by buttons and pots
+#define LED_pattern 3                // 0 = dart one // 1 = kombat // 2 = NB-boards // 3 = Kombat-NB // - Led animation pattern used by buttons and pots
 #define DMX_active   0               // 1 = enabled // 0 = disabled // enable-disable also from _DART_Dmx_out.cpp !!!!!!!!!
 #define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
 #define page_active 1                // 1 = enabled // 0 = disabled // page_switch
@@ -87,6 +87,16 @@ const int minbeam = 290;
 
  #if (LED_pattern == 1) 
   const byte encledtable[16] = { 12,13,14,14,15,0,7,7,1,6,2,2,5,3,4,4};  // kombat
+#endif
+
+/*
+#if (LED_pattern == 3) 
+  const byte encledtable[16] = { 1,4,3,3,2,8,7,7,6,5,12,12,11,10,9,9};  // kombat - nb // 1,4,3,2, 8,7,6,5, 12 ,11,10,9
+#endif
+*/
+
+#if (LED_pattern == 3) 
+  const byte encledtable[16] = { 0,3,2,2,1,7,6,6,5,4,11,11,10,9,8,8};  // kombat - nb // 1,4,3,2, 8,7,6,5, 12 ,11,10,9
 #endif
 
  #if (LED_pattern == 2) 

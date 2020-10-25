@@ -10,11 +10,15 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
    LED_rings_ ();
    shifter.write();
    #endif 
+   
   
 #if (main_encoder == 1) 
-      if (lastbutton[encoder_mempos[0]] == 64 || dmxtable[general_mempos] == 0)
+     if (lastbutton[encoder_mempos[0]] == 64 || dmxtable[general_mempos] == 0)
+    
       // 64 = no encoder action - the MAIN spinner has priority over any other action.
+     
 #endif
+
 
 {
   
@@ -129,7 +133,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
   
   }
    
-  /////////////////////////////
+  //  __________________________________________________________
   
  if (minvalue[general_mempos] > 0)  // vedi se il plexer EXTRA è attivato
             { 
@@ -148,18 +152,22 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
             chan = channel + 48;
             ain_nucleo(); 
             }
-
+ // ______________________________________________________
   
   
   else virtual_touch_end(1); // se non c'e' l'extraplex, c'e' il touch2 // col suo virtualtouch
   
   
   }   
+
+  
   #if (main_encoder == 1)
   else {
+   
    encoder(encoder_mempos[0]);                           
   }
   #endif
+  
 
   
 

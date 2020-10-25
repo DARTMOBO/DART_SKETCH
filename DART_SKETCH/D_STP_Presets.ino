@@ -56,6 +56,22 @@ eeprom_preset_active = 0;
  
 
  }
+ 
+ if (encoder_mempos[0] == 0 ) {
+ 
+  if  ( modetable[0] != 21)
+  {
+    for (byte i = 0; i <max_modifiers; i++) {
+  if ( modetable[i]== 0)  {encoder_mempos[0] = i; break;}
+    }
+    
+    }
+ 
+  
+  }
+
+
+  
 // if (mouse
 
     delay(5);
