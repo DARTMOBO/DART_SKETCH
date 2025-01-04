@@ -47,12 +47,14 @@ if (cycletimer < 250 ) cycletimer++;
 
     
   
- indexXen++; if (indexXen == 3) indexXen = 0;
-   #if (capacitivesensor_active == 1)
-     touch_sensors(0);
+
+ 
+   #if (capacitivesensor_active>0)
+    indexXen++; if (indexXen == 3) indexXen = 0;
+    touch_sensors(0);
           #if (stratos == 0)
          if (dmxtable[general_mempos] >1)  // attiva il secondo touch solo se è attivo il secondo spinner
-         touch_sensors(1);
+        { touch_sensors(1);}
           #endif
     #endif
 
@@ -70,9 +72,6 @@ if (cycletimer < 250 ) cycletimer++;
     #endif
  
  
- #if (autosend == 1)
- // autosend_();
-  #endif
 
      #if (page_active == 1)  
    if (page_mempos > 0 ) pageswitch();

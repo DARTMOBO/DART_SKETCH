@@ -6,14 +6,14 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
 { 
    
   
-      #if (LED_rings == 1)
+   #if (LED_rings == 1)
    LED_rings_ ();
    shifter.write();
    #endif 
    
   
-#if (main_encoder == 1) 
-     if (lastbutton[encoder_mempos[0]] == 64 || dmxtable[general_mempos] == 0)
+#if (top_spinner == 1) 
+     if (lastbutton[encoder_mempos[0]] == 64 || dmxtable[general_mempos] == 0) 
     
       // 64 = no encoder action - the MAIN spinner has priority over any other action.
      
@@ -23,7 +23,8 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
 {
   
 
-    virtual_touch_end(0);
+    virtual_touch_end(0); // dentro ain normale
+    restore_end();
     
   if (maxvalue[general_mempos] == 0 ){ PADS();}  
 
@@ -43,7 +44,8 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
 
 
  for(plexer = 0; plexer < 
-  5+boolean(maxvalue[general_mempos]) // se si attivano i pads (mettendo maxvalue = 0) l'analogico A5 non viene letto
+  //5+boolean(maxvalue[general_mempos]) // se si attivano i pads (mettendo maxvalue = 0) l'analogico A5 non viene letto // OPZIONE 1
+  6 // OPZIONE 2
   ; plexer++) //  plexer 0,1,2,3,4 - the 5th plexer is read at higher speed (pads and 2nd encoder)
   
   {
@@ -78,8 +80,26 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
   
   else      // trovo un preset nella eeprom
   {
-   
-     if (modetable[chan] < 11) //                                 per tutti i pulsanti si usa digitalread, che legge in modo più rapido
+
+     #if (side_spinner == 1)
+   if (channel == 5 && dmxtable[general_mempos] >1) { // gestione del SIDE SPINNER 
+      #if defined (__AVR_ATmega32U4__)
+      MSB[1]=   digitalRead(22);
+      LSB[1]=   digitalRead(23);
+      #endif
+      #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
+      MSB[1]=   digitalRead(18);
+      LSB[1]=   digitalRead(19);
+      #endif
+      
+      updateEncoder(encoder_mempos[1]); 
+      encoder(encoder_mempos[1]);
+                       }
+ #endif
+
+                       
+                       
+     if (modetable[chan] < 11 || modetable[chan] == 29 || modetable[chan] == 30 || modetable[chan] == 27) // per tutti i pulsanti si usa digitalread, che legge in modo più rapido
          #if defined (__AVR_ATmega32U4__)
          valore = digitalRead(plexer+18)*1020; //
          #endif
@@ -87,7 +107,8 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
          valore = digitalRead(plexer+14)*1020; //
          #endif
      
-     else if (modetable[chan] < 19 || modetable[chan] == 27)     valore = analogRead(plexer); // si usa analogread per i pots 
+     else if (modetable[chan] < 19 // || modetable[chan] == 27
+     )     valore = analogRead(plexer); // si usa analogread per i pots 
 
    #if (encoders_generic == 1)
       else if (modetable[chan] == 19)                                 // encoders 
@@ -104,19 +125,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
       }
    #endif
 
-   if (channel == 5 && dmxtable[general_mempos] >1) { // gestione del SIDE SPINNER 
-      #if defined (__AVR_ATmega32U4__)
-      MSB[1]=   digitalRead(22);
-      LSB[1]=   digitalRead(23);
-      #endif
-      #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
-      MSB[1]=   digitalRead(18);
-      LSB[1]=   digitalRead(19);
-      #endif
-      
-      updateEncoder(encoder_mempos[1]); 
-      encoder(encoder_mempos[1]);
-                       }
+   
   
     }
 
@@ -155,13 +164,13 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
  // ______________________________________________________
   
   
-  else virtual_touch_end(1); // se non c'e' l'extraplex, c'e' il touch2 // col suo virtualtouch
-  
+ // else virtual_touch_end(1); // se non c'e' l'extraplex, c'e' il touch2 // col suo virtualtouch
+  virtual_touch_end(1);
   
   }   
 
   
-  #if (main_encoder == 1)
+  #if (top_spinner == 1)
   else {
    
    encoder(encoder_mempos[0]);                           
@@ -174,7 +183,6 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
 
    } // end PLEXER
    } // end ain
-
    #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -186,9 +194,9 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
     #endif
   
   if ( modetable[chan] == 0) {}
-  else if ( modetable[chan] > 0 && modetable[chan]< 11) {push_buttons(); }
+  else if ( modetable[chan] > 0 && modetable[chan]< 11) {push_buttons(0); }
   else if (modetable[chan] < 16)  pots();  // pots + hypercurves - 11, 12,13,14,15,
-  else if  (modetable[chan] == 16) user_item();
+  else if  (modetable[chan] == 16) seq();
   else if (modetable[chan] == 17)   { if (valore < 512) lastbutton[page_mempos] =0; else lastbutton[page_mempos] =1;} // page switch
 
    else if (modetable[chan] == 18) {                  // beam
@@ -207,9 +215,17 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
     
     #if (encoders_generic == 1)
     else if (modetable[chan] == 19) {updateEncoder(chan); 
-  //  Serial.println(lastbutton[chan]); delay(100);
     encoder(chan); }
     #endif
+    
+      else if (modetable[chan] == 27) push_buttons(1); // push buttons con velocity
+      else if (modetable[chan] == 29) reset();
+      else if (modetable[chan] == 30) shifter_modifier();
+      else if (modetable[chan] == 31) user_item1();
+      else if (modetable[chan] == 32) user_item2();
+      else if (modetable[chan] == 33) user_item3();
+      else if (modetable[chan] == 34) user_item4();
+  
 
   
     
@@ -217,9 +233,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
    
    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  #if (stratos == 0) 
-
-  
+  #if (stratos == 0)  
   void detect_plexer()
   {
      {
@@ -262,15 +276,14 @@ void diversifica_valuetable ()
 }
 #endif
 
- //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+//////////////////////////////////////////////////////////////////////
 void scale_learn(byte pitch)
 {
 
 
-   if (lastbutton[touch_mempos[0]] == 0 || lastbutton[touch_mempos[1]] == 0)  // se il touch ÃƒÆ’Ã‚Â¨ premuto/toccato
+   if (lastbutton[touch_mempos[0]] == 0 || lastbutton[touch_mempos[1]] == 0)  // se touch premuto/toccato
   {
-  if (dmxtable[encoder_mempos[0]] == 3)  encodervaluepot[0] = pitch * 8;
+  if (dmxtable[encoder_mempos[0]] >1)  encodervaluepot[0] = pitch * 8;
    
    if (scala_reset == 1)                    // azzera la scala
    for (byte i =0; i < scala_lenght; i++){
@@ -293,47 +306,52 @@ void scale_learn(byte pitch)
 }
   }
 
-/////////////////////////////////////////////////////---------------------------
-
-  void update_scala(byte quale_spinner) // quale_spinner è 0 top 1 side
-  
-  // richiamato da setup_mempos() e da switchpage()
+//////////////////////////////////////////////////////////////////////
+ void update_scala(byte quale_spinner) // quale_spinner è 0 top 1 side
+ // richiamato da setup_mempos() e da switchpage()
   {
     // scala[4] è un array che cotiene 4 scale... scalaSpinner0-page1, scalaSpinner1-page1, ScalaSpinner0-page2, scalaSpinner1-page2
     // per caricare una scala dalla eeprom di servono 12 BIT - per le 12 note di un'ottava
     // i primi 7 BIT sono dentro valuetable
     // gli altri 5 BIT sono dentro lastencoded[2]
     // lastEncoded[] viene ricaricata ogni volta che si carica un preset - quindi è sempre "attuale" rispetto alla pagina.
-  
-  for (byte i = 0; i< 7; i++) {
-bitWrite(scala[quale_spinner+(page/max_modifiers)*2],i,  bitRead(valuetable[encoder_mempos[quale_spinner]+max_modifiers] ,i)   );
 
-//bitWrite(scala[numero+2],i,  bitRead(valuetable[encoder_mempos[numero]+max_modifiers] ,i)   );
+  
+//scala[0] = 14;
+   
+  for (byte i = 0; i< 7; i++) {
+ bitWrite(scala[quale_spinner+(page/max_modifiers)*2],i,  bitRead(valuetable[encoder_mempos[quale_spinner]+page] ,i)   );
+// bitWrite(scala[0],i,  bitRead(valuetable[encoder_mempos[quale_spinner]+page] ,i)   );
+
+
 }
-for (byte i = 0; i< 5; i++) {
-bitWrite(scala[quale_spinner+(page/max_modifiers)*2],i+7,  bitRead(lastEncoded[quale_spinner] , i)    );
-// bitWrite(scala[numero+2],i+7,  bitRead(lastEncoded[numero] , i)    );
+  for (byte i = 0; i< 5; i++) {
+
+ bitWrite(scala[quale_spinner+(page/max_modifiers)*2],i+7,  bitRead(EEPROM.read(encoder_mempos[quale_spinner]+320+(page/max_modifiers*512)), i)    );
+// bitWrite(scala[0],i+7,  bitRead(EEPROM.read(encoder_mempos[quale_spinner]+320+(page/max_modifiers*512)), i)    );
+
+}
+
+ 
+
+
+
+
+
+
 
 /*
- // old version 
-  for (byte i = 0; i< 7; i++) {
-bitWrite(scala[numero],i,  bitRead(valuetable[encoder_mempos[numero]] ,i)   );
-bitWrite(scala[numero+2],i,  bitRead(valuetable[encoder_mempos[numero]+max_modifiers] ,i)   );
-}
-for (byte i = 0; i< 5; i++) {
-bitWrite(scala[numero],i+7,  bitRead(maxvalue[encoder_mempos[numero]] , i)    );
-bitWrite(scala[numero+2],i+7,  bitRead(maxvalue[encoder_mempos[numero]+max_modifiers] , i)    );
+
+
+for (byte i = 0; i< 12; i++) {
+Serial.print(bitRead(scala[0],i));}
+Serial.println(" - scala[]");
 */
 
-}
 
   }
 
-  
-////////////////////////////////////////////////////////
- 
-//////////////////////////////////////////////////////////
-
+//////////////////////////////////////////////////////////////////////
 #if (stratos == 0 )
 void setPlexer( byte channel)
 {

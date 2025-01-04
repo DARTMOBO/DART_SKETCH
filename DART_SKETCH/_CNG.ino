@@ -1,3 +1,229 @@
+/* 
+ *  28 12 24 
+ *  sto cercando di capire perchè scale non inverte il verso di rotazione in base a speed
+ *  d_mod_enc- 407 ripristinare   481 rallentatore ripristinare
+ *  
+ *  24 12 24
+ *  ho reso più semplice attivare al mousewheel, basta selezionare a memoryposition dell'enc scelto
+ *  ho unificato il verso della mousewheel con quello degli enc
+ *  
+ *  
+ *  22 12 24 - oggi ho fatto queste correzioni: 
+ *  - ho unificato il senso di rotazione dello spinner / encoder per tutte le modatità (endless , pot , pot ramp , scale)
+ *  - ho fatto in modo che minvalue/speed possa influire sulla velocità in endless mode 63-65 
+ *  - ho sistemato la modalità qwerty per encoder , che aveva tutta una serie di problemi - comunque si può scegliere il carattere ascii da mandare 
+ *      in base al valuetable - quindi non solo B e D
+ *  * 
+ * -----------------------------------------------
+ * 
+ * dopo varie sperimentazioni su Stratos ho aggiunto delle funzionalità che rendono più stabile il sistema
+ * 
+ * una funzione debounce sui punsanti che evita doppi segnali quando si ha a che fare con pulsanti di scarsa qualità
+ * in questi casi se si preme il pulsante con poca forza lo switch non fa bene contatto e si ha l'invio di una gran quantità di segnali midi acceso spento
+ * e allora ho aggiunto un valore fisso di decay : byte lastbutton_debounce
+ * 
+ * il valore di questa variabile cambia a secondase si tratta di stratos o altro controller, perchè stratos ha uno scanning più rapido e il decay dura meno
+ * tale variabile viene usata solo da void push_buttons er ora
+ * 
+ * -----------------------------------------------------
+ * 
+ * in statos ho ripetuto più volte la accensione dei diodi per le linee di controllo dei due diversi gnd
+ * perchè c'erano interferenze con interrupt del main encoder, che finiva per triggerare segnali dei pulsanti o del page switch
+ * 
+ * -------------------------------------------------------
+ * 
+ * ho aggiunto un fitro sul midi out - vedi void noteOn 
+ * mettendo filter su 2 si può fare in modo che il segnale in uscita di encoders non di alta qualità sia più pulito
+ * (devo vedere 0 o 127 puliti che escono fuori a sconda della direzione di rotazione)
+ * tale filtro è anche utilissimo per evitare segnali indesiderati sul top spinner, causati sa spostamenti microscopici a ruota ferma
+ */
+
+
+/*
+ * ho notatoche c'erano interferenze in stratos- tra encoder main  , legato a interrupt, e vari pulsanti
+ * credo che gli interrupt abbiano un efetto particolare sulla struttura di stratos, con le sue letture su due gnd diversi comandati da diodi
+ * in ain stratos ho provato a usare analogread al posto di digitalread, proprio perchè analogread è più lento... ma non cambia niente
+ * invece i risutati migliorano quando ripeto l'accensione delle serie di diodi gnd sui pin 14 15
+ * 
+ * -------------------------------------
+ * sto lavorando su stratos- sto notando che ci sono svariate interferenze tra enc principale e vari pulsanti
+ * ciò accade sopratutto sulla prima pagina - 
+ * credo che le cause siano perlopiù elettriche fisiche
+ * 
+ * possibili prove: aggiungere un condensatore generale per tutto il sistema
+ * aggiungere condensatori specifici sui pulsanti
+ * diminuire la frequenza delle letture (in statos è molto veloce)
+ * 
+ * gli encoder generici hanno letture molto sporche comunque - da vedere se gli encoder bourns che sono undetented di fabbrica, vanno meglio
+ * 
+ */
+
+
+/*
+ * aggiungo un Define per disabilitare il side spinner da sketch.
+ */
+
+/*
+ * lc.sendRow2 da sempre problemi con simbolini che non vengono visualizzati correttamente
+ * pare che il sistema digerisca solo il controllo di una matrice per volta... 
+ * e mi chiedo come si possano creare creitte scrolling sofisticate con una trasmissione dati così incasinata
+ * 
+ * l'alternativa che mi viene in mente è diluire con un cycletimer il refresh delle matrici un pò come facevo con gli effeti led dart classici
+ * in tal modo quando c'è qualche cambiamento di pulsanti o potenziometri non ci dovrebbero essere reazioni ritardate
+ */
+
+
+/*
+ * a che serviva void autosend???? l'ho tolta
+ */
+
+
+/*
+ * pot emulation : speed 1 è velocissimo, 32 non succede niente(correggere), 31 molto lento (quindi invertire, 1 deve essere lento)
+ * poi non funziona l'inversione con speed negativa
+ * 
+ * endless mode 1 cioè 0-127 
+ * 127 dovrebbe seguire il senso di rotazione, è anche l'efetto visivo
+ * il controllo speed funziona ok , valori vicino a zero diminuiscono la velocità dell'effetto visivo
+ * 
+ * il touch stop funziona al contrario...
+ */
+
+/*
+ * dovrebbe essere possibile invertire la progressione della scala tramite speed
+ */
+
+/*
+ * sto studiando i problemi relativi al caricamento di una scala . ho notato che all'accensione la variabile scale[] non viene aggiornata
+ * poi c'è anche il problema che maxvalue è utilizzata del funzionamento interno degli encoder
+ * quindi bisognerebbe fare riferimento alla eeprom ogni volte che si deve caricare scale[]
+ */
+
+
+
+/* ancora sulla funzione scale - ho visto che diminuendo la velocità , sempre con mouse wheel speed counter
+ *  vengono saltate alcune note della scala...
+ * 
+ * ///////////////////////////////////////////////////////////////////////////////////////////////////////
+ * sto cercando di migliorare la funzione scale 
+ * intanto devo osservare che la trasmissione della scala fissa da editor ha qualche problema... 
+ * sembra che 5 bit vengano trascritti bene e gli altri 7 invece no.
+ * per fare queste verifiche ho modificato void update_scala 
+ * inserendo dei serialprint per vedere effettivamente i bit dei numeri mandati
+ * 
+ * 
+ * 
+ * ma la cosa più grave è la suonabilita  - a seconda della speed dello spinner la scala viene suonata o no e a volte si blocca tra due note da suonare
+ * vado a vedere ind_mod_enc -  void pot mode - riga 304 circa
+ * come fnzionano le cose
+ * 
+ * intanto
+ * mouse_wheel_speed_counter - qui è usato come rallentatore regolato da SPEED via editor 
+ * come? piu la cifra è alta (in negatovo o positivo è uguale) più il rallentatore rende RARI gli eventi midi
+ * 
+ * intanto per semplicità elimino questa condizione/rallentatore - quindi tolgo mouse_wheel_speed_counter dal gioco - riga 308 d_mod_enc
+ * 
+ * incontro encoder_block[] altra variabile condizione che dovrebbe eitare che suonino note mentre si registra una scala
+ * per adesso tolgo anche questa condizione - riga 330 d_mod_enc
+ * 
+ * alla riga 352 vedo   encoder_pot_calcolo(numero,1); - il moltiplicatore è settato su 1
+ * provo a metterlo su 33 - perchè il moltiplicatore generalmente è un valore 0-64 che viene usato con un -32 per ottenere un range positivo o negativo
+ * 
+ * ok , una parte dei problemi è risolta, ma adesso bisogna tornare al rallentatore
+ * perchè le note vengono effettivamente sparate fuori troppo in fretta
+ * 
+ * dunque ristabilisco il rallentatore mouse_wheel_speed_counter
+ * ma con valore fisso 32
+ * 
+ * cosa succede ? effettivamente le nte sono più separate tra loro temporalmente ma... ne vengono saltate tantissime
+ * insomma impostando così il rallentatore si saltano note (il che potrebbe essere anche cosa buona,se ben regolata) 
+ * io credo che bisognerebbe mettere il allentatore proprio in encoder_pot_calcolo
+ * in questo modo servirebbero una serie di "scatti" ( si potra scegliere quanti) a vuoto che lo spinner deve fare 
+ * prima di suonare una nuova nota, che sarà comunque sempre disponibile.
+ * 
+ * provo intanto il rallentatore fisso con quota minore 8
+ * un po meglio ma siamo sempre lì
+ * 
+ * vedo di rallentare proprio encoder_pot_calcolo
+ * 
+ * ok , funziona abbastanza bene... da sistemare il valore speed che si sceglie via editor...
+ * bisogna modificare l'editor in modo che sia intuitivo il modo in cui si scegle la velocità
+ * 0 o 1 dovrebbe essere lentissimo, mentre 32 dovrebbe essere velocissimo.
+ * 
+ * anche in modalità Ramped l'effetto funziona bene. da correggere l'editor per fare in modo che tutto sia ben chiaro... 
+ * ci sarebbe una cosa che non mi convince:
+ * il limite superioe e inferiore della scala, sia in modalità ramp che limitata, hanno come un vuoto, 
+ * uno scarto temporale prima che la scala ricominci da sotto
+ * credo sia qualcosa che ha a che fare con la nota che deve essere messa a disposizione per suonare 
+ * 
+ * encoder_pot_mode 
+ * va a richiamare 
+ * encoder_pot_calcolo 
+ * 
+ * ed è come se il rallentatore si moltiplicasse
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ */
+
+
+//touch stop corretto // touch decay nuovo
+
+// adesso minvalue touchmempos, che normalmente è il valore di sensitivity del sensore touch, viene usato anche come valore di decay per il virtualtouch
+// inserire istruzioni in editor e sul sito. per il decay
+
+
+/*
+ * sto lavorando sul nuovo touch sensor - esterno.
+ * devo invertire il valore digitale in d_mod 842 ??
+ * 
+ * no, sia void touch sensor che void touch execute sembrano funzionare correttamente
+ * 
+ * il problema deve essere in void encoder
+ * 
+ * d_mod_enc riga 37 non mi convince il led che si accende col virtualtouch.... 
+ * 
+ * 
+ * sto cercando di risolvere il bug del touch stop/shift che sul side spinner fa riferimento al touch 1
+ * dai test che ho fatto modatable[numero2] dentro void mod_enc , relativamente al side spinner mi rislta 0
+ * 
+ * normalmente dovrebbe risultare 21 per il top spinner e 21 per il side spinner
+ * 
+ * 
+ * ho neotato che il bug si verifica indipendentemente dal tipo di touchsensor - se interno o esterno
+ * ma dipende dal preset che viene caricato in memoria.
+ * --- provare a fare un confronto tra i due preset - per esempio speciale e kombat personal (anche kombat normale) osa cambia?
+ * --- cos'è che fa risultare modetable dello sidespinner = 0 --- 
+ * 
+ * facendo prove cambiando la memoryposition su editor... mettendo una memoryposition sopra il valore 50
+ * inspiegabilmente mi risulta finalmente un modificatore che ha una modetable = 22
+ * 
+ * è capitato anche che sparisse la modetable dello spinner principale - cioè non risultava nessun modificatore con una modetable = 21
+ * è qualcosa che ha a che vedere con la memorizzazione rimappata dei preset? 
+ * è qualcosa che riguarda la comunicazione editor - controller?
+ * 
+ * risolto - ho disattivato le riga 119 in d_stp_presets che andava ad azzerare la modetable di 45 e 37 cioè i pin dedicati allo scanning del side spinner
+ * per evitare lo scanning di questi input da AIN avevo introdotto questa riga - ma a quando pare porta problemi... vediamo se così stiamo più tranquilli
+ * 
+ * 
+ * 
+ */
+
+
+// 185 - bug fix - hypercurves la selezione del tipo di hypercurve non avveniva correttamente
+
+// 184 - adesso il feedback midi to dmx funziona anche con i pots
+
+// 183 - risolto contrasto con encoders generici e side spinner - il canale 5 dei multiplexers veniva saltato - gli encoders collegati su 1 , 9 17, 25,33 non venivano letti
+
+
 // 181 risolto il problema tra b6 (input in posizione reale = 0 ) e lo spinner1 (quando non viene dichiarato nel preset.
 // da adesso , quando encoder_mempos[0] = 0 il controller va a verificare che non ci sia un conflitto con un item in memoryposition 0 
 // ved d_stp_presets riga 60 

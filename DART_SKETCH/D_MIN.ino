@@ -10,14 +10,17 @@ void midifeedback ()
    
       if (incomingByte==241){  // this message opens the editor upload mode
       openeditor= !openeditor; // apri o chiudi la ricezione del preset
-      if (openeditor == 1)  // se entri in modalità ricezione porta a zer il counter
+      if (openeditor == 1)  // se entri in modalità ricezione porta a zero il counter
       {
         editorcounter=0;
       } else {    
         reset_mempos();       
        load_preset_base();
        // load_preset(0);
-       load_preset(page);        // load preset from eerom memory after upload     
+       load_preset(page);        // load preset from eerom memory after upload   
+        
+       update_scala(1);  
+       update_scala(0); 
        lastbutton[encoder_mempos[0]] = 0; // 
     for(int led = 0; led < 8; led++)    { // reset di tutti i led e tutti i banchi toggle   
    // bit_status[4][led]=0; bit_status[5][led]=0;
@@ -28,12 +31,19 @@ void midifeedback ()
     #if (shifter_active == 1 && stratos == 0)
     shifter.setAll(0); shifterwrite =0; // spegni fisicamente tutti i leds
     #endif
+    
+    #if (stratos == 1)
+    digitalWrite(16, LOW);
+    #endif
+    
      }
      }
      
     else ///////////////////////////     se il messaggio non è un 241
 
-    if (   incomingByte>= 128 && incomingByte<= 191 || incomingByte ==  224 ) // a partire da note off fino a control change // il resto dei messaggio non viene ricevuto
+    if (   incomingByte>= 128 && incomingByte<= 191 || incomingByte ==  224 ) // a partire da note off fino a control change 
+                                                                              // il resto dei messaggio non viene ricevuto
+                                                                              // 224 fa eccezione - è un messaggio pithbend che serve per gli sprites
     {   action=1;
         type=incomingByte;
         if (openeditor==0){ 
@@ -62,6 +72,8 @@ else if ( (action==1)&&(note!=255) ){ // ...and then the velocity
    
     if ( openeditor == 1 ){
     if( type < 208) // fino a tutti i control-change la triade midi viene mandata alla procedura  eeprom_write()
+                    // arrivati qui abbiamo ricevuto un messaggio midi completo e vado a caricare i dati sulla eeprom 
+                    // se arriva un 224 invece...
     
      eeprom_write(); // procedura che contiene le istruzioni per mettere in memoria il dato ricevuto. // 
      
@@ -96,7 +108,17 @@ else if ( (action==1)&&(note!=255) ){ // ...and then the velocity
  
 for(int ledD = 0; ledD < max_modifiers; ledD++) {                                     // elaborazione led feedback
     
-if (valuetable[ledD]==note && bit_read(3,ledD) == 1 && modetable[ledD] < 11  )  {    // prima pagina
+if (valuetable[ledD]==note && bit_read(3,ledD) == 1   )  {
+
+if ( modetable[ledD] < 16){    
+       #if (DMX_active == 1  && stratos == 0)
+       DmxSimple.write(dmxtable[ledD], velocity*2);
+       #endif
+       
+       }
+
+  
+if ( modetable[ledD] < 11) {    // prima pagina
      
       bit_write(1, lightable[ledD]-1, 1);                     // il led relativo al pulsante (ricevuto) viene memorizzato come acceso
       
@@ -130,15 +152,17 @@ if (valuetable[ledD]==note && bit_read(3,ledD) == 1 && modetable[ledD] < 11  )  
       #endif
 
       #if (Matrix_Pads == 1 )
-      single_h(matrix_remap[ledD-16],lightable[ledD]-1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
+      single_h(matrix_remap[ledD],lightable[ledD],1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
+      #endif
+
+       #if (Matrix_Pads == 2 )
+      single_h(matrix_remap[ledD-16],lightable[ledD],1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
       #endif
         
         }                                   
        }
         
-       #if (DMX_active == 1  && stratos == 0)
-       DmxSimple.write(dmxtable[ledD], velocity);
-       #endif
+  
       }
       
                                                   
@@ -159,12 +183,24 @@ if (valuetable[ledD]==note && bit_read(3,ledD) == 1 && modetable[ledD] < 11  )  
                             } 
                             
                             } // nb: lastbutton viene usato in modo diverso per pulsanti o pot! 
+}
 
 // -------------------------------------------------- 
                             
  
 if (valuetable[ledD+max_modifiers]==note && bit_read(3,ledD+max_modifiers) == 1 
-&& modetable[ledD+max_modifiers] < 11 )                         // feedback solo per i pulsanti
+ )                       
+
+{
+
+ if (modetable[ledD+max_modifiers] < 16 ) {
+      #if (DMX_active == 1  && stratos == 0)
+      DmxSimple.write(dmxtable[ledD], velocity*2); 
+      #endif
+ }
+    
+  if (modetable[ledD+max_modifiers] < 11 )
+// feedback solo per i pulsanti
 {                                                               // seconda pagina
       
       bit_write(1, lightable[ledD]+max_modifiers-1, 1);         // il led relativo al pulsante (ricevuto) viene memorizzato come acceso
@@ -195,14 +231,18 @@ if (valuetable[ledD+max_modifiers]==note && bit_read(3,ledD+max_modifiers) == 1
         #endif
 
         #if (Matrix_Pads == 1 )
-        single_h(matrix_remap[ledD-16],lightable[ledD]-1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
+        single_h(matrix_remap[ledD],lightable[ledD],1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
+        #endif 
+
+        #if (Matrix_Pads == 2 )
+        single_h(matrix_remap[ledD-16],lightable[ledD],1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
         #endif 
           }
         
        }
-       #if (DMX_active == 1  && stratos == 0)
-    DmxSimple.write(dmxtable[ledD], velocity); 
-      #endif
+    //  #if (DMX_active == 1  && stratos == 0)
+    //  DmxSimple.write(dmxtable[ledD], velocity); 
+    //  #endif
       
       } 
       
@@ -212,7 +252,7 @@ if (valuetable[ledD+max_modifiers]==note && bit_read(3,ledD+max_modifiers) == 1
        bit_write(4,ledD+max_modifiers,1); 
       }  
        else if  (modetable[ledD] == 1) {  bit_write(4,ledD+max_modifiers,1); } 
-      } }
+      } } }
   }  
  } 
  
@@ -228,8 +268,18 @@ if (velocity==0 ){
       for(int ledE = 0; ledE < max_modifiers; ledE++) { // shifter.setPin(led, ledstatus2[led]);   // elaborazione led feedback
       
 if (valuetable[ledE]==note && bit_read(3,ledE) ==1   
-&& modetable[ledE] < 11               // il feedback visivo funziona solo per i pulsanti, non per i pot e altro
-)    {                                // prima pagina
+               // il feedback visivo funziona solo per i pulsanti, non per i pot e altro
+)   
+
+{
+if( modetable[ledE] < 16) {
+   #if (DMX_active == 1  && stratos == 0)
+   DmxSimple.write(dmxtable[ledE], 0);
+   #endif
+}
+  
+  if( modetable[ledE] < 11)
+{                                // prima pagina
 
 
   
@@ -255,15 +305,19 @@ if (valuetable[ledE]==note && bit_read(3,ledE) ==1
           #endif
 
           #if (Matrix_Pads == 1 )
-          single_h(matrix_remap[ledE-16],lightable[ledE]-1,0);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
+          single_h(matrix_remap[ledE],lightable[ledE],0,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
+          #endif 
+
+          #if (Matrix_Pads == 2 )
+          single_h(matrix_remap[ledE-16],lightable[ledE],0,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
           #endif 
           }
         
     }
         
-    #if (DMX_active == 1  && stratos == 0)
-   DmxSimple.write(dmxtable[ledE], 0);
-   #endif
+ //   #if (DMX_active == 1  && stratos == 0)
+ //  DmxSimple.write(dmxtable[ledE], 0);
+ //   #endif
    }
                                                                   // gestione toggletable
       if (modetable[ledE] >1 && modetable[ledE] < 11)            // se il pulsante è in toggle o togglegroups
@@ -278,10 +332,19 @@ if (valuetable[ledE]==note && bit_read(3,ledE) ==1
         else if  (modetable[ledE] == 1)                          // se il pulsante è in modalità normale
         {  bit_write(4,ledE,0); } 
         
-      } 
+      } }
   
 if (valuetable[ledE+max_modifiers]==note && bit_read(3,ledE+max_modifiers) ==1  
-&& modetable [ledE+max_modifiers] <11 )   // feedback solo per pulsanti
+ )   // feedback solo per pulsanti
+
+{
+  if (modetable [ledE+max_modifiers] <16)
+  {
+   //  #if (DMX_active == 1  && stratos == 0)
+      //   DmxSimple.write(dmxtable[ledE], 0);
+      //   #endif
+}
+if (modetable [ledE+max_modifiers] <11)
 {         //    secoda pagina
   
    bit_write(1, lightable[ledE]+max_modifiers-1, 0); 
@@ -304,13 +367,17 @@ if (valuetable[ledE+max_modifiers]==note && bit_read(3,ledE+max_modifiers) ==1
         #endif
 
         #if (Matrix_Pads == 1 )
-        single_h(matrix_remap[ledE-16],lightable[ledE]-1,0);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
+        single_h(matrix_remap[ledE],lightable[ledE],0,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
+        #endif 
+
+           #if (Matrix_Pads == 2 )
+        single_h(matrix_remap[ledE-16],lightable[ledE],0,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
         #endif 
         }
      }
-        #if (DMX_active == 1  && stratos == 0)
-         DmxSimple.write(dmxtable[ledE], 0);
-         #endif
+      //  #if (DMX_active == 1  && stratos == 0)
+      //   DmxSimple.write(dmxtable[ledE], 0);
+      //   #endif
     } 
 
    
@@ -318,7 +385,7 @@ if (valuetable[ledE+max_modifiers]==note && bit_read(3,ledE+max_modifiers) ==1
       if (modetable[ledE] >1 && modetable[ledE] < 11) { lastbutton[ledE]=1;   bit_write(4,ledE+max_modifiers,0); }
         else if  (modetable[ledE] == 1) {  bit_write(4,ledE+max_modifiers,0); } 
       }    
-      }      
+      }   }   
     }  
  }   
       note=255; // out of range (0,127) value
@@ -345,14 +412,30 @@ encoder_mempos[0]=0;
   {  
     if (type <160)  { 
       editorcounter = 0;
-      
+
+
+          #if (stratos == 1)   // flash di luce sul led di Stratos
+          digitalWrite(16, HIGH);
+          delay(5);
+          digitalWrite(16, LOW);
+          #endif
+          
        #if (shifter_active == 1 && stratos == 0)
    if (valuetable[general_mempos] == 0 )
-   {shifter.setAll(HIGH); shifter.write();
+   {shifter.setAll(HIGH); shifter.write();     // flash di luce - dartmobo
      delay(5);
      shifter.setAll(LOW); shifter.write();
    }
    #endif
+
+ #if (Matrix_Pads > 0  && stratos == 0)      // flash di luce matrix
+    if (do_ > 7 ) do_ = 0;
+    lc.Parola_diretta(0, order_row[do_],1 );
+    delay(5);
+    lc.Parola_diretta(0, order_row[do_],0 );
+    do_++;
+  #endif
+   
     }
          
      //  ________________________________________________________________________________________________________________
@@ -371,16 +454,27 @@ encoder_mempos[0]=0;
 switch (editorcounter) 
      {      
 case 0 : ////////////////////////////////////////////////////////////////////////////////////  NOTE - MEMORYPOSITION  
-      if ( velocity < 56 ) memoryposition = remapper(velocity); 
+     #if (stratos == 0 )
+      if ( velocity < 56 ) memoryposition = remapper(velocity);  // riposiziono in memoria gli elementi in modo che la numerazione sia regolare sulla pcb
       else if ( velocity < 64 ) memoryposition = velocity;
       else if ( velocity < 120 )memoryposition = remapper(velocity); 
       else  memoryposition = velocity;
+      #endif
 
+       #if (stratos == 1 )                               // stratos non usa multiplexers - è più semplice la numerazione diretta
+      if ( velocity < 56 ) memoryposition = velocity+1; 
+      else if ( velocity < 64 ) memoryposition = velocity;
+      else if ( velocity < 120 )memoryposition = velocity+1; 
+      else  memoryposition = velocity;
+      #endif
+
+      if (matrix_vert1 > 0 )
+     { bitWrite(note,7,bitRead(matrix_vert1,0));  }
+     
      if (memoryposition < 64) {
       
-     if (matrix_vert1 > 0 )
-     { bitWrite(note,7,bitRead(matrix_vert1,0));  }
-    // { bitWrite(note,7,1);  }
+     
+  
    
      EEPROM.write(memoryposition+64,note); // value - valuetable[] - pitch della nota
      }else{
@@ -389,16 +483,18 @@ case 0 : ///////////////////////////////////////////////////////////////////////
      break;
          
 case 1 :  //////////////////////////////////////////////////////////////////////////////////////////// MIN - MAX
-     if (memoryposition < 64) {
-      
-     if (matrix_vert1 > 0 )
-     { bitWrite(note,7,bitRead(matrix_vert1,1));  
-       bitWrite(velocity,7,bitRead(matrix_vert1,2));  
+    
+      if (matrix_vert1 > 0 )
+     { 
+      bitWrite(note,7,bitRead(matrix_vert1,1));  
+      bitWrite(velocity,7,bitRead(matrix_vert1,2));  
      }
      
-     
-     EEPROM.write(memoryposition+320,note);  // max  // maxvalue[] // soglia minima della escursione del byte2 nel messaggio midi
+     if (memoryposition < 64) {
+      
     
+       
+     EEPROM.write(memoryposition+320,note);  // max  // maxvalue[] // soglia minima della escursione del byte2 nel messaggio midi
      EEPROM.write(memoryposition+256,velocity);     // min  // minvalue[] // soglia massima della escursione del byte2 nel messaggio midi
      } else{
      EEPROM.write(memoryposition+512+320-64,note);  // max 2nd
@@ -407,12 +503,15 @@ case 1 :  //////////////////////////////////////////////////////////////////////
      break;
   
 case 2 : /////////////////////////////////////////////////////////////////////////////////////////  MODE - DMX
-     if (memoryposition < 64) {   
 
-       if (matrix_vert2 > 0 )
-     { // bitWrite(note,7,bitRead(matrix_vert1,4));  
+        if (matrix_vert2 > 0 )
+     { 
        bitWrite(velocity,7,bitRead(matrix_vert2,0));  
      }
+     
+     if (memoryposition < 64) {   
+
+   
      
     
      EEPROM.write(memoryposition+128,note); // MODE // modetable[] // modalità di funzionamento del modificatore. es: button, pot, toggle, groups, page etc... 
@@ -425,12 +524,16 @@ case 2 : ///////////////////////////////////////////////////////////////////////
      break;
      
 case 3 : ////////////////////////////////////////////////////////////////////////////////////// keyboard - miditype
-     if (memoryposition < 64) {
-       
+
+
         if (matrix_vert2 > 0 )
-     { // bitWrite(note,7,bitRead(matrix_vert1,4));  
+     { 
        bitWrite(note,7,bitRead(matrix_vert2,1));  
      }
+     
+     if (memoryposition < 64) {
+       
+    
 
      EEPROM.write(memoryposition,type-176+(velocity*16)+144);      // TYPE // typetable[] // 
      // note: velocity = miditype proveniente dall'editor numerato da 0 a 6 - viene moltiplicato per 16 e sistemato da 144 in poi a seconda del canale
@@ -453,15 +556,18 @@ case 4 : ///////////////////////////////////////////////////////////////////////
      }  // ATTENZIONE: c'è un -64 che serve per compensare la numerazione memoryposition 2nd page
      break;
 case 5 : ///////////////////////////////////////////////////////////////////////////////////////////////
-     if (memoryposition < 64) { 
-      
-        if (matrix_vert1 > 0 )
+    
+
+      if (matrix_vert1 > 0 )
      { bitWrite(note,7,bitRead(matrix_vert1,3)); }
         if (matrix_vert2 > 0 )
      { bitWrite(velocity,7,bitRead(matrix_vert2,2));}
+     
+     if (memoryposition < 64) { 
+      
+       
     
-     EEPROM.write(memoryposition+128,note); // User_byte_1 - modetable[]
-    
+     EEPROM.write(memoryposition+128,note); // User_byte_1 - modetable[]  
      EEPROM.write(memoryposition,velocity); //  User_byte_2 - typetable[]
      
      } else{
@@ -470,12 +576,16 @@ case 5 : ///////////////////////////////////////////////////////////////////////
      }  // ATTENZIONE: c'è un -64 che serve per compensare la numerazione memoryposition 2nd page
      break;
 case 6 : ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-     if (memoryposition < 64) { 
-        
-        if (matrix_vert2 > 0 )
-     { // bitWrite(note,7,bitRead(matrix_vert1,4));  
+    
+     
+         if (matrix_vert2 > 0 )
+     { 
        bitWrite(note,7,bitRead(matrix_vert2,3));  
      }
+     
+     if (memoryposition < 64) { 
+        
+    
      
      EEPROM.write(memoryposition+448,note);   // User_byte_3 - lightable[]
     // EEPROM.write(memoryposition+448,velocity);  // User_byte_4 - riga verticale
@@ -483,6 +593,7 @@ case 6 : ///////////////////////////////////////////////////////////////////////
      EEPROM.write(memoryposition+512-64+448,note); // User_byte_7 - lightable[]
     // EEPROM.write(memoryposition+512+448,velocity); // User_byte_8 - riga verticale
      }  // ATTENZIONE: c'è un -64 che serve per compensare la numerazione memoryposition 2nd page
+     
      matrix_vert1 = 0;
      matrix_vert2 = 0;
      break;
@@ -491,23 +602,6 @@ case 6 : ///////////////////////////////////////////////////////////////////////
      
 
      editorcounter++;
-     /*
-     if (editorcounter > 4){ 
-      
-      editorcounter = 0;
-
-     #if (shifter_active == 1 && stratos == 0)
-   if (valuetable[general_mempos] == 0 )
-   {shifter.setAll(HIGH); shifter.write();
-     delay(5);
-     shifter.setAll(LOW); shifter.write();
      
-     }
-     
-     
-     #endif
-     
-  }
-  */
      }
  }

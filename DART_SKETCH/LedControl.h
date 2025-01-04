@@ -69,7 +69,7 @@ class LedControl {
         void spiTransfer(int addr, byte opcode, byte data);
 
         /* We keep track of the led-status for all 8 devices in this array */
-        byte status[128];   // 8 byte x 16 matrici!
+        byte status[128];   // 8 byte x 16 matrici! possibile ridurre a 86 per 12 matrici
         /* Data is shifted out of this pin*/
         int SPI_MOSI;
         /* The clock is signaled on this pin */
@@ -150,8 +150,11 @@ class LedControl {
          * value	each bit set to 1 will light up the
          *		corresponding Led.
          */
-        void setRow(int addr, int row, byte value);
-        void setRow_massi(int addr, int row);
+        void setRow(int addr, int row, byte value, byte send_);
+        void sendRow(int addr, byte row);
+        void sendRow2(byte scatto);
+        void restore_shutdown();
+      //  void setRow_massi(int addr, int row);
         void Parola_diretta(byte matrice_partenza, byte row , byte onoff);
        
 };

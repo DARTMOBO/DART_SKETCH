@@ -13,11 +13,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
    void load_preset(boolean numero)
-     
+  {
      // numero is the page to load  - 0 1 
      // carica le variabili dalla EEPROM alla memoria esecutiva, 
      ///secondo la pagina in cui ci si trova.
-  {
+     
     #if (shifter_active == 1 && stratos == 0)
      if (valuetable[general_mempos] == 0 ) {shifter.setAll(HIGH); shifter.write();} // flash di luci quando viene caricato il preset
     #endif
@@ -28,6 +28,10 @@ eeprom_preset_active = 0;
    for (byte i = 0; i <max_modifiers; i++) {
     
    modetable[i]= EEPROM.read(i+128+(numero*512));    
+
+   #if (Matrix_Pads > 0 )
+   if (i< 47)
+   #endif
    setup_mempos(i);                                // dopo aver caricato la modetable facciamo il settaggio macchina
     
   dmxtable[i]= EEPROM.read(i+192+(numero*512));
@@ -40,15 +44,35 @@ eeprom_preset_active = 0;
                                    // in tal modo si evitano conflitti
                                    // correzione - dato che poi gli input non verebbero letti (analogread verrebbe saltato da AIN) tolgo questa parte
              {modetable[minvalue[mouse_mempos]] = 0;
-             modetable[maxvalue[mouse_mempos]] = 0;} 
+              modetable[maxvalue[mouse_mempos]] = 0;
+             } 
              }
   
   else {
     minvalue[i]= EEPROM.read(i+256+(numero*512)); // if (dmxtable[mouse_mempos] == 2)
+    
+    if (modetable[i] == 19 || modetable[i] == 21 || modetable[i] == 22) { // con speed = 0 l'encoder non emette nulla, adesso speed 0 è = 1
+      if (minvalue[i] == 32) minvalue[i] ++;
+      }
+      
     maxvalue[i] =EEPROM.read(i+320+(numero*512));
-    if (modetable[i] == 21) lastEncoded[0] = maxvalue[i];
-    if (modetable[i] == 22) lastEncoded[1] = maxvalue[i];
+   // if (modetable[i] == 21) lastEncoded[0] = maxvalue[i];
+   // if (modetable[i] == 22) lastEncoded[1] = maxvalue[i];
   }
+
+/*
+ if ( modetable[i] == 21) 
+ {
+ // encoder_mempos[0] = i; 
+ update_scala(0);
+  }
+  if ( modetable[i] == 22) 
+  {
+   // encoder_mempos[1] = i;  
+  update_scala(1);
+  }
+*/
+
   
   // quando da editor si specifica la posizione su ircuito degli assi x e y - viene usato il remap da numerazione semplificata a numerazione normale
  //  if (i == mouse_mempos) maxvalue[i] = remapper(EEPROM.read(i+320+(numero*512))-1); else  maxvalue[i] =EEPROM.read(i+320+(numero*512));
@@ -61,15 +85,15 @@ eeprom_preset_active = 0;
  // 181 risolto il problema tra b6 (input in posizione reale = 0 ) e lo spinner1 (quando non viene dichiarato nel preset.
 // da adesso , quando encoder_mempos[0] = 0 il controller va a verificare che non ci sia un conflitto con un item in memoryposition 0 
 // se si va a posizionare lo spinner1 altrove in memoria, dove c'è spazio inutilizzato.
+
   if  ( modetable[0] != 21)
   {
     for (byte i = 0; i <max_modifiers; i++) {
-  if ( modetable[i]== 0)  {encoder_mempos[0] = i; break;}
+   if ( modetable[i]== 0)  {encoder_mempos[0] = i; break;}
     }
     
     }
  
-  
   }
 
 
@@ -88,7 +112,7 @@ eeprom_preset_active = 0;
    
        }else  {   
         for (byte i = 0; i <max_modifiers; i++)  
-       lightable[i] = EEPROM.read(i+448);
+       lightable[i] = EEPROM.read(i+448+(numero*512));
        
        }                        
   }
@@ -100,24 +124,24 @@ void setup_mempos (byte i)  // richiamato da load_preset
    
   if ( modetable[i] == 18) distance_mempos = i;
   //____________________________________________________________________________
-  if ( modetable[i] == 21) {encoder_mempos[0] = i; update_scala(0);}
-  if ( modetable[i] == 22) {encoder_mempos[1] = i; update_scala(1);}
+  if ( modetable[i] == 21) {encoder_mempos[0] = i;// update_scala(0);
+  }
+  if ( modetable[i] == 22) {encoder_mempos[1] = i;//  update_scala(1);
+  }
   //______________________________________________________________________________
   if ( modetable[i] == 23) touch_mempos[0] = i;
   if ( modetable[i] == 24) touch_mempos[1] = i;
   if ( modetable[i] == 25) mouse_mempos = i;
   if ( modetable[i] == 20) PADS_mempos = i;
-  if ( modetable[i] == 17) page_mempos = i; 
+  if ( modetable[i] == 17 ) page_mempos = i; 
   if ( modetable[i] == 26) {general_mempos = i; eeprom_preset_active = 1;}
-  if ( dmxtable[general_mempos] >  1) { modetable[45] = 0; modetable[37] =0;} // disattiva lo scanning sugli input dedicati al secondo encoder
+  if ( modetable[i] == 30 || modetable[i] == 16 ) {lastbutton[i] = 1;}
+  // if ( dmxtable[general_mempos] >  1) { modetable[45] = 0; modetable[37] =0;} // disattiva lo scanning sugli input dedicati al secondo encoder
                                                                               // se il secondo encoder è attivo
   
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-  
- 
 
  #if (stratos == 0) // dart one
  void aux_preset() // preset di base caricato all'avvio soltanto se il preset sulla eeprom non Ã¨ valido. 

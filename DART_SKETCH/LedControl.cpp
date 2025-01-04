@@ -55,7 +55,7 @@ LedControl::LedControl(int dataPin, int clkPin, int csPin, int numDevices) {
     pinMode(SPI_CS,OUTPUT);
     digitalWrite(SPI_CS,HIGH);
     SPI_MOSI=dataPin;
-    for(int i=0;i<64;i++) 
+    for(int i=0;i<64;i++)
         status[i]=0x00;
     for(int i=0;i<maxDevices;i++) {
         spiTransfer(i,OP_DISPLAYTEST,0);
@@ -124,41 +124,260 @@ void LedControl::setLed(int addr, int row, int column, boolean state) {
     spiTransfer(addr, row+1,status[offset+row]);
 }
 
-void LedControl::setRow(int addr, int row, byte value) {
+void LedControl::setRow(int addr, int row, byte value, byte send_) {
     int offset;
-    if(addr<0 || addr>=maxDevices)
+ /*
+  if(addr<0 || addr>=maxDevices)
         return;
     if(row<0 || row>7)
         return;
+        */
     offset=addr*8;
     status[offset+row]=value;
-    spiTransfer(addr, row+1,status[offset+row]);
+   if (send_ ==1 ) spiTransfer(addr, row+1,status[offset+row]); // spiTransfer(int addr, volatile byte opcode, volatile byte data)
 }
 
-void LedControl::setRow_massi(int addr, int row ) {   // addr = quale matrice // row = quale riga/row devo illuminare
-   // spiTransfer(addr, order_row[row-1]+1,0);
-    spiTransfer(addr, order_row[row]+1,255);      }
+
+void LedControl::sendRow(int addr, byte row) {
+
+  
+    int offset1=addr*8;
+
+int offset=addr*2;              
+    int maxbytes=maxDevices*2; // 12 matrici di led  x2 = 24
+
+    for(int i=0;i<maxbytes;i++)
+        spidata[i]=(byte)0;    // azzeramento 
+              
+    spidata[offset+1]=row+1; 
+    spidata[offset]=status[offset1+row];         // posiziono il byte da inviare
+
+    /*
+    for(int rr=0;rr<8;rr++){
+    spidata[offset+1]=rr+1; 
+    spidata[offset]=status[offset1+rr];         // posiziono il byte da inviare
+    */
+ 
+    digitalWrite(SPI_CS,LOW);
+    for(int i=maxbytes;i>0;i--)   shiftOut(SPI_MOSI,SPI_CLK,MSBFIRST,spidata[i-1]);  // i-1 per fare scendere i fino a 
+    digitalWrite(SPI_CS,HIGH);
+
+}
+
+/*
+void LedControl::sendRow2(int addr) {
+
+ for(byte yy=0;yy<12;yy++)
+  {
+    byte offset1=yy*8;
+
+byte offset=yy*2;              
+    int maxbytes=maxDevices*2; // 12 matrici di led  x2 = 24
+
+   
+        
+                 for(int i=0;i<maxbytes;i++)
+                 spidata[i]=(byte)0;
+
+              for(byte row=0;row<8;row++)
+              {
+                  
+        
+    spidata[offset+1]=row+1; 
+    spidata[offset]=status[offset1+row];         // posiziono il byte da inviare
+
+    
+    digitalWrite(SPI_CS,LOW);
+    for(int i=24;i>0;i--)   shiftOut(SPI_MOSI,SPI_CLK,MSBFIRST,spidata[i-1]);  // i-1 per fare scendere i fino a 
+    digitalWrite(SPI_CS,HIGH);
+    //delay(5);
+              }
+
+    
+   
+ 
+  }
+
+  
+}
+*/
+
+
+void LedControl::sendRow2(byte scatto) {
+
+
+// qualche appunto perchè la confusione è bestiale:
+// voglio inviare solo 8 spitransfer completi, uno per ogni riga di tutte le 12 matrici - 
+// esempio, il primo spitransfer vale per la riga uno di tutte le matrici... benissimo
+//byte scatto =1;
+
+// for(byte scatto=0;scatto<2;scatto++)
+
+
+ // scatto = 0;
+
+ // qualche chiarimento: ho notato che a causa sicuramente di interferenze elettriche, 
+ // mandare uno spitransfer completo con una riga per tutte le 12 matrici è difficile
+ // quindi ho separato bene i mesaggi tramite "scatto"
+ // le matrici vengono controllate in due gruppi da 6 separando bene i segnali
+ // quindi controllo le matrici una si e una no prima le pari poi le dispari... così funziona tutto bene
+ 
+ {
+   for(byte row=0;row<8;row++)
+   {
+
+      for(int i=0;i<24;i++)
+      spidata[i]=(byte)0; //azzeramento
+
+
+    /*
+        if (scatto == 0)  // restore shutdown     ////// qui riaccendo le matrici che prima avevo spento con gli effetti luci endenc... 
+                                                  // ho spento le matrici di numero pari per un difetto di comunicazione coi max7219
+                                                  // non posso mandare un aggioramento con tutto l'array spidata pieno
+                                                  // pernso per problemi di interferenza elettrica
+         {
+          for(byte row2=0;row2<6;row2++){
+         spidata[3+row2*4]=12;  // 2-3     6-7     10-11     14-15     18-19      22-23
+         spidata[2+row2*4]=1; }
+
+          digitalWrite(SPI_CS,LOW);
+    for(int i=24;i>0;i--)  { shiftOut(SPI_MOSI,SPI_CLK,MSBFIRST,spidata[i-1]);  // delay(1);
+    } // i-1 per fare scendere i fino a 
+    digitalWrite(SPI_CS,HIGH); //delay(5); 
+
+           for(int i=0;i<24;i++)
+           spidata[i]=(byte)0;   
+         }
+
+
+*/
+         
+               
+         for(byte yy=0;yy<6;yy++)
+         {
+         byte offset1=yy*16+scatto*8;
+         byte offset=yy*4+scatto*2;              
+        
+         spidata[offset+1]=row+1; 
+         spidata[offset]=status[offset1+row];         // posiziono il byte da inviare
+         
+       
+        
+         }
+ 
+    digitalWrite(SPI_CS,LOW); //delay(10);
+    for(int i=24;i>0;i--)  { shiftOut(SPI_MOSI,SPI_CLK,MSBFIRST,spidata[i-1]); // delay(10);
+  //    shiftOut(SPI_MOSI,SPI_CLK,MSBFIRST,spidata[i-1]);  // i-1 per fare scendere i fino a 0
+    } // i-1 per fare scendere i fino a 
+    digitalWrite(SPI_CS,HIGH); //delay(10); 
+   }
+   //delay(500);
+ }
+  
+}
+
+
+
+
+
+
+
+// ----------------------------------------------------------------------------------------------
+/*
+void LedControl::restore_shutdown() // questa versione invia uno spidata da 24 byte per ogni matrice da spegnere
+{
+       // for(int i=0;i<24;i++)
+      //  spidata[i]=(byte)0; 
+
+          for(int i=0;i<6;i++)   /// 01  
+           {
+            for(int f=0;f<24;f++)
+        spidata[f]=(byte)0; 
+        
+             spidata[i*4+3]=12;      //  0 .. 0*2+3 = 3    // 1*4+3 = 7    .. 7   .. 2*4+3 = 11
+             spidata[i*4+2]=1;       //  0 .. 0*2+2 = 2    // 1*4+2 = 6    .. 6   .. 2*4+2 = 10
+
+                digitalWrite(SPI_CS,LOW);                                                // queste tre righe valgono come uno spitransfer
+    for(int i=24;i>0;i--) shiftOut(SPI_MOSI,SPI_CLK,MSBFIRST,spidata[i-1]); 
+    digitalWrite(SPI_CS,HIGH);
+            }
+     
+    // digitalWrite(SPI_CS,LOW);                                                // queste tre righe valgono come uno spitransfer
+    // for(int i=4;i>0;i--) shiftOut(SPI_MOSI,SPI_CLK,MSBFIRST,spidata[i-1]); 
+    // digitalWrite(SPI_CS,HIGH);
+  
+  }
+*/
+
+void LedControl::restore_shutdown() // 
+{
+        for(int i=0;i<24;i++) // azzeramento
+       spidata[i]=(byte)0; 
+
+          for(int i=0;i<6;i++)   /// 01  
+           {
+      //      for(int f=0;f<24;f++) // azzeramento
+       // spidata[f]=(byte)0; 
+        
+             spidata[i*4+3]=12;      //  0 .. 0*2+3 = 3    // 1*4+3 = 7    .. 7   .. 2*4+3 = 11
+             spidata[i*4+2]=1;       //  0 .. 0*2+2 = 2    // 1*4+2 = 6    .. 6   .. 2*4+2 = 10
+
+   // digitalWrite(SPI_CS,LOW);                                                // queste tre righe valgono come uno spitransfer
+   //  for(int i=24;i>0;i--) shiftOut(SPI_MOSI,SPI_CLK,MSBFIRST,spidata[i-1]); 
+   //  digitalWrite(SPI_CS,HIGH);
+            }
+     
+     digitalWrite(SPI_CS,LOW);                                                // queste tre righe valgono come uno spitransfer
+     for(int i=24;i>0;i--) shiftOut(SPI_MOSI,SPI_CLK,MSBFIRST,spidata[i-1]); 
+     digitalWrite(SPI_CS,HIGH);
+  
+  }
+
+
 
 void LedControl::Parola_diretta(byte matrice_partenza, byte row, byte onoff ) {   // addr = quale matrice // row = quale riga/row devo illuminare
       
 
-         for(int i=0;i<24;i++)
-        spidata[i]=(byte)0;
+         for(int i=0;i<4;i++)
+        spidata[i]=(byte)0; 
 
         if (onoff ==1){
-       spidata[1+(matrice_partenza*2+2)]=row+1;
-       spidata[(matrice_partenza*2)+2]=~status[(matrice_partenza+1)*8+row];;
+
+          spidata[1+(matrice_partenza*2)]=row+1;
+    //   spidata[(matrice_partenza*2)]=~status[(matrice_partenza)*8+row];
+     spidata[(matrice_partenza*2)]=255;                                        // tutto bianco
+
+    //   spidata[1+(matrice_partenza*2+2)]=12;                                   // seconda matrice - shutdown
+    //  spidata[(matrice_partenza*2)+2]=0;
       
-       spidata[1+(matrice_partenza*2+4)]=row+1;
-       spidata[(matrice_partenza*2)+4]=~status[(matrice_partenza+2)*8+row];;
+   //   spidata[1+(matrice_partenza*2+4)]=row+1;
+     //  spidata[(matrice_partenza*2)+4]=~status[(matrice_partenza+2)*8+row]; // stesso lavoro sulla matrice accanto
+  //  spidata[(matrice_partenza*2)+4]=255;
+
+     //   spidata[1+(matrice_partenza*2+6)]=row+1;
+     //  spidata[(matrice_partenza*2)+6]=~status[(matrice_partenza+3)*8+row];;
+   //  spidata[(matrice_partenza*2)+6]=255; 
         }
-        else
+        else  //// ---------------------------------------------------------------
         {
-       spidata[1+(matrice_partenza*2+2)]=row+1;
-       spidata[(matrice_partenza*2)+2]=status[(matrice_partenza+1)*8+row];
+
+       spidata[1+(matrice_partenza*2)]=row+1;
+    //   spidata[(matrice_partenza*2)]=status[(matrice_partenza)*8+row];
+    spidata[(matrice_partenza*2)]=0;
+
+  //   spidata[1+(matrice_partenza*2+2)]=row+1;                                      // seconda matrice
+    //   spidata[(matrice_partenza*2)]=status[(matrice_partenza)*8+row];
+  //  spidata[(matrice_partenza*2)+2]=0;
+       
+     //  spidata[1+(matrice_partenza*2+2)]=row+1;                   // seconda matrice
+     //  spidata[(matrice_partenza*2)+2]=status[(matrice_partenza+1)*8+row];
       
-       spidata[1+(matrice_partenza*2+4)]=row+1;
-       spidata[(matrice_partenza*2)+4]=status[(matrice_partenza+2)*8+row];
+    //   spidata[1+(matrice_partenza*2+4)]=row+1;
+      // spidata[(matrice_partenza*2)+4]=status[(matrice_partenza+2)*8+row];
+    //  spidata[(matrice_partenza*2)+4]=0;
+
+     //   spidata[1+(matrice_partenza*2+6)]=row+1;
+     //  spidata[(matrice_partenza*2)+6]=status[(matrice_partenza+3)*8+row];
           }
 
        
@@ -173,9 +392,25 @@ void LedControl::Parola_diretta(byte matrice_partenza, byte row, byte onoff ) { 
         
         
 
-        digitalWrite(SPI_CS,LOW);
-    for(int i=24;i>0;i--) shiftOut(SPI_MOSI,SPI_CLK,MSBFIRST,spidata[i-1]); 
+    digitalWrite(SPI_CS,LOW);                                                // queste tre righe valgono come uno spitransfer
+    for(int i=4;i>0;i--) shiftOut(SPI_MOSI,SPI_CLK,MSBFIRST,spidata[i-1]); 
     digitalWrite(SPI_CS,HIGH);
+
+     for(int i=0;i<4;i++)
+        spidata[i]=(byte)0; 
+
+        if (onoff ==1){    //   spidata[1+(matrice_partenza*2+2)]=12;                                   // seconda matrice - shutdown
+        spidata[1+(matrice_partenza*2+2)]=12;                                   // seconda matrice - shutdown
+        spidata[(matrice_partenza*2)+2]=0;
+        }
+    
+    digitalWrite(SPI_CS,LOW);                                                // queste tre righe valgono come uno spitransfer
+    for(int i=4;i>0;i--) shiftOut(SPI_MOSI,SPI_CLK,MSBFIRST,spidata[i-1]); 
+    digitalWrite(SPI_CS,HIGH);
+
+    // spiegazione: se devo comunicare qualcosa alla mia catena di max7219, devo inviare tutto un blocco spidata
+    // un blocco spidata che, nel caso in cui abbiamo 12 matrici, sarà da 24 bytes - perche devo sapere cosa fare (numero OPCODE) e il byte del contenuto. 
+    // insomma due bytes per ogni matrice.
       
 
     }
