@@ -1,4 +1,6 @@
 /* 
+ *  in questa versione che metto online ho eliminato (proprio dalla cartella) il tab D_mtrx e i due files della libreria ledcontrol
+ *  
  *  28 12 24 
  *  sto cercando di capire perchè scale non inverte il verso di rotazione in base a speed
  *  d_mod_enc- 407 ripristinare   481 rallentatore ripristinare
