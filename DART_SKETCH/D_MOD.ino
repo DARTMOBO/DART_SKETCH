@@ -1259,7 +1259,7 @@ shifterwrite=1;};// opencalibration[1]=HIGH;
       { 
         cycletimer++;
        // Serial.println("virtual_touch");
-      encled[0]=0;
+    //   encled[0]=0;
       
       // utilizzo inomingbyte (boolean(page) - e' na variabile normalmente utilizzata per il midi-in, per on creare nuove variabili la riutilizzo
       if (V_touch_regulator[numero] == 0 

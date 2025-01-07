@@ -76,11 +76,15 @@ V_touch_regulator[numero2h] = 0; // lastbutton encoder 1 e 2 mempos si possono u
  //-------------------------------------------------------------------------------------------------------------------------------
 
  { 
-    if (minvalue[numero] >= 32) { // normal or inverted?
+    if (minvalue[numero] >= 32) // normal or inverted?
+ { 
     
     if (dmxtable[numero]==0)      //   endless mode <63 >65
    {
-    if (typetable[numero+page] <= 191 ) // spiegazione : c'è la possibilià di inviare qwerty usando l'encoder, una lettera in una direzione e una in un'altra
+    if (typetable[numero+page] <= 191 )
+
+    {
+                                        // spiegazione : c'è la possibilià di inviare qwerty usando l'encoder, una lettera in una direzione e una in un'altra
                                         // utile per controllare lo zoom,  per esempio in cubase
                                         // in carattere ascii da inviare è determinato da valuetable
                                         // vengono inviate quando siamo in modalità 63-65 
@@ -93,7 +97,7 @@ V_touch_regulator[numero2h] = 0; // lastbutton encoder 1 e 2 mempos si possono u
     // lastbutton[touch_mempos[numero]] //  se il touch = premuto o no // sostituita con byte tocco, che per gli encoder semplici è 0.
     // quindi col touchstop attivato, i messaggi endless cambiano canale al tocco.
 
-   {
+   
                                        #if (stratos == 0 )
                                        if (lightable[numero] ==  16) 
                                        #endif
@@ -132,7 +136,7 @@ V_touch_regulator[numero2h] = 0; // lastbutton encoder 1 e 2 mempos si possono u
     
       }  
       
-      else
+      else // qwerty encoder
       {   
         qwerty_encoderr(numero);
         lastbutton[numero] = 64;
@@ -140,41 +144,37 @@ V_touch_regulator[numero2h] = 0; // lastbutton encoder 1 e 2 mempos si possono u
       }
     }
     else // ---------------- modalità 0-127
-
-    //x ^ y
-
+    {
     if ( (qwertyvalue[numero] ^ tocco) != 3 )  // sistema per gestione touch stop
     {        
       button(typetable[numero+page]+boolean(qwertyvalue[numero])*tocco,
       valuetable[numero+page], 
       constrain((lastbutton[numero]-63)*64, 0,127),2);  
 
-     //  Serial.println(encled[0]);
-        encled[0] = encled[0] + (lastbutton[numero]-64)*(minvalue[numero]-32) ;     
-       //  Serial.println(encled[0]);
+          Serial.println(encled[0]);
+        encled[0] = encled[0] + (lastbutton[numero]-64) *(minvalue[numero]-32) ;     
+      //     Serial.println(encled[0]);
         //   Serial.println((lastbutton[numero]-64)*(minvalue[numero]-32));
-  // Serial.println("--");
-    }   
-    
-           
-   // encled[0] = encled[0] + (lastbutton[numero]-64)*(minvalue[numero]-32) ; // spiegazione : lastbutton è 63 o 65, quindi lastbutton -64 mi da +1 o -1
+        //Serial.println(lastbutton[numero]-64);
+        // Serial.println("--");
+
+         // encled[0] = encled[0] + (lastbutton[numero]-64)*(minvalue[numero]-32) ; // spiegazione : lastbutton è 63 o 65, quindi lastbutton -64 mi da +1 o -1
                                                                             // minvalue sarebbe un fattore di velocità-speed anche questo positivo o negativo
                                                                             // quindi io aggiungo o tolgo qualcosa al precedente encled[0], 
                                                                             // in base al verso di rotazione
+    }   
+
+    }
+           
+  
     
-    } // endless mode 0-127
+ } 
 
 
-
-
-
-
-
-
-  else{  // - minvalue sotto 32 inverte il funzionamento ---------------------------------------------------------------------------------------------
+  else
+{  // - minvalue sotto 32 inverte il funzionamento ---------------------------------------------------------------------------------------------
     
   if (dmxtable[numero]==0)     // --------modalita  endless<63 >65
-  
   {
     if (typetable[numero+page] <= 191 ) {
 
@@ -213,8 +213,7 @@ V_touch_regulator[numero2h] = 0; // lastbutton encoder 1 e 2 mempos si possono u
           lastbutton[numero] = 64;
         }
   }
-
-      
+   
   else {  // ---------------- modalità 0-127
    button(typetable[numero+(page)]+boolean(qwertyvalue[numero])*tocco,
    valuetable[numero+(page)], 
@@ -228,12 +227,11 @@ V_touch_regulator[numero2h] = 0; // lastbutton encoder 1 e 2 mempos si possono u
   // Serial.println("--");
    }
    
-  // encled[0] = encled[0] + (lastbutton[numero]-64)*(minvalue[numero]-32); 
-   
-   }
+ 
+}
    
     #if (shifter_active == 1 && stratos == 0)
-    led_enc_exe();
+     led_enc_exe();
     #endif
 
      //Serial.println(encled[0]);
@@ -307,35 +305,6 @@ V_touch_regulator[numero2h] = 0; // lastbutton encoder 1 e 2 mempos si possono u
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-void qwerty_encoderr (byte numero)
-{
-  
-  
-        if (qwertyvalue[numero] == 0 && lastbutton[numero] != 64 )
-        {
-        // valuetable[chan + (page)]                                  // encoder usato per emettere messaggi  qwerty
-        
-         #if (hid_keys == 1)
-        Keyboard.press(constrain((lastbutton[numero]-63)+valuetable[numero+page], 41,126)); 
-      //Serial.println(lastbutton[numero]);
-        // delay(10); 
-      //41-126 PER EVITARE di triggerare tasti modificatori
-        Keyboard.release(constrain((lastbutton[numero]-63)+valuetable[numero+page],41,126));
-        #endif
-    
-      }
-        qwertyvalue[numero]++;
-      //  int qwerty_encoder = minvalue[numero];
-      //  qwerty_encoder = abs(qwerty_encoder -32);
-       //  if (qwertyvalue[numero] > qwerty_encoder ) qwertyvalue[numero]= 0;
-       if (qwertyvalue[numero] > abs(minvalue[numero]-32) ) qwertyvalue[numero]= 0; 
-       
-       // attualmente si può usare speed per diminuide la velocitò di emisione dei caratteri qwerty
-       // si dovrebbe fare in modo che speed si possa usare in negativo - sarebbe più intuitivo
-       } 
-
- /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
- 
   void encoder_pot_mode (byte numero) {
 
   int valuepot;
@@ -451,7 +420,7 @@ void qwerty_encoderr (byte numero)
  ledrestore(page);
   // encled = abs((encodervaluepot[numero2]/4)-255);
   #endif
-  encled[0] = abs((valuepot/4)-255);
+  encled[0] = abs((valuepot/4)-255); // posizione effetto luminoso encoder - valuepot è 1024
   
   
  
@@ -563,6 +532,35 @@ void lettura_enc_principale()   // legge l'encoder principale , collegato ad pin
 
  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void qwerty_encoderr (byte numero)
+{
+  
+  
+        if (qwertyvalue[numero] == 0 && lastbutton[numero] != 64 )
+        {
+        // valuetable[chan + (page)]                                  // encoder usato per emettere messaggi  qwerty
+        
+         #if (hid_keys == 1)
+        Keyboard.press(constrain((lastbutton[numero]-63)+valuetable[numero+page], 41,126)); 
+      //Serial.println(lastbutton[numero]);
+        // delay(10); 
+      //41-126 PER EVITARE di triggerare tasti modificatori
+        Keyboard.release(constrain((lastbutton[numero]-63)+valuetable[numero+page],41,126));
+        #endif
+    
+      }
+        qwertyvalue[numero]++;
+      //  int qwerty_encoder = minvalue[numero];
+      //  qwerty_encoder = abs(qwerty_encoder -32);
+       //  if (qwertyvalue[numero] > qwerty_encoder ) qwertyvalue[numero]= 0;
+       if (qwertyvalue[numero] > abs(minvalue[numero]-32) ) qwertyvalue[numero]= 0; 
+       
+       // attualmente si può usare speed per diminuide la velocitò di emisione dei caratteri qwerty
+       // si dovrebbe fare in modo che speed si possa usare in negativo - sarebbe più intuitivo
+       } 
+
+ /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ 
 void updateEncoder(byte numero)
 {
   boolean numero2_ =1;

@@ -1,5 +1,7 @@
 /* 
- *  in questa versione che metto online ho eliminato (proprio dalla cartella) il tab D_mtrx e i due files della libreria ledcontrol
+ *  
+ *  7 1 25 
+ *  alla tab d_mod riga 1262 olgo l'azzeramento di encled perchè non fa funzionare bene l'effeto visivo degli spinners in modalità endless
  *  
  *  28 12 24 
  *  sto cercando di capire perchè scale non inverte il verso di rotazione in base a speed
