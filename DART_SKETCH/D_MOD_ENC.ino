@@ -128,7 +128,7 @@ V_touch_regulator[numero2h] = 0; // lastbutton encoder 1 e 2 mempos si possono u
                                     //   + ((lastbutton[numero]-64)*(minvalue[numero]-32)));
                                        
                                        lightable[numero] = 0;
-                                       encled[0] = encled[0] + (lastbutton[numero]-64)*(minvalue[numero]-32) ;
+                                       encled[0] = encled[0] + (-(lastbutton[numero]-64))*(minvalue[numero]-32) ;
                                        lastbutton[numero] = 64;
                                        }
                                        else 
@@ -151,8 +151,8 @@ V_touch_regulator[numero2h] = 0; // lastbutton encoder 1 e 2 mempos si possono u
       valuetable[numero+page], 
       constrain((lastbutton[numero]-63)*64, 0,127),2);  
 
-          Serial.println(encled[0]);
-        encled[0] = encled[0] + (lastbutton[numero]-64) *(minvalue[numero]-32) ;     
+       //    Serial.println(encled[0]);
+        encled[0] = encled[0] + (-(lastbutton[numero]-64)) *(minvalue[numero]-32) ;     
       //     Serial.println(encled[0]);
         //   Serial.println((lastbutton[numero]-64)*(minvalue[numero]-32));
         //Serial.println(lastbutton[numero]-64);
@@ -200,7 +200,7 @@ V_touch_regulator[numero2h] = 0; // lastbutton encoder 1 e 2 mempos si possono u
                                        ,0) ; 
                                        
                                        lightable[numero] = 0;
-                                       encled[0] = encled[0] + (lastbutton[numero]-64)*(minvalue[numero]-32); 
+                                       encled[0] = encled[0] + (-(lastbutton[numero]-64))*(minvalue[numero]-32); 
                                        lastbutton[numero] = 64;
                                        }
                                        else 
@@ -219,7 +219,7 @@ V_touch_regulator[numero2h] = 0; // lastbutton encoder 1 e 2 mempos si possono u
    valuetable[numero+(page)], 
    constrain(-(lastbutton[numero]-64)*127, 0,127),2);   
 
-   encled[0] = encled[0] + (lastbutton[numero]-64)*(minvalue[numero]-32); 
+   encled[0] = encled[0] + (-(lastbutton[numero]-64))*(minvalue[numero]-32); 
   // lastbutton[numero] = 64;
   // Serial.println(encled[0]);
    
