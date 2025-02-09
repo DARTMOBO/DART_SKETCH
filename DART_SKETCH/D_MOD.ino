@@ -907,6 +907,25 @@ void touch_sensors(byte T_numero) {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#if (capacitivesensor_active == 4) // variante della void touch_sensors dedicata all'utilizzo di ic touch esterni
+void touch_sensors(byte T_numero) {
+  
+     if (touch_mempos[T_numero] >0)  // SE ESISTE UN ITEM CON SETTAGGIO TOUCH ALLORA SI PROCEDE ALLA LETTURA
+     {                  
+      averageXen[T_numero] = !(digitalRead(7+(T_numero*2)));
+   
+////
+
+  if (lightable[touch_mempos[T_numero]] == 0)  touch_execute(T_numero); // lightable : 0-capacitive, 1-virtual, 2-monitoring.
+  else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, T_numero,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
+
+////
+     }
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #if (capacitivesensor_active == 1)
 void touch_sensors(byte T_numero) {
   // in breve in questa void viene caricato un valore sulla variabile averageXen[T_numero] che poi verrà usato nella void touch_execute 
