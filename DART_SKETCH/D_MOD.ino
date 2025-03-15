@@ -24,11 +24,12 @@
      
       if (lastbutton[chan] == lastbutton_debounce)
       {
-        Serial.print(modetable[19]); Serial.println(" - modetable");
+       /*
+       Serial.print(modetable[19]); Serial.println(" - modetable");
         Serial.print(dmxtable[19]); Serial.println(" - dmxtable - modalità endless / pot");
         Serial.print(qwertyvalue[19]); Serial.println(" - touchstop");
         Serial.print(minvalue[19]-32); Serial.println(" - speed");
-
+*/
 
 
         

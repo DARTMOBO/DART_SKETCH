@@ -6,10 +6,10 @@
 // www.dartmobo.com      //
 ///////////////////////////
 
-#define shifter_active  1            // 1 = enabled // 0 = disabled // SHIFT REGISTERS_ // if enabled, Matrix_pads must be disabled
-#define stratos 0                    // 1 = enabled // 0 = disabled // Stratos sketch version.
+#define shifter_active    1          // 1 = enabled // 0 = disabled // SHIFT REGISTERS_ // if enabled, Matrix_pads must be disabled
+#define stratos  0                   // 1 = enabled // 0 = disabled // Stratos sketch version.
 #define LED_pattern 2                // 0 = dart one // 1 = kombat // 2 = NB-boards // 3 = Kombat-NB // 4 kombat-NB2 - // 5 KOMBAT-NB3 // 6 kombat personal - Led animation pattern used by buttons and pots
-#define capacitivesensor_active 4    // 1 = enabled // 0 = disabled // 2 = EXTERNAL TOUCH IC on pin 7 - 9 // 3 = EXTERNAL TOUCH IC on pin 7 - 8 // 4 = EXTERNAL TOUCH IC (inverted) on pin 7 - 9--- CAPACITIVE SENSORS_
+#define capacitivesensor_active 1    // 1 = enabled // 0 = disabled // 2 = EXTERNAL TOUCH IC on pin 7 - 9 // 3 = EXTERNAL TOUCH IC on pin 7 - 8 // 4 = EXTERNAL TOUCH IC (inverted) on pin 7 - 9--- CAPACITIVE SENSORS_
 #define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
 #define touch_led_onboard 0          // 1 = led output directly on arduino pin 8 // 0 = disabled
 #define DMX_active    0              // 1 = enabled // 0 = disabled // enable-disable also from _DART_Dmx_out.cpp !!!!!!!!!

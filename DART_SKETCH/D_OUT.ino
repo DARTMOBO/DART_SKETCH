@@ -171,21 +171,23 @@ if (eeprom_preset_active == 1) {
  case 1:   
   {
       #if defined (__AVR_ATmega32U4__)  
-  // #if (hid_keys == 1)   if (chan_ < 25 && chan_ > 0) Keyboard.press(pgm_read_byte(qwertymod+chan_+add));
- // else if (chan_ > 31 ) Keyboard.press(chan_+add); // normale tabella ascii // 
- // else if (chan_ != 31 ) Mouse.press(chan_-24+add); // 25 26 27 28 29 30 - 
-  //  #endif
-  #endif
+   #if (hid_keys == 1)  
+   if (chan_ < 25 && chan_ > 0) Keyboard.press(pgm_read_byte(qwertymod+chan_+add));
+  else if (chan_ > 31 ) Keyboard.press(chan_+add); // normale tabella ascii // 
+  else if (chan_ != 31 ) Mouse.press(chan_-24+add); // 25 26 27 28 29 30 - 
+   #endif
+      #endif
       }
  break;
  case 0:
  {
        #if defined (__AVR_ATmega32U4__)  
        //  else if (chan_ < 25 ) Keyboard.release(qwertymod[chan_]); 
-  //  #if (hid_keys == 1)    if (chan_ < 25 && chan_ > 0 ) Keyboard.release(pgm_read_byte(qwertymod+chan_+add));
- //    else if (chan_ > 31 ) Keyboard.release(chan_+add);
- // else  if (chan_ != 31 ) Mouse.release(chan_-24+add); 
- // #endif
+    #if (hid_keys == 1)    
+    if (chan_ < 25 && chan_ > 0 ) Keyboard.release(pgm_read_byte(qwertymod+chan_+add));
+    else if (chan_ > 31 ) Keyboard.release(chan_+add);
+ else  if (chan_ != 31 ) Mouse.release(chan_-24+add); 
+  #endif
     
     #endif  
       }
