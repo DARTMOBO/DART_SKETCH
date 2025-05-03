@@ -274,7 +274,9 @@ void pots ()
 
 
     ///  ----------------------------------------------------------
+ 
 
+  //---------------------------------------------------------
        potOut = constrain(valore,0,127);   // serve per inviare midi!!!
       
        #if (shifter_active == 1 )    
@@ -296,6 +298,7 @@ void pots ()
   
     ///  ----------------------------------------------------------
 
+   
       
       switch ( (typetable[chan + (page)] - 144)  / 16)                       ////////// qui viene inviato il segnale midi definitivo
       {
@@ -320,13 +323,38 @@ void pots ()
       
                             
         cycletimer = 0;                                    // effetti led
-
-       #if (shifter_active == 1 && stratos == 0)
-       if (lightable[chan] > 0) led_enc_exe();
-       #endif
+        
+ #if (shifter_active == 1 && stratos == 0)
+       if (lightable[chan] == 1) {led_enc_exe();}
+       
+       else
+        {
+        if  ( lightable[chan] > 1)
+      
+   { 
+      // Serial.println(valore); 
+       if (potOut > 0 && modetable[chan] < 14 || 
+      potOut != 64 && modetable[chan] > 13 ) 
+     { 
+       
+             cycletimer = 63;
+                bit_write(1,(lightable[chan]-1)+page,1);  
+     }
+       else 
+     {     
+             cycletimer = 63;
+               bit_write(1,(lightable[chan]-1)+page,0);
+       
+     }
+         
+   }
+        }
+       
+  #endif
+       
 
        #if (Matrix_Pads > 0  )
-       if (lightable[chan] > 0) led_enc_exe_matrix();
+       if (lightable[chan] == 1) led_enc_exe_matrix();
        #endif
 
        #if (DMX_active == 1  && stratos == 0)

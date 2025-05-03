@@ -211,7 +211,7 @@ const byte lower_val = 0;
 #endif
 
 int valore; // analog 0-1024 value for 4051 analog readings.
-volatile byte potOut;
+volatile  byte potOut;
 //||||||||||||||||||||||||||||||
 byte mousex;
 byte mousey;
