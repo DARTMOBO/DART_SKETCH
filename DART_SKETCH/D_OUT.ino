@@ -33,7 +33,10 @@ else if (filter ==2)    // modalita utilizzata solo da encoders settati in endle
   // if (out_filter > 0)  Serial.println(out_filter);
   } else out_filter = 0;
 
-if (out_filter > 2) { midiOut(cmd,pitch,velocity);}
+if (out_filter > 2 || pitch != old_pitch
+) { midiOut(cmd,pitch,velocity);}
+//if ( cmd != old_cmd) 
+//Serial.println(cmd);
   
 old_cmd = cmd; 
 old_pitch =  pitch ;  
@@ -56,18 +59,18 @@ void midiOut(byte cmd, byte pitch, byte velocity) {
 // velocity = constrain(velocity,0,127)
   #if defined (__AVR_ATmega32U4__)  
  #if (stratos == 0 )
- Serial1.write(cmd);
+ Serial1.write(cmd+shifter_modifier_);
   Serial1.write(pitch);
   Serial1.write(velocity);
 #endif
 
-  midiEventPacket_t event = {((cmd-144)/16)+9, cmd, pitch, velocity};
+  midiEventPacket_t event = {((cmd+shifter_modifier_-144)/16)+9, cmd+shifter_modifier_, pitch, velocity};
   MidiUSB.sendMIDI(event);
   MidiUSB.flush();
   #endif
 
    #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
- Serial.write(cmd);
+ Serial.write(cmd+shifter_modifier_);
   Serial.write(pitch);
   Serial.write(velocity);
   #endif

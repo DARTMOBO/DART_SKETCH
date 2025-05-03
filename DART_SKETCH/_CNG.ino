@@ -1,4 +1,10 @@
-/* 
+// 1 5 25 - ho completato la funzione shifter all - con possibilità di scegliere di quanto shiftare - da testare
+// tab d_out riga 36 inserisco " || cmd != old_cmd " per tentare di risolvere il problema del filtraggio degli encoder , da testare
+/* 18 4 25 - ho fatto in modo che il controller si avvia sulla pagina 1 con led indicatore acceso  ( quando pageswitch è n button  - se levetta è forzto dalla sua posizione)
+ *  
+ *  7 4 25
+ *  ho fatto in modo che se c'è il touch stop attivato, non venga triggerato l'effetto led involontariamente
+ *  tab d_mod_enc riga 238
  *  
  *  7 1 25 
  *  alla tab d_mod riga 1262 olgo l'azzeramento di encled perchè non fa funzionare bene l'effeto visivo degli spinners in modalità endless
@@ -38,7 +44,7 @@
  * 
  * ho aggiunto un fitro sul midi out - vedi void noteOn 
  * mettendo filter su 2 si può fare in modo che il segnale in uscita di encoders non di alta qualità sia più pulito
- * (devo vedere 0 o 127 puliti che escono fuori a sconda della direzione di rotazione)
+ * (devo vedere 0 o 127 puliti che escono fuori a seconda della direzione di rotazione)
  * tale filtro è anche utilissimo per evitare segnali indesiderati sul top spinner, causati sa spostamenti microscopici a ruota ferma
  */
 

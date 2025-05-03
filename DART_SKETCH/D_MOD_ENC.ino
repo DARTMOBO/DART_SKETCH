@@ -215,6 +215,8 @@ V_touch_regulator[numero2h] = 0; // lastbutton encoder 1 e 2 mempos si possono u
   }
    
   else {  // ---------------- modalità 0-127
+     if ( (qwertyvalue[numero] ^ tocco) != 3 )
+     {
    button(typetable[numero+(page)]+boolean(qwertyvalue[numero])*tocco,
    valuetable[numero+(page)], 
    constrain(-(lastbutton[numero]-64)*127, 0,127),2);   
@@ -225,12 +227,14 @@ V_touch_regulator[numero2h] = 0; // lastbutton encoder 1 e 2 mempos si possono u
    
   // Serial.println(minvalue[numero]);
   // Serial.println("--");
+  }
    }
    
  
 }
    
     #if (shifter_active == 1 && stratos == 0)
+     if ( (qwertyvalue[numero] ^ tocco) != 3 ) 
      led_enc_exe();
     #endif
 
@@ -238,7 +242,8 @@ V_touch_regulator[numero2h] = 0; // lastbutton encoder 1 e 2 mempos si possono u
      // Serial.println("-");
     
        #if (Matrix_Pads > 0 )  
-        led_enc_exe_matrix();    
+       if ( (qwertyvalue[numero] ^ tocco) != 3 )  
+       led_enc_exe_matrix();    
        #endif
 
      

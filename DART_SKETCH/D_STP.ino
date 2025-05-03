@@ -147,7 +147,8 @@ void setup()
   setPlexer((page_mempos)-((page_mempos/8)*8)); 
   lastbutton[page_mempos] = map(analogRead((page_mempos/8)), 0 ,1024, 0, 2); // read page switch state.
 
-  if (lastbutton[page_mempos] == 1  )  {page = 0;  // pagestate=0; 
+  if (lastbutton[page_mempos] == 0  )  {page = 0;  // pagestate=0; 
+  pagestate = 1;
   load_preset(0); //ledrestore(); // levetta a destra caricamento preset eeprom pagina 1
     
      update_scala(1);  
@@ -156,7 +157,7 @@ void setup()
         
  }
  else 
- {page= max_modifiers;   //pagestate=1; 
+ {page= max_modifiers;   pagestate=0; 
  load_preset(1);  //ledrestore2(); // levetta a sinistra preset 2
  
      update_scala(1);  

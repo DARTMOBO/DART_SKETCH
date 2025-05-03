@@ -6,21 +6,21 @@
 // www.dartmobo.com      //
 ///////////////////////////
 
-#define shifter_active    1          // 1 = enabled // 0 = disabled // SHIFT REGISTERS_ // if enabled, Matrix_pads must be disabled
+#define shifter_active    0          // 1 = enabled // 0 = disabled // SHIFT REGISTERS_ // if enabled, Matrix_pads must be disabled
 #define stratos  0                   // 1 = enabled // 0 = disabled // Stratos sketch version.
 #define LED_pattern 2                // 0 = dart one // 1 = kombat // 2 = NB-boards // 3 = Kombat-NB // 4 kombat-NB2 - // 5 KOMBAT-NB3 // 6 kombat personal - Led animation pattern used by buttons and pots
-#define capacitivesensor_active 1    // 1 = enabled // 0 = disabled // 2 = EXTERNAL TOUCH IC on pin 7 - 9 // 3 = EXTERNAL TOUCH IC on pin 7 - 8 // 4 = EXTERNAL TOUCH IC (inverted) on pin 7 - 9--- CAPACITIVE SENSORS_
+#define capacitivesensor_active 2    // 1 = enabled // 0 = disabled // 2 = EXTERNAL TOUCH IC on pin 7 - 9 // 3 = EXTERNAL TOUCH IC on pin 7 - 8 // 4 = EXTERNAL TOUCH IC (inverted) on pin 7 - 9--- CAPACITIVE SENSORS_
 #define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
-#define touch_led_onboard 0          // 1 = led output directly on arduino pin 8 // 0 = disabled
+#define touch_led_onboard 1          // 1 = led output  on arduino pin 8 // 0 = disabled
 #define DMX_active    0              // 1 = enabled // 0 = disabled // enable-disable also from _DART_Dmx_out.cpp !!!!!!!!!
-#define Matrix_Pads 0                // 1 = enabled // 2 = pads on 17-32 circuitposition // 0 = disabled // max7219 chips
+#define Matrix_Pads 2                // 1 = enabled // 2 = pads on 17-32 circuitposition // 0 = disabled // max7219 chips
 #define hid_keys 1                   // 1 = enabled
 #define hid_mouse 1                  // 1 = enabled
 #define top_spinner 1                // 1 = enabled // 0 = disabled // TOP SPINNER
-#define side_spinner 0               // 1 = enabled // 0 = disabled // SIDE SPINNER
+#define side_spinner 1               // 1 = enabled // 0 = disabled // SIDE SPINNER
 #define note_off 0                   // 1 = enabled // 0 = disabled // send NOTE-OFF messages on button release -  if NOTE Type has been selected
 #define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
-#define page_active 1                // 1 = enabled // 0 = disabled // page_switch
+#define page_active 1                // 1 = enabled // 0 = disabled //  page_switch
 #define page_LEDs 0                  // 1 = page LEDs active
 #define MIDI_thru 0                  // 1 = MIDI Thru active
 #define mouse_block 1                // 1 = enabled // 0 = disabled // mouse messages are stopped after 2 seconds of repeated activity
@@ -68,10 +68,15 @@ CapacitiveSensor   cs_4_2[2] = {CapacitiveSensor(8,7),CapacitiveSensor(8,9)};
  #include "LedControl.h"
  #endif
 
+  #if (Matrix_Pads == 2 && stratos == 0)
+ #include "LedControl.h"
+ #endif
+
 
 //#if (stratos == 1)
-byte out_filter;
+byte out_filter; // usato in void noteon come filtro antiflicker per gli encoders di scarsa qualità
 //#endif
+byte shifter_modifier_; // usato in midiout per shiftare i segnali su altro canale ottenendo un effetto simile a PAGE 
 
   byte do_; // attualmente usato come counter per flash lights in modalità matrix durante caricamento preset
 ///////////////////////////////////////////////////////////////////////
@@ -376,7 +381,7 @@ byte encoder_block[2]= {64,64} ; // serve per bloccare l'attivita'  dell'encode
 ////////////////////////////////////////////////////////////////////////////////  
 volatile byte lastbutton[64] ; // used to record the previous state of a button - debounce
 #if ( stratos == 0)
-byte lastbutton_debounce = 10;
+byte lastbutton_debounce = 5;
 #endif
 
 #if ( stratos == 1)
@@ -425,7 +430,7 @@ Channel Pressure  208 + Channel 0-127 Pressure  Not used
  
 volatile byte bit_status[4][max_modifiers/4]; // bit_status e' un multiarray che contiene le vecchie tabelle di riferimento per far funzionare il toggle, 
                                               // il feedback e i led
-
+     
  // 1 - ledstatus 1 e 2
  // 2 - feedback_bit1
  // 3 - feedback_bit2
@@ -442,7 +447,7 @@ volatile byte bit_status[4][max_modifiers/4]; // bit_status e' un multiarray che
  //  byte scrivi_bool (boolean numero) {  Serial.print(numero);  }
   
 ///////////////////////////////////////////////////////////////////////////
-byte pagestate = 0;
+boolean pagestate = 0;
 /////////////////////////////////////////////////////////////////////////// 
 // ------------------------------------------------------------- scale play
 // void scale_play

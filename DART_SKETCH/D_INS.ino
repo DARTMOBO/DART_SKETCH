@@ -122,6 +122,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
       MSB[1] = digitalRead(plexer+14); //
       LSB[1]=   digitalRead(plexer+15);
       #endif
+      updateEncoder(chan); 
       }
    #endif
 
@@ -197,7 +198,39 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
   else if ( modetable[chan] > 0 && modetable[chan]< 11) {push_buttons(0); }
   else if (modetable[chan] < 16)  pots();  // pots + hypercurves - 11, 12,13,14,15,
   else if  (modetable[chan] == 16) seq();
-  else if (modetable[chan] == 17)   { if (valore < 512) lastbutton[page_mempos] =0; else lastbutton[page_mempos] =1;} // page switch
+   // else if (modetable[chan] == 17)   { if (valore < 512) lastbutton[page_mempos] =0; else lastbutton[page_mempos] =1;} // page switch - old
+ 
+
+
+#if (page_active == 1)
+   else if (modetable[chan] == 17)     // page switch
+   {   
+    if (qwertyvalue[page_mempos] == 1 )   
+    {      
+    if (valore < 512 )
+    {
+  
+       if (lastbutton[page_mempos] == lastbutton_debounce)
+  { 
+    pagestate= !pagestate;  
+ }
+
+lastbutton[page_mempos] = 0;
+ 
+    }
+    
+    else
+    {
+       if (lastbutton[page_mempos] <  lastbutton_debounce) lastbutton[page_mempos]++;
+      }
+   }
+   else
+   {
+    { if (valore < 512) pagestate= 0; else pagestate= 1;}
+    }
+
+   } // page switch
+#endif
 
    else if (modetable[chan] == 18) {                  // beam
       #if defined (__AVR_ATmega32U4__)
@@ -214,7 +247,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
 
     
     #if (encoders_generic == 1)
-    else if (modetable[chan] == 19) {updateEncoder(chan); 
+    else if (modetable[chan] == 19) {// updateEncoder(chan); 
     encoder(chan); }
     #endif
     

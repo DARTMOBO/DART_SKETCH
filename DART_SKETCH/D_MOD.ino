@@ -16,10 +16,7 @@
     {
 
 
-    if (valore < lower_val                            ///// button pushed
-       // && lastbutton[chan] == 1    
-        ) 
-        
+    if (valore < lower_val    )                         ///// button pushed       
         {
      
       if (lastbutton[chan] == lastbutton_debounce)
@@ -545,35 +542,47 @@ void shifter_modifier()
      if (valore < lower_val && lastbutton[chan] == 1)   ///// button pushed
      {     
        lastbutton[chan] = 0;
+       if (lightable[chan] > 0)
+       {
      #if (stratos == 0)  
-     valuetable[ remapper(lightable[chan]-1)+page] ++;
+    //  valuetable[ remapper(lightable[chan]-1)+page] ++;
+     typetable[ remapper(lightable[chan]-1)+page] = typetable[ remapper(lightable[chan]-1)+page] + dmxtable[chan] ;
    // Serial.println("tunz");
      #endif
      
      #if (stratos == 1)
-     valuetable[ (lightable[chan])+page] ++;
+    //  valuetable[ (lightable[chan])+page] ++;
+        typetable[ (lightable[chan])+page] = typetable[ (lightable[chan])+page] + dmxtable[chan] ;
     //  Serial.println("tunz");
      #endif
+       }
+       else{shifter_modifier_ = dmxtable[chan];}
         
    }
 
      if (valore > upper_val && lastbutton[chan] == 0)   ///// button released
     {
       lastbutton[chan] = 1;
+      if (lightable[chan] > 0)
+      {
             #if (stratos == 0)  
-            valuetable[ remapper(lightable[chan]-1)+page] --;
+            //valuetable[ remapper(lightable[chan]-1)+page] --;
+             typetable[ remapper(lightable[chan]-1)+page] = typetable[ remapper(lightable[chan]-1)+page] - dmxtable[chan];
             #endif
             
        #if (stratos == 1)
-       valuetable[ (lightable[chan])+page] --;
+       // valuetable[ (lightable[chan])+page] --;
+       typetable[ (lightable[chan])+page] = typetable[ (lightable[chan])+page] -dmxtable[chan];
        #endif
+      }
+      else shifter_modifier_=0;
    
     }
 
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+/*
 void pageswitch(){ //----------------------------------------------------- PAGE SWITCH
   
   if (lastbutton[page_mempos] > 0  ) {     
@@ -628,15 +637,12 @@ midiOut(typetable[page_mempos],valuetable[page_mempos],minvalue[page_mempos]);
     shifterwrite=1;
     pagestate=0;
     
-   // lower_Xen[0] = max(averageXen[0], readingsXen[indexXen]); // min - serve a dare un ritocco in basso alla soglia del touchsensor.
- 
-   //lower_Xen[0] = averageXen[0];
-  //  lower_Xen[1] = averageXen[1];
+  
   higher_Xen[0]= 40;
   higher_Xen[1]=40;
     lower_Xen[0]= 100;
   lower_Xen[1]=100;
-//test3();
+
 
     }
   } 
@@ -708,6 +714,225 @@ else
   lower_Xen[1]=100;
 // test3();
   }
+}
+ }
+ */
+ //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void pageswitch(){ //----------------------------------------------------- PAGE SWITCH
+  
+ // if (lastbutton[page_mempos] > 0  ) 
+  {     
+  
+  if (pagestate==0 && page > 0) { 
+
+    
+  
+    page = 0;
+    
+      Serial.println(page);
+   //  Serial.println(valore);
+    // Serial.println(lastbutton[page_mempos]);
+      Serial.println("--");
+      delay(50);
+  
+//     load_preset_base();
+    load_preset(page);
+   
+    update_scala(1); // secondo spinner
+    update_scala(0); // primo spinner
+    
+    #if (shifter_active == 1 && stratos == 0)
+    shifter.setAll(LOW);
+    
+    shifterwrite=1;
+    ledrestore(page);
+    #endif
+
+    #if (Matrix_Pads > 0 )
+           // single_h(matrix_remap[chan-16],lightable[chan]-1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
+            matrix_restore(page);
+            // Serial.println(chan-16);
+            #endif
+  //  incomingByte = boolean(page);
+ 
+ /// Serial.println(minvalue[mouse_mempos]);
+  // Serial.println(maxvalue[mouse_mempos]);
+  //  Serial.println("----");
+
+midiOut(typetable[page_mempos],valuetable[page_mempos],minvalue[page_mempos]);
+
+/*/
+ #if (page_LEDs == 1)   // indicatori led dedicati al page switch
+                if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {  // nomobo setup disattivo 
+                  #if (  shifter_active == 1)
+                shifter.setPin((dmxtable[page_mempos]-1), 1); 
+                #endif
+                bit_write(1,(dmxtable[page_mempos]-1)+page,1);
+                #if (  shifter_active == 1)
+                shifter.setPin((lightable[page_mempos]-1), 0); 
+                #endif
+                bit_write(1,(lightable[page_mempos]-1)+page,0);
+                }
+                else
+                {
+                // shifter.setPin((minvalue[page_mempos]-1), 1); 
+                digitalWrite(dmxtable[page_mempos]-1,1);
+                bit_write(1,(dmxtable[page_mempos]-1)+page,1);
+                // shifter.setPin((maxvalue[page_mempos]-1), 0); 
+                digitalWrite(lightable[page_mempos]-1,0);
+                bit_write(1,(lightable[page_mempos]-1)+page,0);
+                }
+ #endif
+*/
+page_leds_(0);
+ 
+    shifterwrite=1;
+   // pagestate=0;
+    
+  
+  higher_Xen[0]= 40;
+  higher_Xen[1]=40;
+    lower_Xen[0]= 100;
+  lower_Xen[1]=100;
+
+
+    }
+  } 
+  
+  
+ // if (lastbutton[page_mempos]==0  )
+  { // seconda
+ 
+ if (pagestate==1 && page == 0) {
+      page = max_modifiers;
+
+        Serial.println(page);
+   //  Serial.println(valore);
+    // Serial.println(lastbutton[page_mempos]);
+      Serial.println("--");
+      delay(50);
+ 
+ 
+
+    load_preset(page);
+    
+    update_scala(1); // secondo spinner
+    update_scala(0); // primo spinner
+ 
+    
+      
+      #if (shifter_active == 1 && stratos == 0 )
+      shifter.setAll(LOW);
+      shifterwrite=1;
+      ledrestore(page);
+      #endif
+
+      #if (Matrix_Pads > 0  )
+       //single_h(matrix_remap[chan-16],lightable[chan]-1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
+      matrix_restore(page);
+            // Serial.println(chan-16);
+      #endif
+      
+   // incomingByte = boolean(page);
+ //   Serial.println(minvalue[mouse_mempos]);
+ //   Serial.println(maxvalue[mouse_mempos]);
+ //   Serial.println("----");
+    
+ midiOut(typetable[page_mempos],valuetable[page_mempos],maxvalue[page_mempos]);
+/*
+ #if (page_LEDs == 1)
+if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {
+#if (  shifter_active == 1)
+ shifter.setPin((dmxtable[page_mempos]-1), 0); 
+ #endif
+ bit_write(1,(dmxtable[page_mempos]-1)+page,0);
+ #if (  shifter_active == 1)
+ shifter.setPin((lightable[page_mempos]-1), 1); 
+ #endif
+ bit_write(1,(lightable[page_mempos]-1)+page,1);
+}
+else
+ {
+ // shifter.setPin((minvalue[page_mempos]-1), 1); 
+ digitalWrite(dmxtable[page_mempos]-1,0);
+ bit_write(1,(dmxtable[page_mempos]-1)+page,0);
+ // shifter.setPin((maxvalue[page_mempos]-1), 0); 
+ digitalWrite(lightable[page_mempos]-1,1);
+ bit_write(1,(lightable[page_mempos]-1)+page,1);
+ }
+ #endif
+*/
+page_leds_(1);
+
+    shifterwrite=1;
+    
+  // pagestate=1;
+ 
+    //    lower_Xen[0] = max(averageXen[0], readingsXen[indexXen]);
+ 
+ //    lower_Xen[0] = averageXen[0];
+ //     lower_Xen[1] = averageXen[1];
+
+   higher_Xen[0]= 40;
+  higher_Xen[1]=40;
+  lower_Xen[0]= 100;
+  lower_Xen[1]=100;
+// test3();
+  }
+}
+ }
+
+ void page_leds_ (byte pagina)
+ {
+if (pagina == 0)
+{ 
+  #if (page_LEDs == 1)   // indicatori led dedicati al page switch
+                if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {  // nomobo setup disattivo 
+                  #if (  shifter_active == 1)
+                shifter.setPin((dmxtable[page_mempos]-1), 1); 
+                #endif
+                bit_write(1,(dmxtable[page_mempos]-1)+page,1);
+                #if (  shifter_active == 1)
+                shifter.setPin((lightable[page_mempos]-1), 0); 
+                #endif
+                bit_write(1,(lightable[page_mempos]-1)+page,0);
+                }
+                else
+                {
+                // shifter.setPin((minvalue[page_mempos]-1), 1); 
+                digitalWrite(dmxtable[page_mempos]-1,1);
+                bit_write(1,(dmxtable[page_mempos]-1)+page,1);
+                // shifter.setPin((maxvalue[page_mempos]-1), 0); 
+                digitalWrite(lightable[page_mempos]-1,0);
+                bit_write(1,(lightable[page_mempos]-1)+page,0);
+                }
+ #endif
+ }
+else
+{
+ #if (page_LEDs == 1)
+if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {
+#if (  shifter_active == 1)
+ shifter.setPin((dmxtable[page_mempos]-1), 0); 
+ #endif
+ bit_write(1,(dmxtable[page_mempos]-1)+page,0);
+ #if (  shifter_active == 1)
+ shifter.setPin((lightable[page_mempos]-1), 1); 
+ #endif
+ bit_write(1,(lightable[page_mempos]-1)+page,1);
+}
+else
+ {
+ // shifter.setPin((minvalue[page_mempos]-1), 1); 
+ digitalWrite(dmxtable[page_mempos]-1,0);
+ bit_write(1,(dmxtable[page_mempos]-1)+page,0);
+ // shifter.setPin((maxvalue[page_mempos]-1), 0); 
+ digitalWrite(lightable[page_mempos]-1,1);
+ bit_write(1,(lightable[page_mempos]-1)+page,1);
+ }
+ #endif
+
 }
  }
  

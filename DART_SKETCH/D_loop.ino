@@ -73,7 +73,7 @@ if (cycletimer < 250 ) cycletimer++;
  
  
 
-     #if (page_active == 1)  
+     #if (page_active > 0)  
    if (page_mempos > 0 ) pageswitch();
      #endif
    

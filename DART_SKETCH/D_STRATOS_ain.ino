@@ -42,7 +42,12 @@
     ain_nucleo(); 
     } // b3
     else if (channel == 5)  { 
-    valore = analogRead(19);
+  //  valore = analogRead(19);
+   valore = ((digitalRead(19)))*1000; 
+  //  Serial.println(digitalRead(7));
+  //   Serial.println(valore);
+  //   delay(50);
+ //  valore = ((digitalRead(19)))*1000;
     ain_nucleo(); 
     } // b2
     else if (channel == 6)  {// valore = (!(digitalRead(18)))*1000; 
