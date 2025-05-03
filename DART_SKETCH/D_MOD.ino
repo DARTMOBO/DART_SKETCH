@@ -762,29 +762,9 @@ void pageswitch(){ //----------------------------------------------------- PAGE 
 
 midiOut(typetable[page_mempos],valuetable[page_mempos],minvalue[page_mempos]);
 
-/*/
- #if (page_LEDs == 1)   // indicatori led dedicati al page switch
-                if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {  // nomobo setup disattivo 
-                  #if (  shifter_active == 1)
-                shifter.setPin((dmxtable[page_mempos]-1), 1); 
-                #endif
-                bit_write(1,(dmxtable[page_mempos]-1)+page,1);
-                #if (  shifter_active == 1)
-                shifter.setPin((lightable[page_mempos]-1), 0); 
-                #endif
-                bit_write(1,(lightable[page_mempos]-1)+page,0);
-                }
-                else
-                {
-                // shifter.setPin((minvalue[page_mempos]-1), 1); 
-                digitalWrite(dmxtable[page_mempos]-1,1);
-                bit_write(1,(dmxtable[page_mempos]-1)+page,1);
-                // shifter.setPin((maxvalue[page_mempos]-1), 0); 
-                digitalWrite(lightable[page_mempos]-1,0);
-                bit_write(1,(lightable[page_mempos]-1)+page,0);
-                }
- #endif
-*/
+
+
+
 page_leds_(0);
  
     shifterwrite=1;
@@ -840,29 +820,8 @@ page_leds_(0);
  //   Serial.println("----");
     
  midiOut(typetable[page_mempos],valuetable[page_mempos],maxvalue[page_mempos]);
-/*
- #if (page_LEDs == 1)
-if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {
-#if (  shifter_active == 1)
- shifter.setPin((dmxtable[page_mempos]-1), 0); 
- #endif
- bit_write(1,(dmxtable[page_mempos]-1)+page,0);
- #if (  shifter_active == 1)
- shifter.setPin((lightable[page_mempos]-1), 1); 
- #endif
- bit_write(1,(lightable[page_mempos]-1)+page,1);
-}
-else
- {
- // shifter.setPin((minvalue[page_mempos]-1), 1); 
- digitalWrite(dmxtable[page_mempos]-1,0);
- bit_write(1,(dmxtable[page_mempos]-1)+page,0);
- // shifter.setPin((maxvalue[page_mempos]-1), 0); 
- digitalWrite(lightable[page_mempos]-1,1);
- bit_write(1,(lightable[page_mempos]-1)+page,1);
- }
- #endif
-*/
+
+
 page_leds_(1);
 
     shifterwrite=1;

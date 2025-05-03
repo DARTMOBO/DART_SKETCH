@@ -150,6 +150,7 @@ void setup()
   if (lastbutton[page_mempos] == 0  )  {page = 0;  // pagestate=0; 
   pagestate = 1;
   load_preset(0); //ledrestore(); // levetta a destra caricamento preset eeprom pagina 1
+    page_leds_(0);
     
      update_scala(1);  
      update_scala(0);   
@@ -159,7 +160,8 @@ void setup()
  else 
  {page= max_modifiers;   pagestate=0; 
  load_preset(1);  //ledrestore2(); // levetta a sinistra preset 2
- 
+
+  page_leds_(1);
      update_scala(1);  
      update_scala(0);  
 

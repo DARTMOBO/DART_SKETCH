@@ -35,6 +35,12 @@ void midifeedback ()
     #if (stratos == 1)
     digitalWrite(16, LOW);
     #endif
+
+  #if (stratos == 0)
+   
+    page_leds_(page);
+      
+    #endif
     
      }
      }
