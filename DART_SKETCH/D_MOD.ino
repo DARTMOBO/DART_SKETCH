@@ -326,35 +326,53 @@ void pots ()
         
  #if (shifter_active == 1 && stratos == 0)
        if (lightable[chan] == 1) {led_enc_exe();}
-       
+       #if (blinker ==1)
        else
         {
         if  ( lightable[chan] > 1)
-      
    { 
-      // Serial.println(valore); 
        if (potOut > 0 && modetable[chan] < 14 || 
       potOut != 64 && modetable[chan] > 13 ) 
      { 
-       
-             cycletimer = 63;
                 bit_write(1,(lightable[chan]-1)+page,1);  
      }
        else 
      {     
-             cycletimer = 63;
                bit_write(1,(lightable[chan]-1)+page,0);
        
      }
          
    }
         }
+        #endif
        
   #endif
        
 
        #if (Matrix_Pads > 0  )
-       if (lightable[chan] == 1) led_enc_exe_matrix();
+       if (lightable[chan] >0 ) led_enc_exe_matrix();
+        //  else
+        #if (blinker ==1 )
+        
+        {
+        if  ( lightable[chan] > 1)
+   { 
+       if (potOut > 0 && modetable[chan] < 14 || 
+      potOut != 64 && modetable[chan] > 13 ) 
+     { 
+                bit_write(1,(lightable[chan]-1)+page,1);  
+     }
+       else 
+     {     
+               bit_write(1,(lightable[chan]-1)+page,0);
+                 digitalWrite(8,LOW);
+       
+     }
+         
+   }
+        }
+  #endif
+        
        #endif
 
        #if (DMX_active == 1  && stratos == 0)
@@ -366,9 +384,32 @@ void pots ()
 
      
 
-    }
+    }  // -------------- fina della condizione generale pot mosso
+    #if (blinker ==1) 
+{
+   #if (shifter_active == 1 && stratos == 0)
+  if (bit_read(1,(lightable[chan]-1)+page) == 1) {
+  if (typetable[general_mempos] == 0 ) {  shifter.setPin((lightable[chan]-1), 0); shifterwrite= 1;}
+  if (typetable[general_mempos] == 40 ) {shifter.setPin((lightable[chan]-1), 1); shifterwrite= 1;}
+  }
+  if (typetable[general_mempos] == 80) typetable[general_mempos] = 0;
+  #endif
+  }
 
-
+     #if (Matrix_Pads > 0  && touch_led_onboard == 1)
+     {
+        if (bit_read(1,(lightable[chan]-1)+page) == 1) {
+  if (typetable[general_mempos] == 0 ) {  //shifter.setPin((lightable[chan]-1), 0); shifterwrite= 1;
+    digitalWrite(8,HIGH);
+  }
+  if (typetable[general_mempos] == 40 ) { // shifter.setPin((lightable[chan]-1), 1); shifterwrite= 1;
+    digitalWrite(8,LOW);
+  }
+  }
+  if (typetable[general_mempos] == 80) typetable[general_mempos] = 0;
+      }
+     #endif
+#endif
 
   }
 }
@@ -757,14 +798,7 @@ void pageswitch(){ //----------------------------------------------------- PAGE 
     
   
     page = 0;
-    
-      Serial.println(page);
-   //  Serial.println(valore);
-    // Serial.println(lastbutton[page_mempos]);
-      Serial.println("--");
-      delay(50);
-  
-//     load_preset_base();
+ 
     load_preset(page);
    
     update_scala(1); // secondo spinner
@@ -779,6 +813,7 @@ void pageswitch(){ //----------------------------------------------------- PAGE 
 
     #if (Matrix_Pads > 0 )
            // single_h(matrix_remap[chan-16],lightable[chan]-1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
+            digitalWrite(8,LOW); // se il led di segnalazione sta blinkando - cambiando page si potrebbe bloccare
             matrix_restore(page);
             // Serial.println(chan-16);
             #endif
@@ -815,11 +850,11 @@ page_leds_(0);
  if (pagestate==1 && page == 0) {
       page = max_modifiers;
 
-        Serial.println(page);
+    //    Serial.println(page);
    //  Serial.println(valore);
     // Serial.println(lastbutton[page_mempos]);
-      Serial.println("--");
-      delay(50);
+    //  Serial.println("--");
+     // delay(50);
  
  
 
@@ -838,6 +873,7 @@ page_leds_(0);
 
       #if (Matrix_Pads > 0  )
        //single_h(matrix_remap[chan-16],lightable[chan]-1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
+        digitalWrite(8,LOW);
       matrix_restore(page);
             // Serial.println(chan-16);
       #endif
