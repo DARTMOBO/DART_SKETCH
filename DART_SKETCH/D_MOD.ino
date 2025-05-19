@@ -801,11 +801,9 @@ void pageswitch(){ //----------------------------------------------------- PAGE 
     
   
     page = 0;
-<<<<<<< HEAD
- 
-=======
+
   shifter_modifier_=0;
->>>>>>> origin/master
+
     load_preset(page);
    
     update_scala(1); // secondo spinner
@@ -856,11 +854,9 @@ page_leds_(0);
  
  if (pagestate==1 && page == 0) {
       page = max_modifiers;
-<<<<<<< HEAD
 
-=======
+
  shifter_modifier_=0;
->>>>>>> origin/master
     //    Serial.println(page);
    //  Serial.println(valore);
     // Serial.println(lastbutton[page_mempos]);
