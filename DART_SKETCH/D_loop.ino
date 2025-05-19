@@ -2,6 +2,11 @@
 void loop () {
 
 if (cycletimer < 250 ) cycletimer++;
+//if (typetable[general_mempos] 
+
+#if (blinker == 1)  
+typetable[general_mempos]++; 
+#endif
 
 
 #if (MIDI_IN_block == 0)

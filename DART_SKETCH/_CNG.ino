@@ -1,3 +1,10 @@
+// AGGIUNGO FUNZIIONE BLINK ANCHE PER MATRIX DART - funziona solo sul led 8 onboard
+
+// voglio provare a fare un effetto blink - uso typetable[general_mempos] - funziona abbastanza bene - da testare sul campo
+
+// 4 5 25 - ho aggiunto possibilità controllo led da pot - per segnalare che un effetto è attivo - esempio filtro di trktor
+
+
 // 1 5 25 - ho completato la funzione shifter all - con possibilità di scegliere di quanto shiftare - da testare
 // tab d_out riga 36 inserisco " || cmd != old_cmd " per tentare di risolvere il problema del filtraggio degli encoder , da testare
 /* 18 4 25 - ho fatto in modo che il controller si avvia sulla pagina 1 con led indicatore acceso  ( quando pageswitch è n button  - se levetta è forzto dalla sua posizione)
