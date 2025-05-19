@@ -1,3 +1,4 @@
+
 // MODIFIERS 
 
 
@@ -608,9 +609,10 @@ Keyboard.press(ctrlKey);
 
 void shifter_modifier() 
 {
-     if (valore < lower_val && lastbutton[chan] == 1)   ///// button pushed
+     if (valore < lower_val && lastbutton[chan] > 0)   ///// button pushed
      {     
        lastbutton[chan] = 0;
+    //   Serial.println("tunz on");
        if (lightable[chan] > 0)
        {
      #if (stratos == 0)  
@@ -632,6 +634,7 @@ void shifter_modifier()
      if (valore > upper_val && lastbutton[chan] == 0)   ///// button released
     {
       lastbutton[chan] = 1;
+   //   Serial.println("tunz off");
       if (lightable[chan] > 0)
       {
             #if (stratos == 0)  
@@ -798,7 +801,11 @@ void pageswitch(){ //----------------------------------------------------- PAGE 
     
   
     page = 0;
+<<<<<<< HEAD
  
+=======
+  shifter_modifier_=0;
+>>>>>>> origin/master
     load_preset(page);
    
     update_scala(1); // secondo spinner
@@ -849,7 +856,11 @@ page_leds_(0);
  
  if (pagestate==1 && page == 0) {
       page = max_modifiers;
+<<<<<<< HEAD
 
+=======
+ shifter_modifier_=0;
+>>>>>>> origin/master
     //    Serial.println(page);
    //  Serial.println(valore);
     // Serial.println(lastbutton[page_mempos]);

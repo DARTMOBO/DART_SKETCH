@@ -253,7 +253,10 @@ lastbutton[page_mempos] = 0;
     
       else if (modetable[chan] == 27) push_buttons(1); // push buttons con velocity
       else if (modetable[chan] == 29) reset();
-      else if (modetable[chan] == 30) shifter_modifier();
+      else if (modetable[chan] == 30) {shifter_modifier(); 
+      
+     // Serial.println(lastbutton[chan]); delay(100);
+      }
       else if (modetable[chan] == 31) user_item1();
       else if (modetable[chan] == 32) user_item2();
       else if (modetable[chan] == 33) user_item3();

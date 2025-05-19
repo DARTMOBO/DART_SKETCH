@@ -13,7 +13,11 @@
 #define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
 #define touch_led_onboard 1          // 1 = led output  on arduino pin 8 // 0 = disabled
 #define DMX_active    0              // 1 = enabled // 0 = disabled // enable-disable also from _DART_Dmx_out.cpp !!!!!!!!!
+<<<<<<< HEAD
 #define Matrix_Pads 2                // 1 = enabled // 2 = pads on 17-32 circuitposition (old)// 0 = disabled // max7219 chips
+=======
+#define Matrix_Pads 1                // 1 = enabled // 2 = pads on 17-32 circuitposition (old)// 0 = disabled // max7219 chips
+>>>>>>> origin/master
 #define hid_keys 1                   // 1 = enabled
 #define hid_mouse 1                  // 1 = enabled
 #define top_spinner 1                // 1 = enabled // 0 = disabled // TOP SPINNER
