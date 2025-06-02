@@ -528,8 +528,8 @@ else
 
 void lettura_enc_principale()   // legge l'encoder principale , collegato ad pins con capacità interrupt.
 {
-   MSB[0] = digitalRead(2); //MSB = most significant bit
-   LSB[0] = digitalRead(3); //LSB = least significant bit
+   MSB[0] = digitalRead(3); //MSB = most significant bit
+   LSB[0] = digitalRead(2); //LSB = least significant bit
    updateEncoder(encoder_mempos[0]);
  //  lastbutton[encoder_mempos[1]]=64;
  //  updateEncoder_main();
