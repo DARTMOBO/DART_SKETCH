@@ -7,7 +7,7 @@
 
 // #if defined DMX_active 
 
-  #define DMX_active2  0   // 1= libreria attiva // 0 = disattiva // disabilitando da qui li libera molta piÃƒÂ¹ memoria che non solo disattivando dall'header
+  #define DMX_active2  1   // 1= active // 0 = disabled // disabilitando da qui li libera molta memoria che non solo disattivando dall'header
 #if (DMX_active2 ==1)
 
 // modified to support all Teensy boards

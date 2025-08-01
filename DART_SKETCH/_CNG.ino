@@ -1,3 +1,39 @@
+
+/*
+ * 
+ * setup pronto per LIME old
+ * 
+#define shifter_active    0         // 1 = enabled // 0 = disabled // SHIFT REGISTERS_ // if enabled, Matrix_pads must be disabled
+#define stratos  0                   // 1 = enabled // 0 = disabled // Stratos sketch version.
+#define LED_pattern 3                // 0 = dart one // 1 = kombat // 2 = NB-boards // 3 = Kombat-NB // 4 kombat-NB2 - // 5 KOMBAT-NB3 // 6 kombat personal - Led animation pattern used by buttons and pots
+#define capacitivesensor_active 2   // 1 = enabled // 0 = disabled // 2 = EXTERNAL TOUCH IC on pin 7 - 9 // 3 = EXTERNAL TOUCH IC on pin 7 - 8 // 4 = EXTERNAL TOUCH IC (inverted) on pin 7 - 9--- CAPACITIVE SENSORS_
+#define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
+#define touch_led_onboard 1        // 1 = led output  on arduino pin 8 // 0 = disabled
+#define DMX_active    0             // 1 = enabled // 0 = disabled // enable-disable also from _DART_Dmx_out.cpp !!!!!!!!!
+#define Matrix_Pads 2             // 1 = enabled // 2 = pads on 17-32 circuitposition (old)// 0 = disabled // max7219 chips
+#define hid_keys 1                   // 1 = enabled
+#define hid_mouse 1                  // 1 = enabled
+#define top_spinner 1                // 1 = enabled // 0 = disabled // TOP SPINNER
+#define side_spinner 1               // 1 = enabled // 0 = disabled // SIDE SPINNER
+#define note_off 0                   // 1 = enabled // 0 = disabled // send NOTE-OFF messages on button release -  if NOTE Type has been selected
+#define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
+#define page_active 1                // 1 = enabled // 0 = disabled //  page_switch
+#define page_LEDs 0                  // 1 = page LEDs active
+#define MIDI_thru 0                  // 1 = MIDI Thru active
+#define mouse_block 1                // 1 = enabled // 0 = disabled // mouse messages are stopped after 2 seconds of repeated activity
+#define arrows_block 0               // 1 = enabled // 0 = disabled // arrow key messages are stopped after 2 seconds of repeated activity
+#define encoders_generic 1           // 1 = enabled 
+#define MIDI_IN_block 0              // 1 = MIDI IN blocked
+#define MIDI_OUT_block 0             // 1 = MIDI out blocked
+#define fader_type 0                 // 0 = normal // 1 =  scratch style fader - experimental - leave it to 0
+#define LED_rings 0                  // 1 = LED rings active - experimental - leave it to 0
+#define blinker 1                    // blink effect on a selected led depending on pot position
+//---------------------------------------------
+ */
+
+// 14 42 8 
+// 38
+
 // AGGIUNGO FUNZIIONE BLINK ANCHE PER MATRIX DART - funziona solo sul led 8 onboard
 
 // voglio provare a fare un effetto blink - uso typetable[general_mempos] - funziona abbastanza bene - da testare sul campo

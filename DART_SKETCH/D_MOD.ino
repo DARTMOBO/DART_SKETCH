@@ -327,13 +327,14 @@ void pots ()
         
  #if (shifter_active == 1 && stratos == 0)
        if (lightable[chan] == 1) {led_enc_exe();}
+      
        #if (blinker ==1)
        else
         {
-        if  ( lightable[chan] > 1)
+        if  ( lightable[chan] > 1)                          // 0= no efetti - 1=effetti - 2=blinker
    { 
-       if (potOut > 0 && modetable[chan] < 14 || 
-      potOut != 64 && modetable[chan] > 13 ) 
+       if (potOut > 0 && modetable[chan] < 14 ||   // hypercurve o normal
+      potOut != 64 && modetable[chan] > 13 )       // centercurve
      { 
                 bit_write(1,(lightable[chan]-1)+page,1);  
      }
@@ -347,7 +348,7 @@ void pots ()
         }
         #endif
        
-  #endif
+  #endif //(shifter_active == 1 && stratos == 0)
        
 
        #if (Matrix_Pads > 0  )
@@ -356,10 +357,10 @@ void pots ()
         #if (blinker ==1 )
         
         {
-        if  ( lightable[chan] > 1)
+        if  ( lightable[chan] > 1)                  // 0= no efetti - 1=effetti - 2=blinker
    { 
-       if (potOut > 0 && modetable[chan] < 14 || 
-      potOut != 64 && modetable[chan] > 13 ) 
+       if (potOut > 0 && modetable[chan] < 14 ||   // hypercurve o normal
+      potOut != 64 && modetable[chan] > 13 )       // centercurve
      { 
                 bit_write(1,(lightable[chan]-1)+page,1);  
      }
@@ -385,32 +386,41 @@ void pots ()
 
      
 
-    }  // -------------- fina della condizione generale pot mosso
+    }  // -------------- fine della condizione generale pot mosso
     #if (blinker ==1) 
 {
    #if (shifter_active == 1 && stratos == 0)
-  if (bit_read(1,(lightable[chan]-1)+page) == 1) {
-  if (typetable[general_mempos] == 0 ) {  shifter.setPin((lightable[chan]-1), 0); shifterwrite= 1;}
-  if (typetable[general_mempos] == 40 ) {shifter.setPin((lightable[chan]-1), 1); shifterwrite= 1;}
+  if (bit_read(1,(lightable[chan]-1)+page) == 1) {  // led = acceso nel banco di memoria 
+  if (typetable[general_mempos] == 0 ) {  shifter.setPin((lightable[chan]-1), 0); shifterwrite= 1;} // a zero spegni led
+  if (typetable[general_mempos] == 40 ) {shifter.setPin((lightable[chan]-1), 1); shifterwrite= 1;}   // a 40 accendi led
   }
-  if (typetable[general_mempos] == 80) typetable[general_mempos] = 0;
+  if (typetable[general_mempos] == 80) typetable[general_mempos] = 0;                                // a 80 resetta il counter led lampeggiante
   #endif
   }
 
      #if (Matrix_Pads > 0  && touch_led_onboard == 1)
      {
-        if (bit_read(1,(lightable[chan]-1)+page) == 1) {
-  if (typetable[general_mempos] == 0 ) {  //shifter.setPin((lightable[chan]-1), 0); shifterwrite= 1;
-    digitalWrite(8,HIGH);
+
+    //   if  ( lightable[chan] > 1)  Serial.println(bit_read(1,(lightable[chan]-1)+page)); 
+    
+        if (bit_read(1,(lightable[chan]-1)+page) == 1) {   // led = acceso nel banco di memoria 
+     //     Serial.println(chan); 
+     //    Serial.println(lightable[chan]);
+     //     Serial.println(potOut);
+     //    Serial.println("--");
+          
+  if (typetable[general_mempos] == 0 )  { //shifter.setPin((lightable[chan]-1), 0); shifterwrite= 1;
+    digitalWrite(8,LOW);                  // a zero spegni led
   }
   if (typetable[general_mempos] == 40 ) { // shifter.setPin((lightable[chan]-1), 1); shifterwrite= 1;
-    digitalWrite(8,LOW);
+    digitalWrite(8,HIGH);                 // a 40 accendi led
   }
   }
-  if (typetable[general_mempos] == 80) typetable[general_mempos] = 0;
+  if (typetable[general_mempos] == 80) typetable[general_mempos] = 0;   // a 80 resetta il counter led lampeggiante
+  
       }
      #endif
-#endif
+#endif //(blinker ==1)
 
   }
 }
@@ -880,7 +890,7 @@ page_leds_(0);
 
       #if (Matrix_Pads > 0  )
        //single_h(matrix_remap[chan-16],lightable[chan]-1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
-        digitalWrite(8,LOW);
+        digitalWrite(8,LOW);   // se il led di segnalazione sta blinkando - cambiando page si potrebbe bloccare
       matrix_restore(page);
             // Serial.println(chan-16);
       #endif
@@ -1135,7 +1145,7 @@ void touch_sensors(byte T_numero) {
 ////
 
   if (lightable[touch_mempos[T_numero]] == 0)  touch_execute(T_numero); // lightable : 0-capacitive, 1-virtual, 2-monitoring.
-  else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, T_numero,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
+ //  else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, T_numero,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
 
 ////
      }
@@ -1154,7 +1164,7 @@ void touch_sensors(byte T_numero) {
 ////
 
   if (lightable[touch_mempos[T_numero]] == 0)  touch_execute(T_numero); // lightable : 0-capacitive, 1-virtual, 2-monitoring.
-  else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, T_numero,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
+ //  else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, T_numero,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
 
 ////
      }
@@ -1173,7 +1183,7 @@ void touch_sensors(byte T_numero) {
 ////
 
   if (lightable[touch_mempos[T_numero]] == 0)  touch_execute(T_numero); // lightable : 0-capacitive, 1-virtual, 2-monitoring.
-  else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, T_numero,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
+ //  else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, T_numero,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
 
 ////
      }
@@ -1301,6 +1311,7 @@ bit_write(1,maxvalue[touch_mempos[numero_ex]]-1+page,0); // spengo il led nella 
 // shifter.setAll(LOW);  
 if (page==0) ledrestore(0); else ledrestore(1);  shifterwrite=1; 
 #endif
+
 #if ( stratos == 1)
 digitalWrite(16,LOW);
 #endif
@@ -1377,11 +1388,13 @@ bit_write(1,maxvalue[touch_mempos[numero_ex]]-1+page,1);
 #if (shifter_active == 1 && stratos == 0)
  shifter.setPin(maxvalue[touch_mempos[numero_ex]]-1,HIGH);  // accendo il led del touch , nella tabella di memoria
  #endif
+
 #if ( stratos == 1)
 
 
  digitalWrite(16,HIGH);
   #endif 
+  
 // bit_write(1,4+numero+page,1);
 //  if (page==0) ledrestore(0); else ledrestore(1);  shifterwrite=1;
 shifterwrite=1;};// opencalibration[1]=HIGH;
@@ -1457,14 +1470,20 @@ lastbutton[touch_mempos[numero_ex]] = zero;
 // encled=0; 
 encoder_block[numero_ex] = 64;
 
-bit_write(1,maxvalue[touch_mempos[numero_ex]]-1+page,0); // spengo il led nella tabella di memoria
 
 
+ 
+   
 #if (shifter_active == 1 && stratos == 0)
-// shifter.setAll(LOW);  
-if (page==0) ledrestore(0); else ledrestore(1);  shifterwrite=1; 
+if (maxvalue[touch_mempos[numero_ex]] > 0 )
+ bit_write(1,maxvalue[touch_mempos[numero_ex]]-1+page,0);           // spengo il led nella tabella di memoria
+ 
+   if (page==0) ledrestore(0); else ledrestore(1);  
+   shifterwrite=1; 
+   
 #endif
-#if ( stratos == 1)
+
+#if (stratos == 1)
 digitalWrite(16,LOW);
 #endif
 
@@ -1498,13 +1517,17 @@ lastbutton[touch_mempos[numero_ex]] = uno;  //shifter.setAll(LOW);
 encoder_block[numero_ex] = 64;
 
 
-bit_write(1,maxvalue[touch_mempos[numero_ex]]-1+page,1);
+
+
 #if (shifter_active == 1 && stratos == 0)
+if (maxvalue[touch_mempos[numero_ex]] > 0 )
+bit_write(1,maxvalue[touch_mempos[numero_ex]]-1+page,1);  // accendo il led nella tabella di memoria
+
+ 
  shifter.setPin(maxvalue[touch_mempos[numero_ex]]-1,HIGH);  // accendo il led del touch , nella tabella di memoria
  #endif
+ 
 #if ( stratos == 1)
-
-
  digitalWrite(16,HIGH);
   #endif 
 

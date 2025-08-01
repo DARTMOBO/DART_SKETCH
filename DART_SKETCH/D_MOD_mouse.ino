@@ -1,125 +1,235 @@
-void mouse_control () 
-
-
-{
- 
-  
+/*void mouse_control() {
   #if defined (__AVR_ATmega32U4__)  
-  if (mouse_mempos != 0)
-  { /// tutta la sezione mouse comincia qui
-  float Mousespeed = (float)dmxtable[mouse_mempos]/32;
+  if (mouse_mempos != 0) {
 
-    
- if (chan == (minvalue[mouse_mempos]) )   {         // sezione mouse  // -------------------------------------------------------------------- asse X 
- valore = analogRead(plexer);
+    // Accumulatori statici per filtrare i micro movimenti
+    static int16_t accum_x = 0;
+    static int16_t accum_y = 0;
 
+    int8_t Mousespeed = dmxtable[mouse_mempos]; // ⚠️ TODO: ricalibrare scala → 32 = normal
 
- 
- mousex = 119 + (((valore+1)/64)) ;    
- // spiegazione: valore/64 produce un risultato che va da 0 a 16
- // 119 = 127 - (16/2) dove 16/2 sarebbe il centro, quindi 127 è il centro, 135 il massimo a destra e 111 il minimo a sinistra.
+    if (chan == minvalue[mouse_mempos]) {  // Asse X
+      valore = analogRead(plexer);
+      mousex = 111 + ((valore + 1) / 32);  // maggiore risoluzione → da 111 a 143 (33 step)
 
+      #if (mouse_block == 1)
+      if (mousex > 133) {
+        if (qwertyvalue[mouse_mempos] < 255) qwertyvalue[mouse_mempos]++;
+      } else {
+        qwertyvalue[mouse_mempos] = 0;
+      }
+      if (qwertyvalue[mouse_mempos] < 230)
+      #endif
 
- #if (mouse_block == 1)
- 
-       if (mousex >133 )  // il massimo sarebbe 135
-       {if ( qwertyvalue[mouse_mempos] < 255 ) qwertyvalue[mouse_mempos]++; } // qwertyvalue[mouse_mempos] è usata come contatore 
-       else  {qwertyvalue[mouse_mempos]= 0;} // mouse block praparazione
-       if (qwertyvalue[mouse_mempos] < 230)  // superata la sogli di 230 cicli viene interrotta la funzionalità
- 
- #endif
+      if (Mousespeed > 0 && Mousespeed < 64) {
+        int8_t dx = (mousex - 127);
+       
+if (abs(dx) <= 2) {
+  dx = 0;
+  accum_x = 0;
+}
 
+        int8_t direction = (constrain(lightable[mouse_mempos] - 1, 0, 1) * 2) - 1;
 
-  if  (dmxtable[mouse_mempos] > 0 && dmxtable[mouse_mempos] < 64) {  // 1 =  mouse  attivato
- 
-  if (abs(mousex-127) >1 ) // cerco di evitare spostamenti minimi quando il joystick non tiene benissimo il centro
-    {
+        accum_x += dx * Mousespeed * direction;
 
-  
-    #if (hid_mouse ==1)  
-    Mouse.move( (mousex-127)*Mousespeed
-  *((constrain(lightable[mouse_mempos]-1,0,1)*2  ) -1) // inversione di direzione: questa operazione restituisce "1" oppure "-1"
-                                                  // lightable[mouse_mempos] = 0 .. 0*2 =0 ... 0-1 = -1   ... inverte
-                                                  // lightable[mouse_mempos] = 1 .. 0*2 =0 ... 0-1 = -1   ... inverte
-                                                  // lightable[mouse_mempos] > 1 .. 1*2 =2 ... 2-1 =  1   ... normale
- , 0, 0); 
+        if (abs(accum_x) >= 64) {
+          int8_t move_x = accum_x / 16;
+          accum_x -= move_x * 16;
 
- #endif 
- 
- 
+          #if (hid_mouse == 1)
+          Mouse.move(move_x, 0, 0);
+          #endif
+        }
+      }
+    }
+
+    else if (chan == maxvalue[mouse_mempos]) {  // Asse Y
+      valore = analogRead(plexer);
+      mousex = 111 + ((valore + 1) / 32);  // anche per Y usiamo il nuovo mapping
+
+      if (mousex > 133) {
+        if (mousey < 255) mousey++;
+      } else {
+        mousey = 0;
+      }
+
+      #if (mouse_block == 1)
+      if (mousey < 230)
+      #endif
+
+      if (Mousespeed > 0 && Mousespeed < 64) {
+        int8_t dy = (mousex - 127);
+
+        if (abs(dy) <= 2) {
+  dy = 0;
+  accum_y = 0;
+}
+
+        int8_t direction = ((lightable[mouse_mempos] & 1) * 2) - 1;
+
+        accum_y += dy * Mousespeed * direction;
+
+        if (abs(accum_y) >= 64) {
+          int8_t move_y = accum_y / 16;
+          accum_y -= move_y * 16;
+
+          #if (hid_mouse == 1)
+          Mouse.move(0, move_y, 0);
+          #endif
+        }
+      }
+    }
   }
- }
-//  if ((mousex-127) != 0 ) {Serial.print(valore); Serial.print("  /  "); Serial.println(mousex-127);}
- 
-
- /*   ELIMINATA SEZIONE FRECCETTE
- if (dmxtable[mouse_mempos] >63) // 2 = attivazione freccette - destra sinistra  // attivazione freccette da rimuovere
- {
- if (valore>upper_val) { if (lastbutton[minvalue[mouse_mempos]] != 2) { Keyboard.press(216); lastbutton[minvalue[mouse_mempos]]=2;  }}
- else
- if (valore<lower_val) { if (lastbutton[minvalue[mouse_mempos]] != 0) { Keyboard.press(215); lastbutton[minvalue[mouse_mempos]]=0;  }}
- else { if (lastbutton[minvalue[mouse_mempos]] != 1) { Keyboard.release(215); Keyboard.release(216);  lastbutton[minvalue[mouse_mempos]]=1;}
- } 
- #if (arrows_block == 1)
- if (qwertyvalue[mouse_mempos] > 230) { Keyboard.release(215); Keyboard.release(216); }
- #endif
- }
-  */
- 
- }
- 
-   else if (chan == (maxvalue[mouse_mempos]))  { // --------------------------------------------------------------------------                asse Y
-  valore = analogRead(plexer);
-   mousex = 119 + (((valore+1)/64)) ; // viene usato lo stesso la variabile mousex anche per l'asse Y
-   if (mousex >133 ) {if ( mousey < 255 ) mousey++;} else  {mousey= 0;}
- 
-  #if (mouse_block == 1)
-  if (mousey < 230)
   #endif
- {
- if  (dmxtable[mouse_mempos] > 0 && dmxtable[mouse_mempos] < 64) { 
-   
-     if (abs(mousex-127) > 1 )
-
-
- 
-
-#if (hid_mouse ==1)
-  Mouse.move( 0 , (mousex-127)*Mousespeed  // test : sto usando lightable[mouse_mempos]&1 per rilevare pari/dispari e ottenere tutte combinazioni inversione
- *(((lightable[mouse_mempos]&1)*2) -1),    //   1   ... 1*2= 2 ... 2-1= 1   ... normale     asse x = inverte
-                                           //   0   ... 0*2= 0 ... 0-1= -1  ... inverte     asse x = inverte 
-                                           //   1                           ... normale     asse x = normale
-                                           //   0                           ... inverte     asse x = normale                          
- 0); 
-
- #endif
- 
- 
- }
-
- 
- }
-
-
-  /*   ELIMINATA SEZIONE FRECCETTE
- if (dmxtable[mouse_mempos] > 63) // 2 = attivazione freccette - sopra sotto  // 
- {
- if (valore>upper_val) { if (lastbutton[maxvalue[mouse_mempos]] != 2) { Keyboard.press(218); lastbutton[maxvalue[mouse_mempos]]=2;  }}
- else
- if (valore<lower_val) { if (lastbutton[maxvalue[mouse_mempos]] != 0) { Keyboard.press(217); lastbutton[maxvalue[mouse_mempos]]=0;  }}
- else { if (lastbutton[maxvalue[mouse_mempos]] != 1) { Keyboard.release(218); Keyboard.release(217);  lastbutton[maxvalue[mouse_mempos]]=1;}
- } 
-  #if (arrows_block == 1)
-  if (mousey > 230){ Keyboard.release(218); Keyboard.release(217);  }
-  #endif
-  
- }
-
+}
 */
 
 
-                    
+
+/// questa funziona molto bene - forse pesante
+/*
+void mouse_control() {
+  #if defined (__AVR_ATmega32U4__)
+  if (mouse_mempos != 0) {
+
+    // === 🎚️ PARAMETRI DI CONTROLLO ===
+    const int DEADZONE = 1;           // Zona morta centrale: 0 = disattivata, 2 = ±2 intorno a 127
+    const int SPEED_DIVISORE = 150;    // Valore più alto = movimento più lento
+    const int SPEED_BOOST = 12;        // Moltiplica la velocità reale (1 = neutro, 2 = più veloce, 0.5 = più lenta)
+
+    // === Accumulatori statici per continuità ===
+    static int16_t accum_x = 0;
+    static int16_t accum_y = 0;
+
+    int8_t Mousespeed = dmxtable[mouse_mempos];
+
+    if (chan == minvalue[mouse_mempos]) {  // Asse X
+      valore = analogRead(plexer);
+      mousex = 111 + ((valore + 1) / 32);  // Risoluzione fine
+
+      #if (mouse_block == 1)
+      if (mousex > 133) {
+        if (qwertyvalue[mouse_mempos] < 255) qwertyvalue[mouse_mempos]++;
+      } else {
+        qwertyvalue[mouse_mempos] = 0;
+      }
+      if (qwertyvalue[mouse_mempos] < 230)
+      #endif
+
+      if (Mousespeed > 0 && Mousespeed < 64) {
+        int8_t dx = (mousex - 127);
+        if (abs(dx) <= DEADZONE) {
+          dx = 0;
+          accum_x = 0;
+        }
+
+        int8_t direction = (constrain(lightable[mouse_mempos] - 1, 0, 1) * 2) - 1;
+        accum_x += dx * Mousespeed * direction * SPEED_BOOST;
+
+        if (abs(accum_x) >= SPEED_DIVISORE) {
+          int8_t move_x = accum_x / SPEED_DIVISORE;
+          accum_x -= move_x * SPEED_DIVISORE;
+
+          #if (hid_mouse == 1)
+          Mouse.move(move_x, 0, 0);
+          #endif
+        }
+      }
+    }
+
+    else if (chan == maxvalue[mouse_mempos]) {  // Asse Y
+      valore = analogRead(plexer);
+      mousex = 111 + ((valore + 1) / 32);
+
+      if (mousex > 133) {
+        if (mousey < 255) mousey++;
+      } else {
+        mousey = 0;
+      }
+
+      #if (mouse_block == 1)
+      if (mousey < 230)
+      #endif
+
+      if (Mousespeed > 0 && Mousespeed < 64) {
+        int8_t dy = (mousex - 127);
+        if (abs(dy) <= DEADZONE) {
+          dy = 0;
+          accum_y = 0;
+        }
+
+        int8_t direction = ((lightable[mouse_mempos] & 1) * 2) - 1;
+        accum_y += dy * Mousespeed * direction * SPEED_BOOST;
+
+        if (abs(accum_y) >= SPEED_DIVISORE) {
+          int8_t move_y = accum_y / SPEED_DIVISORE;
+          accum_y -= move_y * SPEED_DIVISORE;
+
+          #if (hid_mouse == 1)
+          Mouse.move(0, move_y, 0);
+          #endif
+        }
+      }
+    }
+  }
+  #endif
 }
-}
-#endif
+
+
+*/
+
+void mouse_control() {
+  #if defined (__AVR_ATmega32U4__)
+  if (mouse_mempos != 0) {
+
+    // Parametri base
+    const int DEADZONE = 2;         // zona morta centrale ±2
+    const int CYCLE_LIMIT = 20;      // quanti cicli attendere prima di spostare il mouse
+
+    // Counter statici per i due assi
+    static uint8_t counter_x = 0;
+    static uint8_t counter_y = 0;
+
+    int8_t Mousespeed = dmxtable[mouse_mempos];
+
+    if (chan == minvalue[mouse_mempos]) {  // Asse X
+      valore = analogRead(plexer);
+      int8_t mousex = 111 + ((valore + 1) / 32);
+      int8_t dx = mousex - 127;
+
+      if (abs(dx) <= DEADZONE) dx = 0;
+
+      int8_t direction = (constrain(lightable[mouse_mempos] - 1, 0, 1) * 2) - 1;
+
+      counter_x++;
+      if (counter_x >= CYCLE_LIMIT && dx != 0 && Mousespeed > 0) {
+        counter_x = 0;
+
+        #if (hid_mouse == 1)
+        Mouse.move(dx * Mousespeed * direction, 0, 0);
+        #endif
+      }
+    }
+
+    else if (chan == maxvalue[mouse_mempos]) {  // Asse Y
+      valore = analogRead(plexer);
+      int8_t mousex = 111 + ((valore + 1) / 32);
+      int8_t dy = mousex - 127;
+
+      if (abs(dy) <= DEADZONE) dy = 0;
+
+      int8_t direction = ((lightable[mouse_mempos] & 1) * 2) - 1;
+
+      counter_y++;
+      if (counter_y >= CYCLE_LIMIT && dy != 0 && Mousespeed > 0) {
+        counter_y = 0;
+
+        #if (hid_mouse == 1)
+        Mouse.move(0, dy * Mousespeed * direction, 0);
+        #endif
+      }
+    }
+  }
+  #endif
 }

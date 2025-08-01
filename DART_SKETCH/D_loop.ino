@@ -2,10 +2,10 @@
 void loop () {
 
 if (cycletimer < 250 ) cycletimer++;
-//if (typetable[general_mempos] 
+
 
 #if (blinker == 1)  
-typetable[general_mempos]++; 
+typetable[general_mempos]++; // effetto led lampeggiante per indicare lo status di un pot
 #endif
 
 
