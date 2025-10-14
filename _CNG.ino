@@ -1,5 +1,4 @@
-//non c'é un lightable[encoder_mempos
-//a cosa serve distance_mempos?? forse si puo usare solo chan. quando il beam viene processato...
+
 /*
  * 
  * setup pronto per LIME old
