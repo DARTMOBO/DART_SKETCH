@@ -106,10 +106,5 @@ while (
 		}
  
    
-  //  Serial.println(total);
-  // Serial.println(total2);
- //Serial.println(max(total,total2));
- // Serial.println((total+total2));
-  //  Serial.println("..");
 return total;
 }

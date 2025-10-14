@@ -2,9 +2,19 @@
 ///////////////////////////
 // DART_SKETCH   v1.88   // 
 // Massimiliano Marchese //
-// Piero Pappalardo      //
 // www.dartmobo.com      //
 ///////////////////////////
+
+ /*
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * DART_SKETCH   —   Copyright (c) 2015–2025 M. Marchese - dartmobo.com
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version. See the LICENSE file for details.
+ */
+
 
 #define shifter_active    0         // 1 = enabled // 0 = disabled // SHIFT REGISTERS_ // if enabled, Matrix_pads must be disabled
 #define stratos  0                   // 1 = enabled // 0 = disabled // Stratos sketch version.
@@ -31,6 +41,7 @@
 #define fader_type 0                 // 0 = normal // 1 =  scratch style fader - experimental - leave it to 0
 #define LED_rings 0                  // 1 = LED rings active - experimental - leave it to 0
 #define blinker 1                    // blink effect on a selected led depending on pot position
+
 //---------------------------------------------
 
 
@@ -51,7 +62,7 @@ midiEventPacket_t rx;
 CapacitiveSensor   cs_4_2[1] = {CapacitiveSensor(9,8)}; // stratos
 #endif
 #if (stratos == 0 )
-CapacitiveSensor   cs_4_2[2] = {CapacitiveSensor(8,7),CapacitiveSensor(8,9)};
+CapacitiveSensor   cs_4_2[2] = {CapacitiveSensor(8,7), CapacitiveSensor(8,9)};
 #endif
  
 #endif
