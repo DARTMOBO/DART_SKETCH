@@ -154,9 +154,9 @@ void setup()
                                                    // che a sua volta è richiamata da load_preset
  {
   setPlexer((page_mempos)-((page_mempos/8)*8)); 
-  lastbutton[page_mempos] = map(analogRead((page_mempos/8)), 0 ,1024, 0, 2); // read page switch state.
+  lastbutton[page_mempos] = map(analogRead((page_mempos/8)), 0 ,1024, 0, 2); // read page switch state. // se valore alto (valore alto è normale, se non viene portato in basso dal cortocircuito di un pulsante)
 
-  if (lastbutton[page_mempos] == 0  )  {page = 0;  // pagestate=0; 
+  if (lastbutton[page_mempos] > 0  )  {page = 0;  // pagestate=0; 
   pagestate = 1;
   load_preset(0); //ledrestore(); // levetta a destra caricamento preset eeprom pagina 1
     page_leds_(0);

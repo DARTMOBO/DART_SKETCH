@@ -19,13 +19,13 @@
 #define shifter_active    1         // 1 = enabled // 0 = disabled // SHIFT REGISTERS_ // if enabled, Matrix_pads must be disabled
 #define stratos  0                   // 1 = enabled // 0 = disabled // Stratos sketch version.
 #define LED_pattern 2                // 0 = dart one // 1 = kombat // 2 = NB-boards // 3 = Kombat-NB // 4 kombat-NB2 - // 5 KOMBAT-NB3 // 6 kombat personal - Led animation pattern used by buttons and pots
-#define capacitivesensor_active 1   // 1 = enabled // 0 = disabled // 2 = EXTERNAL TOUCH IC on pin 7 - 9 // 3 = EXTERNAL TOUCH IC on pin 7 - 8 // 4 = EXTERNAL TOUCH IC (inverted) on pin 7 - 9--- CAPACITIVE SENSORS_
+#define capacitivesensor_active 2   // 1 = enabled // 0 = disabled // 2 = EXTERNAL TOUCH IC on pin 7 - 9 // 3 = EXTERNAL TOUCH IC on pin 7 - 8 // 4 = EXTERNAL TOUCH IC (inverted) on pin 7 - 9--- CAPACITIVE SENSORS_
 #define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
 #define touch_led_onboard 1        // 1 = led output  on arduino pin 8 // 0 = disabled
 #define DMX_active    0             // 1 = enabled // 0 = disabled // enable-disable also from _DART_Dmx_out.cpp !!!!!!!!!
 #define Matrix_Pads 0             // 1 = enabled // 2 = pads on 17-32 circuitposition (old)// 0 = disabled // max7219 chips
 #define hid_keys 1                   // 1 = enabled
-#define hid_mouse 1                  // 1 = enabled
+#define hid_mouse 0                  // 1 = enabled
 #define top_spinner 1                // 1 = enabled // 0 = disabled // TOP SPINNER
 #define side_spinner 1               // 1 = enabled // 0 = disabled // SIDE SPINNER
 #define note_off 0                   // 1 = enabled // 0 = disabled // send NOTE-OFF messages on button release -  if NOTE Type has been selected
@@ -33,7 +33,7 @@
 #define page_active 1                // 1 = enabled // 0 = disabled //  page_switch
 #define page_LEDs 0                  // 1 = page LEDs active
 #define MIDI_thru 0                  // 1 = MIDI Thru active
-#define mouse_block 0                // 1 = enabled // 0 = disabled // mouse messages are stopped after 2 seconds of repeated activity
+#define mouse_block 1                // 1 = enabled // 0 = disabled // mouse messages are stopped after 2 seconds of repeated activity
 #define arrows_block 0               // 1 = enabled // 0 = disabled // arrow key messages are stopped after 2 seconds of repeated activity
 #define encoders_generic 1           // 1 = enabled 
 #define MIDI_IN_block 0              // 1 = MIDI IN blocked
@@ -404,13 +404,22 @@ byte lastbutton_debounce = 40;
 
 const byte modetable_readmode[35] = {
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //  0–10: pulsanti → digitalRead
-  1, 1, 1, 1, 1, 1, 1, 1,          // 11–18: potenziometri → analogRead
+  1, 1, 1, 1, 1,                   // 11–15: potenziometri → analogRead
+  0,                                  // 16 seq
+  0,                                   // 17 page
+  1,                                // beam
   2,                               // 19: encoder
-  0, 0, 0, 0,                      // 20–23: altri digitali
-  1, 1, 1,                         // 24–26: analogici
-  0,                               // 27: digitale speciale
-  3,                               // 28: non usato
-  0, 0,                            // 29–30: digitali speciali
+  0,                               // 20
+  3,                               // 21  spinner 1 - inutile leggere due volte - si salta la lettura, perchè gli spinner vengono letti a parte
+  3,                               // 22  spinner 2  - inutile leggere due volte - si salta la lettura, perchè gli spinner vengono letti a parte
+  3,                              // 23 touch 1
+  3,                                 // 24 touch 2
+  3,                                   // 25 mouse
+  3,                         // 26: general
+  0,                               // 27: velo pads - digital read
+  3,                               // 28: non usato - sprite
+  0,                                // 29 - enc reset
+  0,                            // 30: shifter
   1, 1, 1, 1                       // 31–34: analogici user
 };
 

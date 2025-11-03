@@ -290,8 +290,8 @@ switch (readmode) {
             lastbutton[page_mempos]++;
           }
         }
-      } else {
-        pagestate = (valore < 512) ? 0 : 1;
+      } else { // page active = 0 - lever
+        pagestate = (valore < 512) ? 1 : 0;
       }
       #endif
       break;
