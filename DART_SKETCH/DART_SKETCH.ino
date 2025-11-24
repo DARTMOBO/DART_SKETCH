@@ -16,14 +16,14 @@
  */
 
 
-#define shifter_active    1         // 1 = enabled // 0 = disabled // SHIFT REGISTERS_ // if enabled, Matrix_pads must be disabled
+#define shifter_active    0         // 1 = enabled // 0 = disabled // SHIFT REGISTERS_ // if enabled, Matrix_pads must be disabled
 #define stratos  0                   // 1 = enabled // 0 = disabled // Stratos sketch version.
 #define LED_pattern 2                // 0 = dart one // 1 = kombat // 2 = NB-boards // 3 = Kombat-NB // 4 kombat-NB2 - // 5 KOMBAT-NB3 // 6 kombat personal - Led animation pattern used by buttons and pots
 #define capacitivesensor_active 2   // 1 = enabled // 0 = disabled // 2 = EXTERNAL TOUCH IC on pin 7 - 9 // 3 = EXTERNAL TOUCH IC on pin 7 - 8 // 4 = EXTERNAL TOUCH IC (inverted) on pin 7 - 9--- CAPACITIVE SENSORS_
 #define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
 #define touch_led_onboard 1        // 1 = led output  on arduino pin 8 // 0 = disabled
 #define DMX_active    0             // 1 = enabled // 0 = disabled // enable-disable also from _DART_Dmx_out.cpp !!!!!!!!!
-#define Matrix_Pads 0             // 1 = enabled // 2 = pads on 17-32 circuitposition (old)// 0 = disabled // max7219 chips
+#define Matrix_Pads 1             // 1 = enabled // 2 = pads on 17-32 circuitposition (old)// 0 = disabled // max7219 chips
 #define hid_keys 1                   // 1 = enabled
 #define hid_mouse 0                  // 1 = enabled
 #define top_spinner 1                // 1 = enabled // 0 = disabled // TOP SPINNER
@@ -38,18 +38,20 @@
 #define encoders_generic 1           // 1 = enabled 
 #define MIDI_IN_block 0              // 1 = MIDI IN blocked
 #define MIDI_OUT_block 0             // 1 = MIDI out blocked
-#define fader_type 0                 // 0 = normal // 1 =  scratch style fader - experimental - leave it to 0
+
 #define LED_rings 0                  // 1 = LED rings active - experimental - leave it to 0
 #define blinker 1                    // blink effect on a selected led depending on pot position
-
+#define Fast_analogread 1             
 //---------------------------------------------
 
+
+#define PAD_VELO_DEBUG  0 
 
 #if defined (__AVR_ATmega32U4__)  
 #include "_DART_MIDI.h"
 #include <Mouse.h>
 
-#define ENABLE_BOOSTAX  // ← ATTIVO // commentare per disattivare
+#define ENABLE_BOOSTAX  // ← ATTIVO // commentare per disattivare // sezione mouse 
 
 #include <Keyboard.h>
 midiEventPacket_t rx;
@@ -86,7 +88,7 @@ CapacitiveSensor   cs_4_2[2] = {CapacitiveSensor(8,7), CapacitiveSensor(8,9)};
  #include "LedControl.h"
  #endif
 
-
+//byte diff_pot = 19;
 //#if (stratos == 1)
 byte out_filter; // usato in void noteon come filtro antiflicker per gli encoders di scarsa qualità
 //#endif
@@ -214,15 +216,24 @@ byte channel;
 byte plexer;
 byte chan;
 
-#if ( fader_type == 0)
+
+
+// ricordiamo che se premuto il valore scende verso gnd cioè zero 0 - se rilasciato il pulsante va in alto verso 1024 (consiverando valore in un range 0-1024 classico - il range poi con le funzioni fastanalog si restringe a 8bit 0-255
+const int upper_val = 900;
+const int lower_val = 400;
+/*
+  // per pad velocity molto sensibile - un pad premuto fortissimo si avvicina allo zero - premuto piano scende facilmente sotto i 750 
+const int upper_val = 900;
+const int lower_val = 750;
+
+ // per pulsanti normali - valori storici del dart... in realtà funziona bene anche coi valori pad-velo che possono essere resi universali
 const int upper_val = 750;
 const byte lower_val = 255;
-#endif
 
-#if ( fader_type == 1)
-const int upper_val = 1024;
-const byte lower_val = 0;
-#endif
+*/
+
+
+
 
 int valore; // analog 0-1024 value for 4051 analog readings.
 volatile  byte potOut;
@@ -402,7 +413,7 @@ byte lastbutton_debounce = 5;
 byte lastbutton_debounce = 40;
 #endif
 
-const byte modetable_readmode[35] = {
+const byte modetable_readmode[38] = {
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //  0–10: pulsanti → digitalRead
   1, 1, 1, 1, 1,                   // 11–15: potenziometri → analogRead
   0,                                  // 16 seq
@@ -416,11 +427,14 @@ const byte modetable_readmode[35] = {
   3,                                 // 24 touch 2
   3,                                   // 25 mouse
   3,                         // 26: general
-  0,                               // 27: velo pads - digital read
+  1,                               // 27: velo pads - analogread
   3,                               // 28: non usato - sprite
   0,                                // 29 - enc reset
   0,                            // 30: shifter
-  1, 1, 1, 1                       // 31–34: analogici user
+  1, 1, 1, 1,                       // 31–34: analogici user
+  1,
+  1,
+  1                                // 37 qwerty-pot
 };
 
 

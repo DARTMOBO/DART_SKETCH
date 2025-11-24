@@ -70,7 +70,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
  ///////////////////////////////////////////////////////////////////////////////////// autodetect
   if (eeprom_preset_active == 0) // se NON trovo un preset nella eeprom 
   {
-    valore = analogRead(plexer);
+    valore = analogRead_1024(plexer);
     
     if (valore < upper_val   /// se premo un pulsante - valore scende
      && dmxtable[chan] < 3
@@ -173,7 +173,7 @@ switch (readmode) {
     break;
 
   case 1: // Potenziometri / analogici → analogRead
-    valore = analogRead(plexer);
+    valore = analogRead_1024(plexer);
     break;
 
   case 2: // Encoder (digitalRead x2)
@@ -215,7 +215,7 @@ switch (readmode) {
             #endif
     
             #if defined (__AVR_ATmega32U4__)  
-            valore = analogRead(9); 
+            valore = analogRead_1024(9); 
             #endif
 
             #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
@@ -299,12 +299,12 @@ switch (readmode) {
     case 18:  // distance sens.
       #if defined (__AVR_ATmega32U4__)
       digitalWrite(18 + plexer, LOW);
-      valore = analogRead(plexer);
+      valore = analogRead_1024(plexer);
       beam();
       digitalWrite(18 + plexer, HIGH);
       #elif defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
       digitalWrite(14 + plexer, LOW);
-      valore = analogRead(plexer);
+      valore = analogRead_1024(plexer);
       beam();
       digitalWrite(14 + plexer, HIGH);
       #endif
@@ -375,6 +375,10 @@ switch (readmode) {
     case 34:  // USER 4
       user_item4();
       break;
+      
+      case 37:  // qwerty_pot
+      pots();
+      break;
 
     default:  // modalità non gestita
       break;
@@ -401,7 +405,7 @@ if (channel >4) scala_learn = -1; else scala_learn = 1;
         { // i valori di valuetable dentro il gruppo-plexer vanno resi tutti diversi
          { setPlexer(channel+scala_learn);
 
-          if (  analogRead(plexer)> upper_val)  /// valori molto diversi
+          if (  analogRead_1024(plexer)> upper_val)  /// valori molto diversi
       //   {     setPlexer(channel+(scala_learn*2)); // controlla ancora
       //    if ( analogRead(plexer) > upper_val )         
       //    diversifica_valuetable (); 

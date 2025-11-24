@@ -61,7 +61,7 @@
     } // b2
     else if (channel == 6)  {// valore = (!(digitalRead(18)))*1000; 
     digitalWrite(14, LOW); digitalWrite(15, HIGH);   
-    valore = analogRead(18);
+    valore = analogRead_2014(18);
     ain_nucleo();  } // b1 - ENCODER1 BUTTON
    
    else if (channel == 7) {  digitalWrite(15, LOW);digitalWrite(14, HIGH);                  // SERIE DIODI 2
@@ -77,17 +77,17 @@
    ain_nucleo();   
    } // pb10
    else if (channel == 10) {
-    valore = analogRead(19);
+    valore = analogRead_1024(19);
    ain_nucleo();   
    } // pb9
    else if (channel == 11) { 
      digitalWrite(15, LOW);digitalWrite(14, HIGH);    
-     valore = analogRead(18);
+     valore = analogRead_1024(18);
    ain_nucleo();  
    } // page
 
    else if (channel == 12) {  
-     valore = analogRead(10);
+     valore = analogRead_1024(10);
      ain_nucleo();//  
      } 
     

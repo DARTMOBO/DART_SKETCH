@@ -154,7 +154,7 @@ void setup()
                                                    // che a sua volta è richiamata da load_preset
  {
   setPlexer((page_mempos)-((page_mempos/8)*8)); 
-  lastbutton[page_mempos] = map(analogRead((page_mempos/8)), 0 ,1024, 0, 2); // read page switch state. // se valore alto (valore alto è normale, se non viene portato in basso dal cortocircuito di un pulsante)
+  lastbutton[page_mempos] = map(analogRead_1024((page_mempos/8)), 0 ,1024, 0, 2); // read page switch state. // se valore alto (valore alto è normale, se non viene portato in basso dal cortocircuito di un pulsante)
 
   if (lastbutton[page_mempos] > 0  )  {page = 0;  // pagestate=0; 
   pagestate = 1;
@@ -198,7 +198,7 @@ void setup()
      //valore = analogRead(18);
      if (eeprom_preset_active == 1 && page_mempos > 0)
      { 
-     lastbutton[page_mempos] = map(analogRead(18), 0 ,1024, 0, 2);
+     lastbutton[page_mempos] = map(analogRead_1024(18), 0 ,1024, 0, 2);
 
       if (lastbutton[page_mempos] == 1  ) 
       {
@@ -256,5 +256,102 @@ if (dmxtable[general_mempos] >0)
    attachInterrupt(0, lettura_enc_principale, CHANGE); 
    attachInterrupt(1, lettura_enc_principale, CHANGE);
 }
- 
+
+#if (Fast_analogread == 1)
+ fastADC_init();
+ #endif
  }
+
+
+
+// "Antidoto" alla fastADC_init: rimette l'ADC come si aspetta analogRead()
+void standardADC_init() {
+  // Riferimento AVcc, risultato right-adjust (ADLAR = 0)
+  ADMUX = _BV(REFS0);   // REFS0=1, REFS1=0, ADLAR=0, MUX[4:0]=0
+
+  // ADC abilitato, prescaler = 128 (modalità lenta e precisa di Arduino)
+  ADCSRA = _BV(ADEN) | _BV(ADPS2) | _BV(ADPS1) | _BV(ADPS0);
+
+  // Free-running e trigger speciali disattivati
+  ADCSRB = 0;
+  // DIDR0 lo puoi lasciare com'è; se vuoi "come Arduino puro":
+  // DIDR0 = 0x00;
+}
+
+
+// Chiamala in setup()
+void fastADC_init() {
+  // Riferimento: AVcc, risultato left-adjust (ADLAR=1 → leggiamo solo ADCH)
+  ADMUX = _BV(REFS0) | _BV(ADLAR);
+
+  // Prescaler = 32 → ADPS2=1, ADPS1=0, ADPS0=1
+  // ADC abilitato (ADEN=1)
+  ADCSRA = _BV(ADEN) | _BV(ADPS2) | _BV(ADPS0);
+
+  // (opzionale ma consigliato) disabilita digital su ADC0..7 per meno rumore
+ //  DIDR0 = 0xFF;
+}
+
+
+uint8_t analogReadFast8(uint8_t analogPin) {
+  // 1) Mappa il pin (A0, A1...) al canale ADC vero
+  uint8_t ch;
+#ifdef analogPinToChannel
+  ch = analogPinToChannel(analogPin);
+#else
+  ch = analogPin;          // fallback se la macro non esiste
+#endif
+
+  // 2) Gestione canali alti (A6..A11) su Leonardo → MUX5 in ADCSRB
+#if defined(MUX5)
+  if (ch & 0x20) {         // se il bit 5 è alto → canale 8..15
+    ADCSRB |= _BV(MUX5);
+    ch &= 0x1F;            // tieni solo i 5 bit bassi
+  } else {
+    ADCSRB &= ~_BV(MUX5);
+  }
+#endif
+
+  // 3) Imposta il canale mantenendo riferimento e ADLAR
+  uint8_t refbits = ADMUX & 0b11100000;  // REFS1:0 + ADLAR
+  ADMUX = refbits | (ch & 0x1F);         // metti il canale nei bit MUX
+
+  // 4) Avvia conversione
+  ADCSRA |= _BV(ADSC);
+
+  // 5) Aspetta che finisca (~26 µs con prescaler 32)
+  while (ADCSRA & _BV(ADSC));
+
+  // 6) Leggi il risultato 8-bit (0..255) dal registro alto
+  return ADCH;
+}
+
+#if (Fast_analogread == 1)
+
+// Lettura veloce "compatibile 10 bit":
+// usa analogReadFast8() e scala il risultato a 0..1020 (~1024 step)
+int analogRead_1024(uint8_t analogPin) {
+  uint8_t v8 = analogReadFast8(analogPin);  // 0..255
+  // moltiplica per 4 → 0, 4, 8, ... 1020
+  return (int)v8 << 2;                      // equivalente a v8 * 4
+}
+
+#endif
+
+
+#if (Fast_analogread == 0)
+
+int analogRead_1024(uint8_t analogPin) {
+  return analogRead(analogPin);   // restituisce 0..1023, come prima
+}
+
+
+#endif
+
+
+
+
+
+
+
+ 

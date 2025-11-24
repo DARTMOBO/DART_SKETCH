@@ -23,10 +23,14 @@
   //
   // lower_val e upper_val - sono due variabili fisse che indicano i valori sotto e soprai quali si considera che un pulsante sia premuto
   // 
+
+  
     {
 
 
-    if (valore < lower_val    )                         ///// button pushed       
+   // if (valore < lower_val - (velo *min)    )                         ///// button pushed        // con questa formula più è alto min , meno il pad diventa sensibile
+   int lower = lower_val + (velo *(minvalue[chan]*3));
+    if (valore < lower   )     
         {
      
       if (lastbutton[chan] == lastbutton_debounce)
@@ -40,11 +44,11 @@
 
 
         
-      if (modetable[chan] >= 3) offgroup(chan,1);      // da 3 in poi ci sono i toggle groups e radio groups
+      if (modetable[chan] >= 3 && modetable[chan] != 27) offgroup(chan,1);      // da 3 in poi ci sono i toggle groups e radio groups
       
             if (bit_read(4,page+chan)==0)              // 4 = toggletable // something happens only if the button is off in the toggletable
             { 
-               if ( eeprom_preset_active == 0 ) dmxtable[chan]++;    // ????
+               if ( eeprom_preset_active == 0 ) dmxtable[chan]++;    // ???? autodetect_dmx
                
         
      //  Serial.println(mouse_mempos);
@@ -82,10 +86,17 @@
 
           if ( velo == 0 )    outnucleo (1,chan);
           else {
+           
+              
+            #if PAD_VELO_DEBUG
+            debugPadVelocityFilm();   // <<< qui parte il "filmato" dopo il gate
+            #endif
          
-           int velopush =  constrain(analogRead(plexer),60,255);  //Serial.println (velopush);//  delay(2);
-            button(typetable[chan+page],valuetable[chan+page],map(velopush,60,255,127,10),1);
-       
+         //  int velopush =  constrain(analogRead_1024(plexer),60,255);  //Serial.println (velopush);//  delay(2);
+           int velopush =  constrain(analogRead_1024(plexer),160,lower);
+            button(typetable[chan+page],valuetable[chan+page],map(velopush,160,lower,127,1),1);
+            
+     //  Serial.println(velopush);
                }
 
          // outnucleo (1,chan);
@@ -94,7 +105,7 @@
             
             else     /// se il pulsante è acceso nella toggletable
             
-            if (modetable[chan] <7   )
+            if (modetable[chan] <7  || modetable[chan] == 27 )
             {
                #if defined (__AVR_ATmega32U4__)  
             HOT_keys(chan,0);    
@@ -139,9 +150,12 @@
    {
      //  if (page == 0) 
       {
-        if (modetable[chan] >= 2  && modetable[chan] < 11) // se il pulsante = toggle o t-group o r-group
+        if (modetable[chan] >= 2  && modetable[chan] < 11
+        ||  modetable[chan] == 27 && maxvalue[chan] > 0 // toggle per i velo pads
+        ) // se il pulsante = toggle o t-group o r-group
+        
         {
-         if( modetable[chan] < 7  )  {  //                                                      7 8 9 10 sono RADIO group
+         if( modetable[chan] < 7  ||  modetable[chan] == 27)  {  //                                                      7 8 9 10 sono RADIO group
                  
         }   
            
@@ -196,43 +210,56 @@
 
 void pots ()
 {
- 
+ byte diff = 11; // #mod_finestra
+/*
+ if (qwertyvalue[chan] >0 // && modetable[chan] <16
+ ) diff = 3; // #mod_finestra
+ */
   {
+    int pot_confronto = abs((lastbutton[chan] * 4)  - valore);
     
-    if (abs((lastbutton[chan] * 4)  - valore) > 10 
-       )                                                     // the potentiometer has been moved
-       
-   if (qwertyvalue[chan] > 0 && eeprom_preset_active != 0) {         // pot working in qwerty mode - solo se non siamo in autodetect e qwerty ha un valore
-   {
-    if (valore > upper_val ) {
+    if ( pot_confronto > diff   ) // scaglioni da 4 - qundi 4 8 12 16 etc etc // #mod_finestra
+                                                           // the potentiometer has been moved
+     {
+       {
+
+        if (modetable[chan] == 37) // il MODE relativo al qwerty pot sarà a parte ed esclusivo
+       {
+   if (qwertyvalue[chan] > 0 && eeprom_preset_active != 0)          // pot working in qwerty mode - solo se non siamo in autodetect e qwerty ha un valore
+  {
+    if (valore > upper_val ) { // -------------------------------------------------------
       
       if ( lastbutton[chan]*4 < upper_val) { 
-      qwerty_out(1,qwertyvalue[chan],0); 
-    //  Keyboard.press(pgm_read_byte(qwertymod+qwertyvalue[chan]));
-     // if (qwertyvalue[chan] > 31 ) Keyboard.press(qwertyvalue[chan]); // normale tabella ascii // 
+     qwerty_out(1,qwertyvalue[chan],0); 
+  //  Serial.println("alto ");
     }
     
     }
     else 
-    if (valore < lower_val) { if ( lastbutton[chan]*4 > lower_val) { // if (maxvalue[chan] == 127) 
-    qwerty_out(1,minvalue[chan],0); //Keyboard.press(pgm_read_byte(qwertymod+qwertyvalue[chan]+1)); 
-    } } 
-    else
-    {
+    if (valore < 124) { if ( lastbutton[chan]*4 > 124) { // if (maxvalue[chan] == 127) 
+    qwerty_out(1,minvalue[chan],0);
+  // Serial.println("basso ");
+    } }
+     
+    else //------------------------------------------------------------------------
+    
       if ( lastbutton[chan]*4 > upper_val) {
         qwerty_out(0,qwertyvalue[chan],0); 
-      //  Keyboard.release(pgm_read_byte(qwertymod+qwertyvalue[chan]));
-       //  if (qwertyvalue[chan] > 31 ) Keyboard.release(qwertyvalue[chan]);
+    //    Serial.println ("!alto ");
+   
       }
       else 
-      if (lastbutton[chan]*4 < lower_val) { // if (maxvalue[chan] == 127)  
-      qwerty_out(0,minvalue[chan],0); //Keyboard.release(pgm_read_byte(qwertymod+qwertyvalue[chan]+1));
-      }
+      if (lastbutton[chan]*4 < 124) { // if (maxvalue[chan] == 127)  
+     qwerty_out(0,minvalue[chan],0); 
+   //   Serial.println ("!basso ");
       }
       
+      
       lastbutton[chan] = valore / 4 ;
-   }
-   }
+      delay(100);
+        Serial.print ("valore: ");  Serial.println (valore);
+  }
+       }
    
    else                                                       // pot working in MIDI mode ---------------------------------------------------------------------------------------
 
@@ -245,14 +272,12 @@ void pots ()
  ///  ----------------------------------------------------------
    
 
-  #if (fader_type == 0)    // ci sono potrenziometri a slitta che hanno una zona vuota sopra e sotto...
+  
       if (modetable[chan] ==11 ) {if ((typetable[chan + (page)]) < 224) valore = map(valore, 63, 960, minvalue[chan], maxvalue[chan]) ;} // pot normale 
                                                                                 // NOTA: il constrain da 0 a 127 viene fatto in seguito sulla variabile potout
-  #endif
+ 
 
-  #if (fader_type == 1)
-   if (modetable[chan] ==11 ) {if ((typetable[chan + (page)]) < 224) valore = map(valore, 0, 1024, minvalue[chan], maxvalue[chan]) ;}
-  #endif
+ 
       
       else if (modetable[chan] == 12) { valore = map(valore, 63, 256, minvalue[chan], maxvalue[chan]) ;                             // hypercurve 1
       #if (shifter_active == 1 && stratos == 0)
@@ -335,12 +360,12 @@ void pots ()
         cycletimer = 0;                                    // effetti led
         
  #if (shifter_active == 1 && stratos == 0)
-       if (lightable[chan] == 1) {led_enc_exe();}
+       if (lightable[chan] >32) {led_enc_exe();}
       
        #if (blinker ==1)
        else
         {
-        if  ( lightable[chan] > 1)                          // 0= no efetti - 1=effetti - 2=blinker
+        if  ( lightable[chan] > 0)                          // 0= no efetti - 1=effetti - 2=blinker
    { 
        if (potOut > 0 && modetable[chan] < 14 ||   // hypercurve o normal
       potOut != 64 && modetable[chan] > 13 )       // centercurve
@@ -355,18 +380,18 @@ void pots ()
          
    }
         }
-        #endif
+        #endif // (blinker ==1)
        
   #endif //(shifter_active == 1 && stratos == 0)
        
 
-       #if (Matrix_Pads > 0  )
+       #if (Matrix_Pads > 0  )    // nel caso del controller matrix - blinker e effetti led sono coesistenti
        if (lightable[chan] >0 ) led_enc_exe_matrix();
         //  else
         #if (blinker ==1 )
         
         {
-        if  ( lightable[chan] > 1)                  // 0= no efetti - 1=effetti - 2=blinker
+        if  ( lightable[chan] > 1)                  // 0= no efetti - 1=effetti - 2=blinker+effeti
    { 
        if (potOut > 0 && modetable[chan] < 14 ||   // hypercurve o normal
       potOut != 64 && modetable[chan] > 13 )       // centercurve
@@ -382,9 +407,12 @@ void pots ()
          
    }
         }
-  #endif
+  #endif  // (blinker ==1 )
         
-       #endif
+       #endif // (Matrix_Pads > 0  )
+
+
+       
 
        #if (DMX_active == 1  && stratos == 0)
   //if  (dmxtable[chan] == 100 ) 
@@ -393,9 +421,23 @@ void pots ()
 #endif
    
 
-     
+      qwertyvalue[chan] = 80; // #mod_finestra
 
     }  // -------------- fine della condizione generale pot mosso
+    
+       }
+ 
+ //   {if (valuetable[chan + page] == 63) digitalWrite(8,HIGH);} // sperimentale - volevo vedere con un led la finestra temporale che si apre
+       }
+       
+
+         if ( pot_confronto <=  7   )      { if (qwertyvalue[chan]>0 && modetable[chan]<16 ) qwertyvalue[chan]--; 
+         // else {if (valuetable[chan + page] == 63) digitalWrite(8,LOW);} // sperimentale - volevo vedere con un led la finestra temporale che si apre
+         
+         
+         }
+
+  
     #if (blinker ==1) 
 {
    #if (shifter_active == 1 && stratos == 0)
@@ -413,10 +455,7 @@ void pots ()
     //   if  ( lightable[chan] > 1)  Serial.println(bit_read(1,(lightable[chan]-1)+page)); 
     
         if (bit_read(1,(lightable[chan]-1)+page) == 1) {   // led = acceso nel banco di memoria 
-     //     Serial.println(chan); 
-     //    Serial.println(lightable[chan]);
-     //     Serial.println(potOut);
-     //    Serial.println("--");
+
           
   if (typetable[general_mempos] == 0 )  { //shifter.setPin((lightable[chan]-1), 0); shifterwrite= 1;
     digitalWrite(8,LOW);                  // a zero spegni led
@@ -1105,7 +1144,7 @@ lightable[distance_mempos]
   setPlexer(padNum*2); 
 
 // padVal = analogRead(5);
-padVal = analogRead(5); 
+padVal = analogRead_1024(5); 
                               // la lettura viene ripetuta due volte per lasciare il tempo di scaricare corrente residua al pad
                               // questa è solo una congettura... sto ancora facendo prove e test
 
@@ -1115,7 +1154,7 @@ if (padVal > 2 && padDecay[padNum] == 0 ) {
 for(byte pad = 0; pad < 6; pad++)
   {
  // setPlexer(padNum*2);
- padVal2 = analogRead(5);
+ padVal2 = analogRead_1024(5);
   if (padVal2 > padVal) padVal = padVal2;
 }
 padDecay[padNum] =14 //+ (padVal / 40)

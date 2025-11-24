@@ -182,7 +182,7 @@ void mouse_control() {
 
     // === ASSE X ===
     if (chan == minvalue[mouse_mempos]) {
-      valore = analogRead(plexer);
+      valore = analogRead_1024(plexer);
       mousex = 111 + ((valore + 1) / 32);
       int8_t dx = mousex - 127;
 
@@ -241,7 +241,7 @@ void mouse_control() {
 
     // === ASSE Y ===
     else if (chan == maxvalue[mouse_mempos]) {
-      valore = analogRead(plexer);
+      valore = analogRead_1024(plexer);
       mousex = 111 + ((valore + 1) / 32);
       int8_t dy = mousex - 127;
 

@@ -130,12 +130,13 @@ switch (onoff)
   #endif
      break;
      
-     #if (note_off == 0)
-     
+#if (note_off == 0)   // ci sono due case = 0 dipende dal define NOTE_OFF
  case 0: 
    if (eeprom_preset_active == 1) {    // normale funz
    if (qwertyvalue[chan_] == 0 ) 
-   { button(typetable[chan_+page],valuetable[chan_+page],minvalue[chan_],1);
+   {
+    byte off_velocity = (modetable[chan_ + page] == 27) ? 0 : minvalue[chan_];
+    button(typetable[chan_+page],valuetable[chan_+page],off_velocity,1);
     #if (DMX_active == 1  && stratos == 0)
    DmxSimple.write(dmxtable[chan_], minvalue[chan_]*2);
    #endif
@@ -150,6 +151,7 @@ switch (onoff)
     #endif
      break;
 #endif
+
      #if (note_off == 1)
 case 0: 
 byte note_off_;
@@ -158,6 +160,7 @@ if (valuetable[chan_+page] < 160) note_off_ = 16;
 if (eeprom_preset_active == 1) {
    if (qwertyvalue[chan_] == 0 ) 
    { 
+     // byte off_velocity = (modetable[chan_ + page] == 27) ? 0 : minvalue[chan_];
     button(typetable[chan_+page]-note_off_,valuetable[chan_+page],0,1);
     #if (DMX_active == 1  && stratos == 0)
    DmxSimple.write(dmxtable[chan_], minvalue[chan_]*2);
