@@ -81,8 +81,14 @@ typetable[general_mempos]++; // effetto led lampeggiante per indicare lo status 
    #endif
 
 
-    #if (shifter_active == 1 && stratos == 0)
+     #if (shifter_active == 1 && stratos == 0)
   if (qwertyvalue[general_mempos] > 2)    buttonledefx();  
+    #endif
+
+    #if (Matrix_Pads > 0 && stratos == 0)
+  #if (MATRIX_CROSS_FX == 1)
+    matrixbuttonledefx();  
+  #endif
     #endif
  
  

@@ -99,7 +99,7 @@ switch ((cmd-144)  /16)
    case 0 :  noteOn(cmd,pitch,velocity,filterr); break; // note
  case 1 :    noteOn(cmd,pitch,velocity,filterr); break; // poly AT
  case 2 :    noteOn(cmd,pitch,velocity,filterr); break; // cc
- case 3 :    noteOn(cmd,velocity,0,filterr); // pc
+ case 3 :    noteOn(cmd,velocity,0,filterr); break; // pc 
  case 4 :    noteOn(cmd,velocity,0,filterr);  break; // channel AT
  case 5 :  { noteOn(cmd,velocity,velocity,filterr); }
 }
@@ -190,7 +190,9 @@ if (eeprom_preset_active == 1) {
    #if (hid_keys == 1)  
    if (chan_ < 25 && chan_ > 0) Keyboard.press(pgm_read_byte(qwertymod+chan_+add));
   else if (chan_ > 31 ) Keyboard.press(chan_+add); // normale tabella ascii // 
+     #if (hid_mouse == 1)
   else if (chan_ != 31 ) Mouse.press(chan_-24+add); // 25 26 27 28 29 30 - 
+     #endif
    #endif
       #endif
       }
@@ -202,7 +204,9 @@ if (eeprom_preset_active == 1) {
     #if (hid_keys == 1)    
     if (chan_ < 25 && chan_ > 0 ) Keyboard.release(pgm_read_byte(qwertymod+chan_+add));
     else if (chan_ > 31 ) Keyboard.release(chan_+add);
+      #if (hid_mouse == 1)
  else  if (chan_ != 31 ) Mouse.release(chan_-24+add); 
+        #endif
   #endif
     
     #endif  

@@ -37,7 +37,9 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
     restore_end(); // ?? non ricordo cosa faceve questa void - aggiunegre commento urgentemente
     
     
-  if (maxvalue[general_mempos] == 0 ){ PADS();}  
+#if PIEZO_PADS_ACTIVE
+  if (maxvalue[general_mempos] == 0 ){ piezo_pads();} 
+#endif
 
 
   //  if (dmxtable[general_mempos] >1)
@@ -211,19 +213,23 @@ switch (readmode) {
  if (minvalue[general_mempos] > 0)  // vedi se il plexer EXTRA è attivato // 1= extra plexer attivato - gli input della dartmobo passano da 48 a 56! adesso il pin che prima veniva dedicato al touch sensor 2 viene dedicato alla letture dell'extra plexer - nota: usant touch ic's esterni è possibile avere entrambe le cose. 
            { 
             #if (pullups_active == 1)
-            digitalWrite(9, HIGH);
+             digitalWrite(9, HIGH);
             #endif
     
             #if defined (__AVR_ATmega32U4__)  
-            valore = analogRead_1024(9); 
+           //  valore = analogRead_1024(9); 
+          //  valore = analogRead(9); 
+         
+            valore =  (digitalRead(9)) << 10;
             #endif
 
             #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
           //  valore = 1000*(!digitalRead(9)); 
-           valore =  (!digitalRead(9)) << 10;
+           valore =  (digitalRead(9)) << 10;
             #endif
   
             chan = channel + 48;
+           //     if (modetable[chan] == 1 && valuetable[chan] == 88) {Serial.println (valore); delay(100);}
             ain_nucleo(); 
             }
  // ______________________________________________________
@@ -366,6 +372,7 @@ switch (readmode) {
 
     case 32:  // USER 2
       user_item2();
+
       break;
 
     case 33:  // USER 3
@@ -379,6 +386,19 @@ switch (readmode) {
       case 37:  // qwerty_pot
       pots();
       break;
+
+        case 38:  // scene_control
+     scene_control_pot();
+      break;
+
+     case 39:  // scene_control
+     scene_record_button();
+      break;
+
+   case 40:  // scene_control
+     encoder(chan);
+      break;
+
 
     default:  // modalità non gestita
       break;

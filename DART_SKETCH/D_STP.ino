@@ -154,7 +154,7 @@ void setup()
                                                    // che a sua volta è richiamata da load_preset
  {
   setPlexer((page_mempos)-((page_mempos/8)*8)); 
-  lastbutton[page_mempos] = map(analogRead_1024((page_mempos/8)), 0 ,1024, 0, 2); // read page switch state. // se valore alto (valore alto è normale, se non viene portato in basso dal cortocircuito di un pulsante)
+  lastbutton[page_mempos] = map32(analogRead_1024((page_mempos/8)), 0 ,1024, 0, 2); // read page switch state. // se valore alto (valore alto è normale, se non viene portato in basso dal cortocircuito di un pulsante)
 
   if (lastbutton[page_mempos] > 0  )  {page = 0;  // pagestate=0; 
   pagestate = 1;
@@ -198,7 +198,7 @@ void setup()
      //valore = analogRead(18);
      if (eeprom_preset_active == 1 && page_mempos > 0)
      { 
-     lastbutton[page_mempos] = map(analogRead_1024(18), 0 ,1024, 0, 2);
+     lastbutton[page_mempos] = map32(analogRead_1024(18), 0 ,1024, 0, 2);
 
       if (lastbutton[page_mempos] == 1  ) 
       {
@@ -295,6 +295,10 @@ void fastADC_init() {
 
 uint8_t analogReadFast8(uint8_t analogPin) {
   // 1) Mappa il pin (A0, A1...) al canale ADC vero
+
+ 
+
+  
   uint8_t ch;
 #ifdef analogPinToChannel
   ch = analogPinToChannel(analogPin);

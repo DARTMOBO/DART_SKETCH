@@ -5,7 +5,7 @@
 // www.dartmobo.com      //
 ///////////////////////////
 
- /*
+ /* m5
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * DART_SKETCH   —   Copyright (c) 2015–2025 M. Marchese - dartmobo.com
@@ -16,40 +16,39 @@
  */
 
 
-#define shifter_active    0         // 1 = enabled // 0 = disabled // SHIFT REGISTERS_ // if enabled, Matrix_pads must be disabled
-#define stratos  0                   // 1 = enabled // 0 = disabled // Stratos sketch version.
-#define LED_pattern 2                // 0 = dart one // 1 = kombat // 2 = NB-boards // 3 = Kombat-NB // 4 kombat-NB2 - // 5 KOMBAT-NB3 // 6 kombat personal - Led animation pattern used by buttons and pots
-#define capacitivesensor_active 2   // 1 = enabled // 0 = disabled // 2 = EXTERNAL TOUCH IC on pin 7 - 9 // 3 = EXTERNAL TOUCH IC on pin 7 - 8 // 4 = EXTERNAL TOUCH IC (inverted) on pin 7 - 9--- CAPACITIVE SENSORS_
-#define touch_version 1              // 1 = 680k //  2 = 10m //     resistor settings for touch sensing circuit
-#define touch_led_onboard 1        // 1 = led output  on arduino pin 8 // 0 = disabled
-#define DMX_active    0             // 1 = enabled // 0 = disabled // enable-disable also from _DART_Dmx_out.cpp !!!!!!!!!
-#define Matrix_Pads 1             // 1 = enabled // 2 = pads on 17-32 circuitposition (old)// 0 = disabled // max7219 chips
-#define hid_keys 1                   // 1 = enabled
-#define hid_mouse 0                  // 1 = enabled
-#define top_spinner 1                // 1 = enabled // 0 = disabled // TOP SPINNER
-#define side_spinner 1               // 1 = enabled // 0 = disabled // SIDE SPINNER
-#define note_off 0                   // 1 = enabled // 0 = disabled // send NOTE-OFF messages on button release -  if NOTE Type has been selected
-#define pullups_active 1             // 1 = enabled // 0 = disabled // pullup resistors
-#define page_active 1                // 1 = enabled // 0 = disabled //  page_switch
-#define page_LEDs 0                  // 1 = page LEDs active
-#define MIDI_thru 0                  // 1 = MIDI Thru active
-#define mouse_block 1                // 1 = enabled // 0 = disabled // mouse messages are stopped after 2 seconds of repeated activity
-#define arrows_block 0               // 1 = enabled // 0 = disabled // arrow key messages are stopped after 2 seconds of repeated activity
-#define encoders_generic 1           // 1 = enabled 
-#define MIDI_IN_block 0              // 1 = MIDI IN blocked
-#define MIDI_OUT_block 0             // 1 = MIDI out blocked
+#include "DART_config.h"   // central compile-time settings (currently DMX_active)
 
-#define LED_rings 0                  // 1 = LED rings active - experimental - leave it to 0
-#define blinker 1                    // blink effect on a selected led depending on pot position
-#define Fast_analogread 1             
+ 
 //---------------------------------------------
+// =====================================================================
+// CTRL-F: #MAP_HELPERS
+// Flash-saving helpers: replace Arduino map32() (long, out-of-TU) with
+// an inline equivalent that is bit-identical for all integer inputs.
+// NOTE: map32() in Arduino does NOT clamp. This one doesn't either.
+// =====================================================================
+static inline int32_t map32(int32_t x, int32_t in_min, int32_t in_max,
+                           int32_t out_min, int32_t out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 
+// Common DART case: 10-bit ADC (0..1023) -> MIDI (0..127), bit-identical
+// to map32(x, 0,1023, 0,127) but typically compiles smaller.
+static inline uint8_t map7_0_1023_to_0_127(uint16_t x)
+{
+  return (uint32_t)x * 127u / 1023u;
+}
 
-#define PAD_VELO_DEBUG  0 
+//---------------------------------------------------------------
+
 
 #if defined (__AVR_ATmega32U4__)  
 #include "_DART_MIDI.h"
+  
+  #if (hid_mouse == 1)
 #include <Mouse.h>
+ #endif
+
 
 #define ENABLE_BOOSTAX  // ← ATTIVO // commentare per disattivare // sezione mouse 
 
@@ -80,14 +79,31 @@ CapacitiveSensor   cs_4_2[2] = {CapacitiveSensor(8,7), CapacitiveSensor(8,9)};
 #include "_DART_Shifter.h"
 #endif
 
- #if (Matrix_Pads == 1 && stratos == 0)
- #include "LedControl.h"
- #endif
+//-----------------------------------------------------------------------------------
+ #if (Matrix_Pads >0  && stratos == 0)
+// =====================================================================
+// DART LED MATRIX: scelta libreria (bitbang vs SPI hardware)
+// =====================================================================
 
-  #if (Matrix_Pads == 2 && stratos == 0)
- #include "LedControl.h"
- #endif
+// 0 = usa la vecchia LedControl bitbang (quella hackerata che già funziona)
+// 1 = usa DartLedControl (versione SPI hardware basata su Faster_LedControl)
+  const byte order_row[8] = {6,1,5,3,7,2,4,0};
+  
+#define DART_USE_HW_SPI 1
 
+#if DART_USE_HW_SPI
+  #include "_DART_LedControl.h"
+  typedef DartLedControl DartLedLib;
+#else
+  #include "LedControl.h"
+  typedef LedControl DartLedLib;
+#endif
+
+ #endif  // (Matrix_Pads >0  && stratos == 0)
+//--------------------------------------------------------------------------------------
+
+
+ unsigned long delay_us;
 //byte diff_pot = 19;
 //#if (stratos == 1)
 byte out_filter; // usato in void noteon come filtro antiflicker per gli encoders di scarsa qualità
@@ -204,7 +220,9 @@ byte matrix_remappp(byte inputt)
 const PROGMEM byte  input_remap[]  = {6,8,4,2,7,1,5,3,};
  
 byte remapper(byte input) 
-{return  (( pgm_read_byte(input_remap + ((input)-(((input)/8)*8)) ) +(((input)/8)*8))) -1;}
+{
+  if (input == 255) return 255; 
+  return  (( pgm_read_byte(input_remap + ((input)-(((input)/8)*8)) ) +(((input)/8)*8))) -1;}
 
 
 //|||||||||||||||||||||||||||||||||
@@ -378,11 +396,32 @@ Shifter shifter(SER_Pin, RCLK_Pin, SRCLK_Pin, NUM_REGISTERS);
  */
 byte max_units = 12;
 
-LedControl lc=LedControl(10,11,12,max_units); 
+// LedControl lc=LedControl(10,11,12,max_units); // vecchio pinning - si usano i pin digitali uguali a quelli usati per gli shifters nei dart normali
+
+// LedControl lc=LedControl(16,15,12,max_units); // pinning che usa i pin leonardo d16 e d15 che sono sul connettore icsp - per fusare libreria ultraveloce
+
+// config pin matrice
+#define MAX_DIN_PIN 16   // ICSP MOSI
+#define MAX_CLK_PIN 15   // ICSP SCK
+#define MAX_CS_PIN  12   // CS comune a tutte le matrici
+
+#if DART_USE_HW_SPI
+  // SPI hardware: la libreria ignora DIN/CLK e usa direttamente MOSI/SCK hardware.
+  // Qui passi SOLO il CS e il numero di dispositivi.
+  DartLedLib lc = DartLedLib(MAX_CS_PIN, max_units);
+#else
+  // Bitbang: come prima, 4 argomenti (DIN, CLK, CS, numDevices)
+  DartLedLib lc = DartLedLib(MAX_DIN_PIN, MAX_CLK_PIN, MAX_CS_PIN, max_units);
+#endif
+
+
+
+
+
 // LedControl(int dataPin, int clkPin, int csPin, int numDevices) 
 
 //byte order_line[8] = {5,6,0,1,3,4,7,2};
- // const byte order_row[8] = {6,1,5,3,7,2,4,0};
+
 
  void set_unit(byte number_of_unit){ 
   lc.shutdown(number_of_unit,false);
@@ -413,7 +452,7 @@ byte lastbutton_debounce = 5;
 byte lastbutton_debounce = 40;
 #endif
 
-const byte modetable_readmode[38] = {
+const byte modetable_readmode[41] = {
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //  0–10: pulsanti → digitalRead
   1, 1, 1, 1, 1,                   // 11–15: potenziometri → analogRead
   0,                                  // 16 seq
@@ -434,7 +473,10 @@ const byte modetable_readmode[38] = {
   1, 1, 1, 1,                       // 31–34: analogici user
   1,
   1,
-  1                                // 37 qwerty-pot
+  1,                                // 37 qwerty-pot
+  1, // 38 scene_control_pot
+  0,  // 39 scene_record_button
+  2    // 40 encoder-scene morph
 };
 
 
@@ -454,7 +496,7 @@ volatile byte lightable[65] // ho provato a scendere a 64 - ma si creavano stran
 
 
 
- byte  valuetable[max_modifiers*2] ;
+ byte  valuetable[max_modifiers*2] ; // dove  max_modifiers = 60 
  byte  typetable[max_modifiers*2] ;
 
 /*

@@ -211,13 +211,13 @@ if (valuetable[ledD+max_modifiers]==note && bit_read(3,ledD+max_modifiers) == 1
 
 {
 
- if (modetable[ledD+max_modifiers] < 16 ) {
+ if (modetable[ledD] < 16 ) {
       #if (DMX_active == 1  && stratos == 0)
       DmxSimple.write(dmxtable[ledD], velocity*2); 
       #endif
  }
     
-  if (modetable[ledD+max_modifiers] < 11 )
+  if (modetable[ledD] < 11 )
 // feedback solo per i pulsanti
 {                                                               // seconda pagina
       
@@ -356,13 +356,13 @@ if (valuetable[ledE+max_modifiers]==note && bit_read(3,ledE+max_modifiers) ==1
  )   // feedback solo per pulsanti
 
 {
-  if (modetable [ledE+max_modifiers] <16)
+  if (modetable [ledE] <16)
   {
    //  #if (DMX_active == 1  && stratos == 0)
       //   DmxSimple.write(dmxtable[ledE], 0);
       //   #endif
 }
-if (modetable [ledE+max_modifiers] <11)
+if (modetable [ledE] <11)
 {         //    secoda pagina
   
    bit_write(1, lightable[ledE]+max_modifiers-1, 0); 

@@ -123,7 +123,21 @@ eeprom_preset_active = 0;
         for (byte i = 0; i <max_modifiers; i++)  
        lightable[i] = EEPROM.read(i+448+(numero*512));
        
-       }                        
+       }   
+
+  // ------------------------------------------------------------
+  // SCENE: ricostruzione lista pot-soggetto dopo load preset
+  // La facciamo una sola volta, quando viene caricata la pagina 0
+  // ------------------------------------------------------------
+  if (numero == 0) {
+    scene_build_subject_list();
+    scene_eeprom_load(); 
+
+    //
+
+  }
+
+                            
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

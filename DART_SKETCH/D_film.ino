@@ -27,7 +27,7 @@ void debugPadVelocityFilm()
   for (byte i = 0; i < FRAMES; i++) {
     // Nel tuo circuito: 0 = forte, 1023 = piano
     // Quindi invertiamo: valore basso → barra lunga.
-    uint8_t barLen = map(film[i], 1023, 0, 0, 40);  // max 40 asterischi
+    uint8_t barLen = map32(film[i], 1023, 0, 0, 40);  // max 40 asterischi
 
     Serial.print(i);        // numero frame = "ritardo" dal gate
     Serial.print(F(" | "));

@@ -7,296 +7,130 @@
  * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version. See the LICENSE file for details.
  */
- 
-/* 
-//  questa versione  è ok, ho precisione e velocità che aumenta in modo temporizzato con levetta al massimo... prossime ptrove : risparmiare memoria e cpu
-//  01 08 2025 ore 14.21
- 
-void mouse_control() {
-  #if defined(__AVR_ATmega32U4__)
-  if (mouse_mempos != 0) {
 
-    dmxtable[mouse_mempos] = 50;  // Test: 50 è una buona velocità iniziale
 
-    static int16_t accum_x = 0;
-    static int16_t accum_y = 0;
-
-    #ifdef ENABLE_BOOSTAX
-    // Boostax: contatori indipendenti per X e Y
-    static uint16_t boost_counter_x = 0;
-    static uint16_t boost_counter_y = 0;
-
-    // Parametri Boostax
-    const uint16_t boost_delay_max = 200;      // Aspetta 200 cicli prima di partire
-    const uint8_t  boost_step_delay = 12;      // Sale di 1 ogni 50 cicli
-    const uint8_t  boost_max = 35;             // Valore massimo del boost
-    #endif
-
-    int8_t raw_speed = dmxtable[mouse_mempos];
-    int8_t Mousespeed = raw_speed - 32;  // Neutro = 32 → 0
-
-    // === ASSE X ===
-    if (chan == minvalue[mouse_mempos]) {
-      valore = analogRead(plexer);
-      mousex = 111 + ((valore + 1) / 32);
-      int8_t dx = mousex - 127;
-
-      if (abs(dx) <= 2) {
-        dx = 0;
-        accum_x = 0;
-        #ifdef ENABLE_BOOSTAX
-        boost_counter_x = 0;  // Reset boost se nella deadzone
-        #endif
-      } else {
-
-        int8_t boost = 0;
-
-        #ifdef ENABLE_BOOSTAX
-        // Boostax: incremento o decremento del contatore
-        if (abs(dx) >= 14 && boost_counter_x < (boost_delay_max + boost_step_delay * boost_max)) {
-          boost_counter_x++;  // Spingi forte = accumula cicli
-        } else if (abs(dx) < 14 && boost_counter_x > 0) {
-          boost_counter_x--;  // Rilasci = decrementa
-        }
-
-        // Calcola il valore attuale di boost
-        if (boost_counter_x > boost_delay_max) {
-          boost = (boost_counter_x - boost_delay_max) / boost_step_delay;
-          if (boost > boost_max) boost = boost_max;
-        }
-        #endif
-
-        int8_t speed_total = Mousespeed + boost;
-
-        if (speed_total > 0) {
-          accum_x += (dx * speed_total) / 8;
-
-          if (abs(accum_x) >= 16) {
-            int8_t move_x = accum_x / 16;
-            accum_x -= move_x * 16;
-
-            #if (hid_mouse == 1)
-            Mouse.move(move_x, 0, 0);
-            #endif
-          }
-        }
-
-        // === DEBUG SERIAL OUTPUT ===
-        Serial.println(F("-------- X"));
-        Serial.print(F("dx: ")); Serial.println(dx);
-        Serial.print(F("Mousespeed: ")); Serial.println(Mousespeed);
-        #ifdef ENABLE_BOOSTAX
-        Serial.print(F("Boost: ")); Serial.println(boost);
-        Serial.print(F("Boost Counter X: ")); Serial.println(boost_counter_x);
-        #endif
-        Serial.print(F("Speed Total: ")); Serial.println(speed_total);
-        Serial.print(F("Accum X: ")); Serial.println(accum_x);
-      }
-    }
-
-    // === ASSE Y ===
-    else if (chan == maxvalue[mouse_mempos]) {
-      valore = analogRead(plexer);
-      mousex = 111 + ((valore + 1) / 32);
-      int8_t dy = mousex - 127;
-
-      if (abs(dy) <= 2) {
-        dy = 0;
-        accum_y = 0;
-        #ifdef ENABLE_BOOSTAX
-        boost_counter_y = 0;  // Reset boost se nella deadzone
-        #endif
-      } else {
-
-        int8_t boost = 0;
-
-        #ifdef ENABLE_BOOSTAX
-        // Boostax: incremento o decremento del contatore
-        if (abs(dy) >= 14 && boost_counter_y < (boost_delay_max + boost_step_delay * boost_max)) {
-          boost_counter_y++;
-        } else if (abs(dy) < 14 && boost_counter_y > 0) {
-          boost_counter_y--;
-        }
-
-        // Calcola il valore attuale di boost
-        if (boost_counter_y > boost_delay_max) {
-          boost = (boost_counter_y - boost_delay_max) / boost_step_delay;
-          if (boost > boost_max) boost = boost_max;
-        }
-        #endif
-
-        int8_t speed_total = Mousespeed + boost;
-
-        if (speed_total > 0) {
-          accum_y += (dy * speed_total) / 8;
-
-          if (abs(accum_y) >= 16) {
-            int8_t move_y = accum_y / 16;
-            accum_y -= move_y * 16;
-
-            #if (hid_mouse == 1)
-            Mouse.move(0, move_y, 0);
-            #endif
-          }
-        }
-
-        // === DEBUG SERIAL OUTPUT ===
-        Serial.println(F("-------- Y"));
-        Serial.print(F("dy: ")); Serial.println(dy);
-        Serial.print(F("Mousespeed: ")); Serial.println(Mousespeed);
-        #ifdef ENABLE_BOOSTAX
-        Serial.print(F("Boost: ")); Serial.println(boost);
-        Serial.print(F("Boost Counter Y: ")); Serial.println(boost_counter_y);
-        #endif
-        Serial.print(F("Speed Total: ")); Serial.println(speed_total);
-        Serial.print(F("Accum Y: ")); Serial.println(accum_y);
-      }
-    }
-  }
-  #endif
-}
-
-*/
 #define ENABLE_BOOSTAX  // Disattiva commentando questa riga
 
+// ------------------------------------------------------------
+// helper unico per X e Y (più corto, evita abs(), meno confronto)
+// moveAxis: 0 = X, 1 = Y
+// ------------------------------------------------------------
+static void mouse_axis_step(int8_t d, int16_t* accum,
+#ifdef ENABLE_BOOSTAX
+                            uint16_t* boost_counter,
+#endif
+                            int8_t baseSpeed,
+                            uint8_t moveAxis)
+{
+  // deadzone: abs(d) <= 2  --> confronto equivalente senza abs()
+  if (d >= -2 && d <= 2) {
+    *accum = 0;
+#ifdef ENABLE_BOOSTAX
+    *boost_counter = 0;
+#endif
+    return;
+  }
+
+  int8_t boost = 0;
+
+#ifdef ENABLE_BOOSTAX
+  // Costanti identiche alla tua taratura
+  const uint16_t boost_delay_max  = 200;
+  const uint8_t  boost_step_delay = 12;
+  const uint8_t  boost_max        = 35;
+  const uint16_t boost_limit      = 620; // 200 + 12*35
+
+  // abs(d) >= 14  --> confronto equivalente
+  if (d <= -14 || d >= 14) {
+    if (*boost_counter < boost_limit) (*boost_counter)++;
+  } else {
+    if (*boost_counter > 0) (*boost_counter)--;
+  }
+
+  if (*boost_counter > boost_delay_max) {
+    boost = (int8_t)((*boost_counter - boost_delay_max) / boost_step_delay);
+    if (boost > boost_max) boost = boost_max;
+  }
+#endif
+
+  const int8_t speed_total = baseSpeed + boost;
+
+  if (speed_total <= 0) return;
+
+  *accum += (int16_t)((d * speed_total) / 8);
+
+  // abs(*accum) >= 16  --> confronto equivalente senza abs()
+  if (*accum <= -16 || *accum >= 16) {
+    int8_t move = (int8_t)(*accum / 16);
+    *accum -= (int16_t)(move * 16);
+
+    #if (hid_mouse == 1)
+      if (moveAxis == 0) Mouse.move(move, 0, 0);
+      else               Mouse.move(0, move, 0);
+    #endif
+  }
+}
+
+
+// ------------------------------------------------------------
+// mouse_control() compatibile con la tua logica attuale
+// ------------------------------------------------------------
 void mouse_control() {
   #if defined(__AVR_ATmega32U4__)
   if (mouse_mempos != 0) {
 
-    dmxtable[mouse_mempos] = 50;  // Test: 50 è una buona velocità iniziale
-
     static int16_t accum_x = 0;
     static int16_t accum_y = 0;
 
-    #ifdef ENABLE_BOOSTAX
+#ifdef ENABLE_BOOSTAX
     static uint16_t boost_counter_x = 0;
     static uint16_t boost_counter_y = 0;
-
-    const uint16_t boost_delay_max = 200;
-    const uint8_t  boost_step_delay = 12;
-    const uint8_t  boost_max = 35;
-    #endif
+#endif
 
     int8_t raw_speed = dmxtable[mouse_mempos];
-    int8_t Mousespeed = raw_speed - 32;
+    if (raw_speed == 0) return;
+    int8_t baseSpeed = raw_speed - 32;
 
-    // === ASSE X ===
+    // inversioni via lightable[mouse_mempos]
+    // bit0 = invert Y, bit1 = invert X
+    byte inv = lightable[mouse_mempos] & 0x03;
+
+    // ---- ASSE X ----
     if (chan == minvalue[mouse_mempos]) {
+
       valore = analogRead_1024(plexer);
-      mousex = 111 + ((valore + 1) / 32);
-      int8_t dx = mousex - 127;
 
-      if (abs(dx) <= 2) {
-        dx = 0;
-        accum_x = 0;
-        #ifdef ENABLE_BOOSTAX
-        boost_counter_x = 0;
-        #endif
-      } else {
+      // prima: mousex = 111 + ((valore + 1) / 32); d = mousex - 127;
+      // ora: d = ((valore + 1) >> 5) - 16;  (identico, ma più corto)
+      int8_t d = (int8_t)(((valore + 1) >> 5) - 16);
 
-        int8_t boost = 0;
+      if (inv & 0x02) d = -d;  // invert X
 
-        #ifdef ENABLE_BOOSTAX
-        // Boostax semplificato
-        if (abs(dx) >= 14) {
-          if (boost_counter_x < (boost_delay_max + boost_step_delay * boost_max))
-            boost_counter_x++;
-        } else if (boost_counter_x > 0) {
-          boost_counter_x--;
-        }
-
-        if (boost_counter_x > boost_delay_max) {
-          boost = (boost_counter_x - boost_delay_max) / boost_step_delay;
-          if (boost > boost_max) boost = boost_max;
-        }
-        #endif
-
-        int8_t speed_total = Mousespeed + boost;
-
-        if (speed_total > 0) {
-          accum_x += (dx * speed_total) / 8;
-
-          if (abs(accum_x) >= 16) {
-            int8_t move_x = accum_x / 16;
-            accum_x -= move_x * 16;
-
-            #if (hid_mouse == 1)
-            Mouse.move(move_x, 0, 0);
-            #endif
-          }
-        }
-
-        // === DEBUG SERIAL OUTPUT ===
-        Serial.println(F("-------- X"));
-        Serial.print(F("dx: ")); Serial.println(dx);
-        Serial.print(F("Mousespeed: ")); Serial.println(Mousespeed);
-        #ifdef ENABLE_BOOSTAX
-        Serial.print(F("Boost: ")); Serial.println(boost);
-        Serial.print(F("Boost Counter X: ")); Serial.println(boost_counter_x);
-        #endif
-        Serial.print(F("Speed Total: ")); Serial.println(speed_total);
-        Serial.print(F("Accum X: ")); Serial.println(accum_x);
-      }
+      mouse_axis_step(d, &accum_x,
+#ifdef ENABLE_BOOSTAX
+                      &boost_counter_x,
+#endif
+                      baseSpeed, 0);
     }
 
-    // === ASSE Y ===
+    // ---- ASSE Y ----
     else if (chan == maxvalue[mouse_mempos]) {
+
       valore = analogRead_1024(plexer);
-      mousex = 111 + ((valore + 1) / 32);
-      int8_t dy = mousex - 127;
 
-      if (abs(dy) <= 2) {
-        dy = 0;
-        accum_y = 0;
-        #ifdef ENABLE_BOOSTAX
-        boost_counter_y = 0;
-        #endif
-      } else {
+      int8_t d = (int8_t)(((valore + 1) >> 5) - 16);
 
-        int8_t boost = 0;
+      if (inv & 0x01) d = -d;  // invert Y
 
-        #ifdef ENABLE_BOOSTAX
-        // Boostax semplificato
-        if (abs(dy) >= 14) {
-          if (boost_counter_y < (boost_delay_max + boost_step_delay * boost_max))
-            boost_counter_y++;
-        } else if (boost_counter_y > 0) {
-          boost_counter_y--;
-        }
-
-        if (boost_counter_y > boost_delay_max) {
-          boost = (boost_counter_y - boost_delay_max) / boost_step_delay;
-          if (boost > boost_max) boost = boost_max;
-        }
-        #endif
-
-        int8_t speed_total = Mousespeed + boost;
-
-        if (speed_total > 0) {
-          accum_y += (dy * speed_total) / 8;
-
-          if (abs(accum_y) >= 16) {
-            int8_t move_y = accum_y / 16;
-            accum_y -= move_y * 16;
-
-            #if (hid_mouse == 1)
-            Mouse.move(0, move_y, 0);
-            #endif
-          }
-        }
-
-        // === DEBUG SERIAL OUTPUT ===
-        Serial.println(F("-------- Y"));
-        Serial.print(F("dy: ")); Serial.println(dy);
-        Serial.print(F("Mousespeed: ")); Serial.println(Mousespeed);
-        #ifdef ENABLE_BOOSTAX
-        Serial.print(F("Boost: ")); Serial.println(boost);
-        Serial.print(F("Boost Counter Y: ")); Serial.println(boost_counter_y);
-        #endif
-        Serial.print(F("Speed Total: ")); Serial.println(speed_total);
-        Serial.print(F("Accum Y: ")); Serial.println(accum_y);
-      }
+      mouse_axis_step(d, &accum_y,
+#ifdef ENABLE_BOOSTAX
+                      &boost_counter_y,
+#endif
+                      baseSpeed, 1);
     }
   }
   #endif
 }
+
+
+//-------------------------------------------

@@ -43,6 +43,7 @@
 */
 
 
+      //   Serial.println(chan);
         
       if (modetable[chan] >= 3 && modetable[chan] != 27) offgroup(chan,1);      // da 3 in poi ci sono i toggle groups e radio groups
       
@@ -62,14 +63,28 @@
             if (typetable[chan+page] < 160) scale_learn(valuetable[chan+page]);   // sotto 160 ci sono note on e off 
              
             #if (shifter_active == 1 && stratos == 0)    
-            ledControl(chan, 1);
-            ledrestore(page);
+            ledControl(chan, 1); // void ledControl (byte chann, byte stat)   // stat significa status 1 = acceso 0 = spento
+            ledrestore(page); // perchè?? non è pesante?
             #endif
                 
             #if (Matrix_Pads == 1 )
-            single_h(matrix_remap[chan],lightable[chan],1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo, send)
-          
-          
+            single_h(matrix_remap[chan],lightable[chan],1,1);  // pad in negativo (sprite invertito)
+            ledControl_matrix(chan,1);
+            // avvia effetto a croce sulle matrici (vedi matrixbuttonledefx in D_mtrx.ino)
+            
+     #if (MATRIX_CROSS_FX == 1)
+  // CTRL-F: CROSS_TRIGGER_MASK_AAFF
+  // canali autorizzati a triggerare la croce (0..15)
+  const uint16_t CROSS_MASK = 0xAAFF;
+
+  // evita OOB su matrix_remap[] e filtra i canali
+  if (chan < 16 && (CROSS_MASK & (uint16_t)(1U << chan))) {
+    buttonefxd = matrix_remap[chan];
+    buttonefx  = 1;
+    cycletimer = 0;
+  }
+#endif
+ 
             #endif
 
              #if (Matrix_Pads == 2 )
@@ -94,7 +109,7 @@
          
          //  int velopush =  constrain(analogRead_1024(plexer),60,255);  //Serial.println (velopush);//  delay(2);
            int velopush =  constrain(analogRead_1024(plexer),160,lower);
-            button(typetable[chan+page],valuetable[chan+page],map(velopush,160,lower,127,1),1);
+            button(typetable[chan+page],valuetable[chan+page],map32(velopush,160,lower,127,1),1);
             
      //  Serial.println(velopush);
                }
@@ -118,6 +133,7 @@
           
 
            #if (Matrix_Pads == 1 )
+            ledControl_matrix(chan,0);
            single_h(matrix_remap[chan],lightable[chan],0,1);
         //   single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
            #endif
@@ -149,6 +165,8 @@
       if (lastbutton[chan] == 0)
    {
      //  if (page == 0) 
+      // Serial.println("---- released");
+        //  Serial.println(valore);
       {
         if (modetable[chan] >= 2  && modetable[chan] < 11
         ||  modetable[chan] == 27 && maxvalue[chan] > 0 // toggle per i velo pads
@@ -177,6 +195,7 @@
               #endif
 
                #if (Matrix_Pads == 1 )
+                 ledControl_matrix(chan,0);
                single_h(matrix_remap[chan],lightable[chan],0,1);
              //   bit_write(1,(lightable[chan]-1)+page,0); 
              // single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
@@ -207,6 +226,18 @@
   }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// ============================================================
+// CTRL-F: CONVOY_PROTOS_POTS
+byte convoy_find_subjectIndex(byte mem_chan);
+
+void convoy_set(byte subjectIndex, byte value);
+void convoy_commit();
+// ============================================================
+
+
+
 
 void pots ()
 {
@@ -256,8 +287,8 @@ void pots ()
       
       
       lastbutton[chan] = valore / 4 ;
-      delay(100);
-        Serial.print ("valore: ");  Serial.println (valore);
+    //  delay(100);
+     //   Serial.print ("valore: ");  Serial.println (valore);
   }
        }
    
@@ -273,19 +304,19 @@ void pots ()
    
 
   
-      if (modetable[chan] ==11 ) {if ((typetable[chan + (page)]) < 224) valore = map(valore, 63, 960, minvalue[chan], maxvalue[chan]) ;} // pot normale 
+      if (modetable[chan] ==11 ) {if ((typetable[chan + (page)]) < 224) valore = map32(valore, 63, 960, minvalue[chan], maxvalue[chan]) ;} // pot normale 
                                                                                 // NOTA: il constrain da 0 a 127 viene fatto in seguito sulla variabile potout
  
 
  
       
-      else if (modetable[chan] == 12) { valore = map(valore, 63, 256, minvalue[chan], maxvalue[chan]) ;                             // hypercurve 1
+      else if (modetable[chan] == 12) { valore = map32(valore, 63, 256, minvalue[chan], maxvalue[chan]) ;                             // hypercurve 1
       #if (shifter_active == 1 && stratos == 0)
-      shifter.setAll(LOW); 
+      shifter.setAll(LOW); // non ricordo a che serve questo spegnimento
       #endif
       }
       
-      else if (modetable[chan] == 13) { valore = map(valore, 768, 960, minvalue[chan], maxvalue[chan]) ;                            // hypercurve 2
+      else if (modetable[chan] == 13) { valore = map32(valore, 768, 960, minvalue[chan], maxvalue[chan]) ;                            // hypercurve 2
       #if (shifter_active == 1 && stratos == 0) 
       shifter.setAll(LOW); 
       #endif
@@ -293,18 +324,18 @@ void pots ()
     
      else if (modetable[chan] == 14){                    // hypercurve center
        
-     if (valore < 448) { valore = map(valore, 63, 448, 
+     if (valore < 448) { valore = map32(valore, 63, 448, 
      0, 64) ; } 
      else 
-     if (valore > 576) { { valore = map(valore, 576, 
+     if (valore > 576) { { valore = map32(valore, 576, 
      960, 64, 127) ; } }
      else valore= 64;   }  
   
      else if (modetable[chan] == 15){                     // hypercurve center 2 
        
-     if (valore < 340) { valore = map(valore, 63, 340, 0, 64) ; }  
+     if (valore < 340) { valore = map32(valore, 63, 340, 0, 64) ; }  
      else 
-     if (valore > 684) { { valore = map(valore, 684, 960, 64, 127) ; } }
+     if (valore > 684) { { valore = map32(valore, 684, 960, 64, 127) ; } }
      else valore= 64;    }
 
 
@@ -312,24 +343,29 @@ void pots ()
  
 
   //---------------------------------------------------------
-       potOut = constrain(valore,0,127);   // serve per inviare midi!!!
+       potOut = constrain(valore,0,127);   // serve per inviare midi!!! - in realtà constrain è una sorta di misura di sicurezza - per non avere valori essessivi - ma perchè dovrebbero esserci??
       
        #if (shifter_active == 1 )    
-       encled[0] = abs( 15 - ((potOut) / 8)) * 16 ;   // spiegazione? boh --- mi pare di capire che con questa formula arrivo a una escursione 0 - 240
+       encled[0] = abs( 15 - ((potOut) / 8)) * 16 ;   // spiegazione? boh --- mi pare di capire che con questa formula arrivo a una escursione 0 - 240 - ma quantizzata
        #endif
 
       #if (Matrix_Pads > 0 )    
-       
+       /*
        if (potOut > 84 )
     //   encled[0] = abs( 15 - ((potOut) / 8)) * 16 ;  // stessa cosa che per shifter - voglio ottenere un uguale trattamento dei dati - dell effetto visivo si occupera led_enc_exe_matrix
-     encled[0] = map((potOut - 84) *6, 0,240,240,0); 
+     encled[0] = map32((potOut - 84) *6, 0,240,240,0); 
        else if (potOut > 42 )
-       encled[0] = map((potOut - 42) *6, 0,240,240,0); 
+       encled[0] = map32((potOut - 42) *6, 0,240,240,0); 
        else
-       encled[0] = map(potOut *6,0,240,240,0); 
+       encled[0] = map32(potOut *6,0,240,240,0); 
        // Serial.println(encled[0]);
       // encled[0]= valore/4; 
-      #endif
+*/
+
+  encled[0] = potOut*2 ;   
+
+
+      #endif // (Matrix_Pads > 0 )    
   
     ///  ----------------------------------------------------------
 
@@ -342,11 +378,41 @@ void pots ()
         case 2 :   noteOn(typetable[chan + (page)], valuetable[chan + (page)],  potOut, 1) ;
                    //Serial.println(encled);
         break; // cc
-        case 3 :   //noteOn(176, chan,  valore/8, 0) ; break; // pc
+         
+          case 3:  // PC  (nel DART: usato come "CC-scene" per pot continui)
+
+    // ============================================================
+    // CTRL-F: CONVOY_POTS_CASE3
+    // DEVIAZIONE verso CONVOY (sacrificale v1)
+    // Se questo pot è uno dei scene-subject, NON inviamo direttamente MIDI:
+    // aggiorniamo il convoy e lasciamo che lui invii (anti-spam + snapshot fedele).
+    // Se NON è un subject, comportamento originale (PC->CC continuo).
+    // ============================================================
+
+    {
+      byte mem_chan = chan;                     // stesso indirizzo usato qui sotto
+      byte si = convoy_find_subjectIndex(mem_chan);    // 0..15 se è un subject, 255 se no
+
+      if (si != 255)
+      {
+        convoy_set(si, potOut);
+        convoy_commit();                               // per ora commit immediato (brutale)
+        break;
+      }
+    }
+
+    // Fallback: comportamento originale (PC->CC)
+    noteOn(typetable[chan + page] - 16,
+           valuetable[chan + page],
+           potOut,
+           1);
+
+    break;
+
         case 4 :   noteOn(typetable[chan + (page)], potOut,  0, 1) ; break; // channel AT
         case 5 :  {
-           valore =constrain(map(valore,24,1000, 0,1024),0,1023);                                           // PB - pitch bend e la preparazione encled per l'effetto visivo
-         // valore = constrain(map(valore,24,1000, 0,1024),0,1023);
+           valore =constrain(map32(valore,24,1000, 0,1024),0,1023);                                           // PB - pitch bend e la preparazione encled per l'effetto visivo
+         // valore = constrain(map32(valore,24,1000, 0,1024),0,1023);
             noteOn(typetable[chan + (page)], (valore - ((valore / 8) * 8)) * 16,  valore / 8 , 1) ;
              encled[0] = abs( 15 - ((valore) / 64)) * 16 ;
           }
@@ -617,7 +683,63 @@ Keyboard.press(ctrlKey);
   }
 
   void user_item2 ()
-  {}
+  {
+ // ============================================================================
+// USER2: potenziometro con emulazione di carico SPI basata su "valore"
+// ----------------------------------------------------------------------------
+// - Usa il comportamento normale del potenziometro (pot(chan)) per il MIDI.
+// - Usa la variabile globale "valore" (0..1023) come sorgente per il delay.
+//
+//   valore =   0  -> delay ≈ 20 us   (simile a fastAnalog + Parola_diretta)
+//   valore = 1023 -> delay ≈ 100000 us (100 ms, esagerato per test limite)
+// ============================================================================
+
+//void user2(byte chan)
+
+{
+
+   int v = valore;
+  // 1) Comportamento standard del potenziometro:
+ // pots();    // <-- usa la tua void pot(byte chan);
+
+  // 2) Leggo la variabile "valore" (0..1023)
+      // si assume che "valore" sia già aggiornato per questo chan
+
+  if (v < 0)     v = 0;
+  if (v > 1023)  v = 1023;
+
+  // 3) Calcolo del delay in microsecondi:
+  //    - base_min_us ≈ 20 us (fastAnalog + Parola_diretta)
+  //    - max_us      ≈ 100000 us (100 ms)
+  const unsigned long base_min_us = 20UL;       // ritardo minimo
+  const unsigned long max_us      = 100000UL;   // ritardo massimo ~100 ms
+
+   delay_us = base_min_us
+                          + ( (unsigned long)v * (max_us - base_min_us) ) / 1023UL;
+
+  // 4) Emulazione del blocco CPU, spezzata in blocchi da 16000 us
+  while (delay_us > 16000UL) {
+    delayMicroseconds(16000);
+    delay_us -= 16000UL;
+  }
+  if (delay_us > 0) {
+    delayMicroseconds((unsigned int)delay_us);
+  }
+
+  // Debug opzionale:
+  /*
+  Serial.print(F("USER2 chan="));
+  Serial.print(chan);
+  Serial.print(F(" valore="));
+  Serial.print(v);
+  Serial.print(F(" delay_us="));
+  Serial.println(delay_us);
+  */
+}
+
+
+    
+    }
 
     void user_item3 ()
   {}
@@ -712,144 +834,8 @@ void shifter_modifier()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/*
-void pageswitch(){ //----------------------------------------------------- PAGE SWITCH
-  
-  if (lastbutton[page_mempos] > 0  ) {     
-  
-  if (pagestate==1 ) { 
-    page = 0;
-//     load_preset_base();
-    load_preset(page);
-   
-    update_scala(1); // secondo spinner
-    update_scala(0); // primo spinner
-    
-    #if (shifter_active == 1 && stratos == 0)
-    shifter.setAll(LOW);
-    
-    shifterwrite=1;
-    ledrestore(page);
-    #endif
 
-    #if (Matrix_Pads > 0 )
-           // single_h(matrix_remap[chan-16],lightable[chan]-1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
-            matrix_restore(page);
-            // Serial.println(chan-16);
-            #endif
-  //  incomingByte = boolean(page);
- 
- /// Serial.println(minvalue[mouse_mempos]);
-  // Serial.println(maxvalue[mouse_mempos]);
-  //  Serial.println("----");
-
-midiOut(typetable[page_mempos],valuetable[page_mempos],minvalue[page_mempos]);
-
- #if (page_LEDs == 1)   // indicatori led dedicati al page switch
-                if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {  // nomobo setup disattivo 
-                shifter.setPin((dmxtable[page_mempos]-1), 1); 
-                bit_write(1,(dmxtable[page_mempos]-1)+page,1);
-                shifter.setPin((lightable[page_mempos]-1), 0); 
-                bit_write(1,(lightable[page_mempos]-1)+page,0);
-                }
-                else
-                {
-                // shifter.setPin((minvalue[page_mempos]-1), 1); 
-                digitalWrite(dmxtable[page_mempos]-1,1);
-                bit_write(1,(dmxtable[page_mempos]-1)+page,1);
-                // shifter.setPin((maxvalue[page_mempos]-1), 0); 
-                digitalWrite(lightable[page_mempos]-1,0);
-                bit_write(1,(lightable[page_mempos]-1)+page,0);
-                }
- #endif
-
- 
-    shifterwrite=1;
-    pagestate=0;
-    
-  
-  higher_Xen[0]= 40;
-  higher_Xen[1]=40;
-    lower_Xen[0]= 100;
-  lower_Xen[1]=100;
-
-
-    }
-  } 
-  
-  
-  if (lastbutton[page_mempos]==0  ){ // seconda
- 
- if (pagestate==0) {
-      page = max_modifiers;
- 
- 
-
-    load_preset(page);
-    
-    update_scala(1); // secondo spinner
-    update_scala(0); // primo spinner
- 
-    
-      
-      #if (shifter_active == 1 && stratos == 0 )
-      shifter.setAll(LOW);
-      shifterwrite=1;
-      ledrestore(page);
-      #endif
-
-      #if (Matrix_Pads > 0  )
-       //single_h(matrix_remap[chan-16],lightable[chan]-1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
-      matrix_restore(page);
-            // Serial.println(chan-16);
-      #endif
-      
-   // incomingByte = boolean(page);
- //   Serial.println(minvalue[mouse_mempos]);
- //   Serial.println(maxvalue[mouse_mempos]);
- //   Serial.println("----");
-    
- midiOut(typetable[page_mempos],valuetable[page_mempos],maxvalue[page_mempos]);
-
- #if (page_LEDs == 1)
-if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {
- shifter.setPin((dmxtable[page_mempos]-1), 0); 
- bit_write(1,(dmxtable[page_mempos]-1)+page,0);
- shifter.setPin((lightable[page_mempos]-1), 1); 
- bit_write(1,(lightable[page_mempos]-1)+page,1);
-}
-else
- {
- // shifter.setPin((minvalue[page_mempos]-1), 1); 
- digitalWrite(dmxtable[page_mempos]-1,0);
- bit_write(1,(dmxtable[page_mempos]-1)+page,0);
- // shifter.setPin((maxvalue[page_mempos]-1), 0); 
- digitalWrite(lightable[page_mempos]-1,1);
- bit_write(1,(lightable[page_mempos]-1)+page,1);
- }
- #endif
-
-    shifterwrite=1;
-    
-   pagestate=1;
- 
-    //    lower_Xen[0] = max(averageXen[0], readingsXen[indexXen]);
- 
- //    lower_Xen[0] = averageXen[0];
- //     lower_Xen[1] = averageXen[1];
-
-   higher_Xen[0]= 40;
-  higher_Xen[1]=40;
-  lower_Xen[0]= 100;
-  lower_Xen[1]=100;
-// test3();
-  }
-}
- }
- */
- //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void pageswitch(){ //----------------------------------------------------- PAGE SWITCH
+/* void pageswitch(){ //----------------------------------------------------- PAGE SWITCH
   
  // if (lastbutton[page_mempos] > 0  ) 
   {     
@@ -862,7 +848,18 @@ void pageswitch(){ //----------------------------------------------------- PAGE 
 
   shifter_modifier_=0;
 
-    load_preset(page);
+     reset_mempos();       // come in chiusura editor (241)
+  load_preset_base();   // riallinea typetable/valuetable ecc (base)
+  load_preset(page);    // poi carica la pagina corrente    
+  
+//  reset_mempos();  IMPORTANT DESIGN NOTE:
+// A page switch MUST perform a full state reload
+// (reset_mempos + load_preset_base + load_preset).
+// Reloading only the page left stale runtime (mouse) state,
+// which corrupted pots() anti-repeat logic and caused
+// continuous MIDI output on page change. 
+
+
    
     update_scala(1); // secondo spinner
     update_scala(0); // primo spinner
@@ -922,8 +919,9 @@ page_leds_(0);
      // delay(50);
  
  
-
-    load_preset(page);
+ reset_mempos();       // come in chiusura editor (241)
+  load_preset_base();   // riallinea typetable/valuetable ecc (base)
+  load_preset(page);    // poi carica la pagina corrente
     
     update_scala(1); // secondo spinner
     update_scala(0); // primo spinner
@@ -970,6 +968,83 @@ page_leds_(1);
   }
 }
  }
+
+*/
+
+void pageswitch(){ //----------------------------------------------------- PAGE SWITCH
+
+  // 2 casi:
+  // A) pagestate==0 e page>0  -> torna alla page 0   (midiOut con MIN)
+  // B) pagestate==1 e page==0 -> va a max_modifiers (midiOut con MAX)
+  //
+  // Tutto il resto è IDENTICO nei due rami, quindi lo condividiamo
+  // per spremere flash.
+
+  byte targetPage;
+  byte outValue;   // minvalue o maxvalue del page_mempos
+  byte ledsMode;   // 0 oppure 1 (per page_leds_)
+
+  if (pagestate==0 && page > 0) {
+    targetPage = 0;
+    outValue   = minvalue[page_mempos];
+    ledsMode   = 0;
+  }
+  else if (pagestate==1 && page == 0) {
+    targetPage = max_modifiers;
+    outValue   = maxvalue[page_mempos];
+    ledsMode   = 1;
+  }
+  else {
+    return; // nessun cambio pagina richiesto
+  }
+
+  // Applica target
+  page = targetPage;
+
+  // Reset “modifiers” (come nel tuo)
+  shifter_modifier_ = 0;
+
+  // IMPORTANT DESIGN NOTE (la tua): page switch = full state reload
+  reset_mempos();       // come in chiusura editor (241)
+  load_preset_base();   // riallinea typetable/valuetable ecc (base)
+  load_preset(page);    // poi carica la pagina corrente
+
+  // Riallinea scale spinner (come nel tuo)
+  update_scala(1); // secondo spinner
+  update_scala(0); // primo spinner
+
+  // Restore shifter leds (solo se attivo e non stratos)
+  #if (shifter_active == 1 && stratos == 0)
+    shifter.setAll(LOW);
+    shifterwrite = 1;
+    ledrestore(page);
+  #endif
+
+  // Restore matrix (se presente)
+  #if (Matrix_Pads > 0)
+    // se il led di segnalazione sta blinkando - cambiando page si potrebbe bloccare
+    digitalWrite(8,LOW);
+    matrix_restore(page);
+  #endif
+
+  // Notifica pagina (come nel tuo: typetable/valuetable + min/maxvalue)
+  midiOut(typetable[page_mempos], valuetable[page_mempos], outValue);
+
+  // LED pagina (0 oppure 1)
+  page_leds_(ledsMode);
+
+  // Flag (come nel tuo)
+  shifterwrite = 1;
+
+  // Reset Xen (come nel tuo)
+  higher_Xen[0] = 40;
+  higher_Xen[1] = 40;
+  lower_Xen[0]  = 100;
+  lower_Xen[1]  = 100;
+}
+
+
+
 
  void page_leds_ (byte pagina)
  {
@@ -1031,7 +1106,7 @@ void beam()  //----------------------------------------------------- BEAM SENSOR
 
 lightable[distance_mempos] 
  // beamValue 
-  = constrain( map(valore, minbeam, maxbeam, maxvalue[chan], minvalue[chan]) , minvalue[chan] , maxvalue[chan])  ;
+  = constrain( map32(valore, minbeam, maxbeam, maxvalue[chan], minvalue[chan]) , minvalue[chan] , maxvalue[chan])  ;
 
   if ( qwertyvalue[chan] == 0 ) // se impostato su POT mode
   {
@@ -1085,7 +1160,7 @@ lightable[distance_mempos]
   else //--------------------------------------------------- beam scale
  {
    if (beam_counter == 0 ){
-    at = map(lightable[distance_mempos] , 0, 127, minvalue[chan], maxvalue[chan] );
+    at = map32(lightable[distance_mempos] , 0, 127, minvalue[chan], maxvalue[chan] );
     if ( beam_scala_buffer != at) // se diverso dal precedente sgnale inviato - evitare doppioni e note ripetute
     {
   //if (dmxtable[contoencoder] == 2)
@@ -1136,7 +1211,7 @@ lightable[distance_mempos]
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
  #if ( stratos == 0)
- void PADS () { 
+ void piezo_pads () { 
 
   // i pads vengono attivati da GENERAL SETTINGS, il messaggio MIDI emesso viene descritto nell'ITEM PADS
   // attivando i pads viene disattivata la resistenza pullup sul sesto input analogico A5
@@ -1159,7 +1234,7 @@ for(byte pad = 0; pad < 6; pad++)
 }
 padDecay[padNum] =14 //+ (padVal / 40)
 ;
-//midiOut(typetable[PADS_mempos+(page)],valuetable[PADS_mempos+(page)]+(padNum*2),(map(padVal,0,512,0,127)));
+//midiOut(typetable[PADS_mempos+(page)],valuetable[PADS_mempos+(page)]+(padNum*2),(map32(padVal,0,512,0,127)));
 midiOut(typetable[PADS_mempos+(page)],valuetable[PADS_mempos+(page)]+(padNum*2),constrain(padVal,0,127));
 
   buttonefx = 0;
@@ -1300,7 +1375,7 @@ void touch_execute (byte numero_ex)
          ///////////////////////////////////////////////////////////////////////////////////////////////// rilascio del touch                                 
   if (    averageXen[numero_ex]<
   (higher_Xen[numero_ex]) 
-  - map( minvalue[touch_mempos[numero_ex]],0,112,0,higher_Xen[numero_ex]-lower_Xen[numero_ex]) 
+  - map32( minvalue[touch_mempos[numero_ex]],0,112,0,higher_Xen[numero_ex]-lower_Xen[numero_ex]) 
   // metto 112 e non 127 - per creare piu separazione tra spazio accensione e spazio spegnimento
   )
 
@@ -1376,7 +1451,7 @@ if (    averageXen[numero_ex]>
 // (minvalue[touch_mempos[numero]]) + 5
  ((higher_Xen[numero_ex]))  // piu' abbasso questo valore piu' aumenta la sensibilita'
                          // sottraggo  (minvalue[touch_mempos[numero]]) - piu' aumenta piu' e' sensibile
-  - map( minvalue[touch_mempos[numero_ex]],0,127,0,higher_Xen[numero_ex]-lower_Xen[numero_ex]) // la sottrazione e' proporzionale ad higher_xen
+  - map32( minvalue[touch_mempos[numero_ex]],0,127,0,higher_Xen[numero_ex]-lower_Xen[numero_ex]) // la sottrazione e' proporzionale ad higher_xen
  //- minvalue[touch_mempos[numero]]
   )
   
@@ -1647,8 +1722,8 @@ void restore_end()
         #endif
 
         #if (Matrix_Pads > 0 )
-        matrix_restore (page);
-      //  Serial.println("matrix-restore");
+         matrix_restore (page); // gli effetti led sono già stabili così , non serve questo restore per adesso, perferisco non averlo per chè va a spegnere i pulsanti che sono ancora premuti
+    
         #endif
         cycletimer = 67;
   }
