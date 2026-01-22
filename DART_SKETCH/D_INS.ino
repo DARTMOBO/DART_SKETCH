@@ -7,6 +7,8 @@
  * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version. See the LICENSE file for details.
  */
+
+
  
   #if (stratos == 0)
   void AIN()
@@ -15,10 +17,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
 { 
    
   
-   #if (LED_rings == 1) // per ora non ci interessa. questa è una void sperimentare per led rings ntorno agli encoders.. da fer in futuro.
-   LED_rings_ ();
-   shifter.write();
-   #endif 
+ 
    
   
 #if (top_spinner == 1) 
@@ -37,7 +36,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
     restore_end(); // ?? non ricordo cosa faceve questa void - aggiunegre commento urgentemente
     
     
-#if PIEZO_PADS_ACTIVE
+#if Piezo_pads
   if (maxvalue[general_mempos] == 0 ){ piezo_pads();} 
 #endif
 
@@ -51,11 +50,12 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
  
   if (valuetable[general_mempos] !=1 ) // nomobo setup
  setPlexer(channel); // all 4051's are set on the channel to be read // qui vengono effettivamente guidati i 4051 della dartmobo, per essere settati di volta in volta sul canale successivo . channel, ricordiamo , va da 1 a 8
-  
-  
+  //delay(1); prova per vedere se si stabilizzano le letture dopo il cambio di canale-  a volte vedo dei rinculi a V
+  //delayMicroseconds(400);
    // if (dmxtable[general_mempos] >1)
    // {senseEncoder_2nd();}  // carica MSB LSB [1] // // gli input pin su cui viene letto il secondo encoder sono 33 e 41
 
+ //valore = analogRead_1024(0); // dummy read generale
 
  for(plexer = 0; plexer < 
   //5+boolean(maxvalue[general_mempos]) // se si attivano i pads (mettendo maxvalue = 0) l'analogico A5 non viene letto // OPZIONE 1
@@ -70,8 +70,28 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
  
 
  ///////////////////////////////////////////////////////////////////////////////////// autodetect
+  #if (ENABLE_AUTODETECT == 1)
   if (eeprom_preset_active == 0) // se NON trovo un preset nella eeprom 
   {
+
+// CTRL-F: AUTODETECT_DOC_SIMPLE
+// AUTODETECT (attivo solo quando NON esiste un preset valido)
+// In questa modalità il firmware parte da aux_preset(): tutti gli input sono "button" (modetable=1).
+// Qui dentro, AIN() osserva i valori analogici e fa due cose:
+//
+// 1) Se vede "attività" (valore sotto una soglia), chiama detect_plexer():
+//    - serve a diversificare valuetable[] nel gruppo di 8 canali, evitando note duplicate.
+//
+// 2) Se il valore è in una fascia "intermedia", promuove l'input a POT:
+//    - modetable[chan] = 11  (POT)
+//    - typetable[chan] = 176 (CC)
+//
+// Nota LED (anti "blinker party"):
+// Quando un canale passa a POT, possono attivarsi gli effetti LED tipici dei pot.
+// Per evitare lampeggi confusionali durante AUTODETECT, si può forzare lightable[chan]=0
+// nel punto in cui viene impostato modetable=11.
+
+    
     valore = analogRead_1024(plexer);
     
     if (valore < upper_val   /// se premo un pulsante - valore scende
@@ -85,6 +105,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
     {
     modetable[chan] = 11;
     typetable[chan]= 176; 
+    lightable[chan] = 0;
     }
    //  test1();
     }    
@@ -94,22 +115,13 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
 ////////////////////////////////////////////////////////////////////////////////////////////////// fine autodetect
   
   else     // trovo un preset nella eeprom - allora la macchina funziona in base al preset che ha in memoria,ad ogni input corrisponde un tipo di "traduzione" esatta
+  #endif
   {
 
-     #if (side_spinner == 1)
-   if (channel == 5 && dmxtable[general_mempos] >1) { // gestione del SIDE SPINNER    // dmxtable[general_mempos] >1 significa che un side spinner è stato "istituito" via editor, nel mio preset. 
-       #if defined (__AVR_ATmega32U4__)
-      MSB[1]=   digitalRead(22);
-      LSB[1]=   digitalRead(23);
-      #endif
-      #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
-      MSB[1]=   digitalRead(18);
-      LSB[1]=   digitalRead(19);
-      #endif
-      
-      updateEncoder(encoder_mempos[1]); 
-      encoder(encoder_mempos[1]);
-                       }
+     #if (Side_spinner == 1)
+   if (channel == 5 && dmxtable[general_mempos] >1) 
+   Side_spinner_read();
+  
  #endif
 
 // ===========================
@@ -145,7 +157,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
      else if (modetable[chan] < 19 // || modetable[chan] == 27
      )     valore = analogRead(plexer); // si usa analogread per i pots 
 
-   #if (encoders_generic == 1)
+   #if (encoders_ == 1)
       else if (modetable[chan] == 19)                                 // encoders 
       {
       #if defined (__AVR_ATmega32U4__)
@@ -175,13 +187,28 @@ switch (readmode) {
     break;
 
   case 1: // Potenziometri / analogici → analogRead
-    valore = analogRead_1024(plexer);
+ 
+    #if (Dummy_read == 1)
+        digitalWrite(18+plexer, LOW);
+        valore = analogRead_1024(plexer);
+        delayMicroseconds(5); 
+        valore = analogRead_1024(plexer);
+        digitalWrite(18+plexer, HIGH);
+ #endif
+  #if (Dummy_read == 0)
+      valore = analogRead_1024(plexer);
+ #endif
+
+      
     break;
 
   case 2: // Encoder (digitalRead x2)
     #if defined (__AVR_ATmega32U4__)
+   //  valore = analogRead_1024(plexer);
+  //   valore = analogRead_1024(plexer+1);
       MSB[1] = digitalRead(plexer + 18);
       LSB[1] = digitalRead(plexer + 19);
+      
     #elif defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
       MSB[1] = digitalRead(plexer + 14);
       LSB[1] = digitalRead(plexer + 15);
@@ -192,6 +219,8 @@ switch (readmode) {
   
 }
 
+
+// if (chan == 9)  aindbg_valueOnly(valore);  // monitoraggio di un determinato chan
   
     }
 
@@ -209,29 +238,12 @@ switch (readmode) {
   }
    
   //  __________________________________________________________
-  
- if (minvalue[general_mempos] > 0)  // vedi se il plexer EXTRA è attivato // 1= extra plexer attivato - gli input della dartmobo passano da 48 a 56! adesso il pin che prima veniva dedicato al touch sensor 2 viene dedicato alla letture dell'extra plexer - nota: usant touch ic's esterni è possibile avere entrambe le cose. 
-           { 
-            #if (pullups_active == 1)
-             digitalWrite(9, HIGH);
-            #endif
-    
-            #if defined (__AVR_ATmega32U4__)  
-           //  valore = analogRead_1024(9); 
-          //  valore = analogRead(9); 
-         
-            valore =  (digitalRead(9)) << 10;
-            #endif
 
-            #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
-          //  valore = 1000*(!digitalRead(9)); 
-           valore =  (digitalRead(9)) << 10;
-            #endif
-  
-            chan = channel + 48;
-           //     if (modetable[chan] == 1 && valuetable[chan] == 88) {Serial.println (valore); delay(100);}
-            ain_nucleo(); 
-            }
+  #if (Extraplexer ==1) 
+
+  Extraplexer_read();
+ 
+  #endif          
  // ______________________________________________________
   
   
@@ -260,10 +272,12 @@ switch (readmode) {
 
    void ain_nucleo()
 {
+   #if (hid_mouse == 1)
   #if defined(__AVR_ATmega32U4__)
   if (mouse_mempos > 0) mouse_control();
   #endif
-
+  #endif
+  
   uint8_t mode = modetable[chan];
 
   switch (mode) {
@@ -279,12 +293,14 @@ switch (readmode) {
       pots();
       break;
 
+#if (Seq_ == 1)
     case 16:  // SEQ
       seq();
       break;
+#endif
 
     case 17:  // page switch
-      #if (page_active == 1)
+      #if (Page_switch == 1)
       if (qwertyvalue[page_mempos] == 1) {
         if (valore < 512) {
           if (lastbutton[page_mempos] == lastbutton_debounce) {
@@ -302,6 +318,7 @@ switch (readmode) {
       #endif
       break;
 
+#if (Distance_sensor == 1)
     case 18:  // distance sens.
       #if defined (__AVR_ATmega32U4__)
       digitalWrite(18 + plexer, LOW);
@@ -315,9 +332,10 @@ switch (readmode) {
       digitalWrite(14 + plexer, HIGH);
       #endif
       break;
+#endif
 
     case 19:  // encoder
-      #if (encoders_generic == 1)
+      #if (encoders_ == 1)
       encoder(chan);
       #endif
       break;
@@ -387,17 +405,19 @@ switch (readmode) {
       pots();
       break;
 
-        case 38:  // scene_control
-     scene_control_pot();
+   #if Scene
+    case 38:  // scene_control
+      scene_control_pot();
       break;
 
-     case 39:  // scene_control
-     scene_record_button();
+    case 39:  // scene_record_button
+      scene_record_button();
       break;
+#endif
 
-   case 40:  // scene_control
-     encoder(chan);
-      break;
+  // case 40:  // scene_control
+   //  encoder(chan);
+     // break;
 
 
     default:  // modalità non gestita
@@ -407,7 +427,7 @@ switch (readmode) {
 
    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  #if (stratos == 0)  
+  #if (stratos == 0) && (ENABLE_AUTODETECT == 1)
   void detect_plexer()
   {
      {
@@ -448,82 +468,9 @@ void diversifica_valuetable ()
           ;
             }
 }
-#endif
 
-//////////////////////////////////////////////////////////////////////
-void scale_learn(byte pitch)
-{
+#endif // stratos==0 && ENABLE_AUTODETECT
 
-
-   if (lastbutton[touch_mempos[0]] == 0 || lastbutton[touch_mempos[1]] == 0)  // se touch premuto/toccato
-  {
-  if (dmxtable[encoder_mempos[0]] >1)  encodervaluepot[0] = pitch * 8;
-   
-   if (scala_reset == 1)                    // azzera la scala
-   for (byte i =0; i < scala_lenght; i++){
-    scala_array[i] = 0;
-    scala_learn= 0;
-     scala_reset =0;  } 
-
-     
-    scala_array[scala_counter] = (pitch - (pitch/12)*12)+1; // 0 == nessuna nota,
-  scala_counter++;
-  if (scala_counter >= scala_lenght) scala_counter = 0;
-  scala_learn =0;
-  for (byte i =0; i< scala_lenght; i++)
-  {
-  // if (scala_array[i] != 0) 
-   if (scala_array[i] >0 ) // 0 = nessuna nota da caricare nella scala
-   bitWrite(scala_learn, scala_array[i]-1, 1);
-    }
-    
-}
-  }
-
-//////////////////////////////////////////////////////////////////////
- void update_scala(byte quale_spinner) // quale_spinner è 0 top 1 side
- // richiamato da setup_mempos() e da switchpage()
-  {
-    // scala[4] è un array che cotiene 4 scale... scalaSpinner0-page1, scalaSpinner1-page1, ScalaSpinner0-page2, scalaSpinner1-page2
-    // per caricare una scala dalla eeprom di servono 12 BIT - per le 12 note di un'ottava
-    // i primi 7 BIT sono dentro valuetable
-    // gli altri 5 BIT sono dentro lastencoded[2]
-    // lastEncoded[] viene ricaricata ogni volta che si carica un preset - quindi è sempre "attuale" rispetto alla pagina.
-
-  
-//scala[0] = 14;
-   
-  for (byte i = 0; i< 7; i++) {
- bitWrite(scala[quale_spinner+(page/max_modifiers)*2],i,  bitRead(valuetable[encoder_mempos[quale_spinner]+page] ,i)   );
-// bitWrite(scala[0],i,  bitRead(valuetable[encoder_mempos[quale_spinner]+page] ,i)   );
-
-
-}
-  for (byte i = 0; i< 5; i++) {
-
- bitWrite(scala[quale_spinner+(page/max_modifiers)*2],i+7,  bitRead(EEPROM.read(encoder_mempos[quale_spinner]+320+(page/max_modifiers*512)), i)    );
-// bitWrite(scala[0],i+7,  bitRead(EEPROM.read(encoder_mempos[quale_spinner]+320+(page/max_modifiers*512)), i)    );
-
-}
-
- 
-
-
-
-
-
-
-
-/*
-
-
-for (byte i = 0; i< 12; i++) {
-Serial.print(bitRead(scala[0],i));}
-Serial.println(" - scala[]");
-*/
-
-
-  }
 
 //////////////////////////////////////////////////////////////////////
 #if (stratos == 0 )
@@ -538,4 +485,20 @@ void setPlexer( byte channel)
    }
 }
 #endif
+
+ #if (monitor_temporizzato == 1)
+// [AINDBG_VALUE_ONLY]
+// Stampa SOLO "valore" ogni 300ms. Da chiamare in ain() dopo la lettura.
+
+void aindbg_valueOnly(int valore_ora)
+{
+  static unsigned long tLast = 0;
+  unsigned long now = millis();
+  if ((now - tLast) < 300) return;
+  tLast = now;
+
+  Serial.println(valore_ora);
+}
+ #endif 
+
  

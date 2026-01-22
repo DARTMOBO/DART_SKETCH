@@ -115,11 +115,20 @@ eeprom_preset_active = 0;
   #endif
   
   
-       if ( eeprom_preset_active == 0) // aux viene impostato su 1 dalla void setup_mempos richamata sopra - alla riga 194 - se e' presente un general mempos.
-       { aux_preset();
- 
-   
-       }else  {   
+       if ( eeprom_preset_active == 0) // nessun preset valido trovato
+       {
+         aux_preset();
+
+         // CTRL-F: AUTODETECT_DISABLED_FALLBACK
+         // Se AUTODETECT è disattivato, dopo aux_preset() forziamo la modalità normale:
+         // - niente branch di autodetect in AIN()
+         // - la macchina resta comunque usabile col preset di base.
+         #if (ENABLE_AUTODETECT == 0)
+         eeprom_preset_active = 1;
+         #endif
+       }
+       else
+       {
         for (byte i = 0; i <max_modifiers; i++)  
        lightable[i] = EEPROM.read(i+448+(numero*512));
        
@@ -129,14 +138,12 @@ eeprom_preset_active = 0;
   // SCENE: ricostruzione lista pot-soggetto dopo load preset
   // La facciamo una sola volta, quando viene caricata la pagina 0
   // ------------------------------------------------------------
+#if Scene
   if (numero == 0) {
     scene_build_subject_list();
-    scene_eeprom_load(); 
-
-    //
-
+    scene_eeprom_load();
   }
-
+#endif
                             
   }
 
@@ -167,7 +174,7 @@ void setup_mempos (byte i)  // richiamato da load_preset
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
  #if (stratos == 0) // dart one
- void aux_preset() // preset di base caricato all'avvio soltanto se il preset sulla eeprom non Ã¨ valido. 
+ void aux_preset() // preset di base caricato all'avvio soltanto se il preset sulla eeprom non valido. 
  {
 
    for (byte i = 0; i <max_modifiers; i++) {
@@ -182,7 +189,14 @@ void setup_mempos (byte i)  // richiamato da load_preset
     qwertyvalue[i]=0;
     typetable[i]=144;
     typetable[i+page]=144;
-    lightable[i]=remapper(i);
+
+#if (ENABLE_AUTODETECT == 1)
+if (eeprom_preset_active == 0) lightable[i] = 0;     // in autodetect: niente LED associati => niente blinker confuso
+else lightable[i] = remapper(i);                    // in modalità normale: comportamento storico
+#else
+lightable[i] = remapper(i);
+#endif
+
     }
 
  

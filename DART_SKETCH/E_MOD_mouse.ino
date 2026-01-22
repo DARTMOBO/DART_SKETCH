@@ -71,6 +71,45 @@ static void mouse_axis_step(int8_t d, int16_t* accum,
   }
 }
 
+// CTRL-F: MOUSE_BLOCK_HELPER
+#if (mouse_block == 1)
+static inline uint8_t mouse_block_allow(uint8_t active) {
+  // blocca il flusso mouse dopo 2s di attivita' continua
+  // e lo sblocca quando torni in deadzone per un attimo.
+  // (usa millis(), gia' presente altrove nello sketch)
+
+  static uint8_t blocked = 0;
+  static unsigned long t0 = 0;
+  static unsigned long last = 0;
+
+  const unsigned long MOUSE_BLOCK_MS = 5000;
+  const unsigned long MOUSE_IDLE_RESET_MS = 60; // piccolo "respiro" per considerare fermo
+
+  if (active) {
+    unsigned long now = millis();
+    last = now;
+
+    if (t0 == 0) t0 = now;
+
+    if (!blocked && (now - t0 >= MOUSE_BLOCK_MS)) blocked = 1;
+
+    if (blocked) return 0; // STOP
+    return 1;              // OK
+  }
+
+  // deadzone: non resettare subito (l'altro asse potrebbe essere ancora attivo)
+  if (t0 != 0) {
+    unsigned long now = millis();
+    if (now - last > MOUSE_IDLE_RESET_MS) {
+      t0 = 0;
+      blocked = 0;
+    }
+  }
+
+  return 1;
+}
+#endif
+
 
 // ------------------------------------------------------------
 // mouse_control() compatibile con la tua logica attuale
@@ -106,6 +145,21 @@ void mouse_control() {
 
       if (inv & 0x02) d = -d;  // invert X
 
+
+      // CTRL-F: MOUSE_BLOCK_GATE
+      #if (mouse_block == 1)
+      uint8_t active = (d <= -3 || d >= 3);
+      if (!mouse_block_allow(active)) {
+        // blocco attivo: azzera accumulatori per evitare "scatti" alla ripresa
+        accum_x = 0;
+        accum_y = 0;
+      #ifdef ENABLE_BOOSTAX
+        boost_counter_x = 0;
+        boost_counter_y = 0;
+      #endif
+        return;
+      }
+      #endif
       mouse_axis_step(d, &accum_x,
 #ifdef ENABLE_BOOSTAX
                       &boost_counter_x,
@@ -121,6 +175,24 @@ void mouse_control() {
       int8_t d = (int8_t)(((valore + 1) >> 5) - 16);
 
       if (inv & 0x01) d = -d;  // invert Y
+
+      // CTRL-F: MOUSE_BLOCK_GATE
+      #if (mouse_block == 1)
+      {
+        uint8_t active = (d <= -3 || d >= 3); // equivale a: abs(d) > 2
+        if (!mouse_block_allow(active)) {
+          // blocco attivo: azzera accumulatori per evitare "scatti" alla ripresa
+          accum_x = 0;
+          accum_y = 0;
+        #ifdef ENABLE_BOOSTAX
+          boost_counter_x = 0;
+          boost_counter_y = 0;
+        #endif
+          return;
+        }
+      }
+      #endif
+
 
       mouse_axis_step(d, &accum_y,
 #ifdef ENABLE_BOOSTAX

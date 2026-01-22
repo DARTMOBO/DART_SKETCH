@@ -1,4 +1,4 @@
-
+ 
 ///////////////////////////
 // DART_SKETCH   v1.88   // 
 // Massimiliano Marchese //
@@ -15,7 +15,7 @@
  * (at your option) any later version. See the LICENSE file for details.
  */
 
-
+#define DART_PROFILE 1   // 1=STANDARD 2=CUSTOM 3=KOROVA
 #include "DART_config.h"   // central compile-time settings (currently DMX_active)
 
  
@@ -44,26 +44,29 @@ static inline uint8_t map7_0_1023_to_0_127(uint16_t x)
 
 #if defined (__AVR_ATmega32U4__)  
 #include "_DART_MIDI.h"
-  
+
+//---------------------------------------------------------------
+
   #if (hid_mouse == 1)
 #include <Mouse.h>
  #endif
 
-
 #define ENABLE_BOOSTAX  // ← ATTIVO // commentare per disattivare // sezione mouse 
+
+//---------------------------------------------------------------
 
 #include <Keyboard.h>
 midiEventPacket_t rx;
 #endif
 
-#if (capacitivesensor_active == 1)
+#if (Touch_sensors_enable == 1)
 // pin 9 e 7 sono gli input - 8 è l'emettitore
 #include "_DART_Touch_Sensor.h"
 #if (stratos == 1 )
 CapacitiveSensor   cs_4_2[1] = {CapacitiveSensor(9,8)}; // stratos
 #endif
 #if (stratos == 0 )
-CapacitiveSensor   cs_4_2[2] = {CapacitiveSensor(8,7), CapacitiveSensor(8,9)};
+CapacitiveSensor   cs_4_2[2]  = {CapacitiveSensor(8,7), CapacitiveSensor(8,9)};
 #endif
  
 #endif
@@ -237,7 +240,7 @@ byte chan;
 
 
 // ricordiamo che se premuto il valore scende verso gnd cioè zero 0 - se rilasciato il pulsante va in alto verso 1024 (consiverando valore in un range 0-1024 classico - il range poi con le funzioni fastanalog si restringe a 8bit 0-255
-const int upper_val = 900;
+const int upper_val = 800; // ho scelto 800 perchè ho visto che alcuno pads velocity sensitive , a riposo non salgono sopra 840 - ricordiamo che a riposo il valore tende all'altro cioì 1024 - 
 const int lower_val = 400;
 /*
   // per pad velocity molto sensibile - un pad premuto fortissimo si avvicina allo zero - premuto piano scende facilmente sotto i 750 
@@ -273,7 +276,12 @@ byte distance_mempos;
 byte page_mempos;
  byte general_mempos = 0;
 /////////////////////////////////////////////////////////////////////
-byte page = max_modifiers ;
+// CTRL-F: PAGE_BOOT_SELECT
+#if ENABLE_POT_TAKEOVER
+byte page = 0; // takeover: boot in Page1
+#else
+byte page = max_modifiers ; // legacy boot
+#endif
 
 byte cycletimer;   /// conteggio di tempo in base ai cicli - serve per regolare effetti visivi led - e per il timing del virtualtouch
                    // viene aumenato di +1 ad ogni ciclo - fino a un max di 250
@@ -443,7 +451,12 @@ volatile byte MSB[2] ;
 volatile byte LSB[2] ;
 byte encoder_block[2]= {64,64} ; // serve per bloccare l'attivita'  dell'encoder quando viene toccato ma tenuto fermo - per registrare una scala.
 ////////////////////////////////////////////////////////////////////////////////  
-volatile byte lastbutton[64] ; // used to record the previous state of a button - debounce
+// CTRL-F: LASTBUTTON_SIZE_SWITCH
+#if ENABLE_POT_TAKEOVER
+volatile byte lastbutton[128] ; // split: 0..63 legacy + 64..127 Page2 pots
+#else
+volatile byte lastbutton[64] ; // legacy size
+#endif
 #if ( stratos == 0)
 byte lastbutton_debounce = 5;
 #endif
@@ -520,7 +533,12 @@ Channel Pressure  208 + Channel 0-127 Pressure  Not used
 
  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
  
-volatile byte bit_status[4][max_modifiers/4]; // bit_status e' un multiarray che contiene le vecchie tabelle di riferimento per far funzionare il toggle, 
+// CTRL-F: BITSTATUS_SIZE_SWITCH
+#if ENABLE_POT_TAKEOVER
+volatile byte bit_status[5][max_modifiers/4];
+#else
+volatile byte bit_status[4][max_modifiers/4];
+#endif
                                               // il feedback e i led
      
  // 1 - ledstatus 1 e 2
@@ -540,6 +558,13 @@ volatile byte bit_status[4][max_modifiers/4]; // bit_status e' un multiarray che
   
 ///////////////////////////////////////////////////////////////////////////
 boolean pagestate = 0;
+// CTRL-F: POTPAGE_INIT_MASK
+// bit0=Page1 init OK, bit1=Page2 init done (targets copied once)
+// CTRL-F: POTPAGEINITMASK_GUARD
+#if ENABLE_POT_TAKEOVER
+byte potPageInitMask = 1; // bit0 Page1 ok, bit1 Page2 init pending
+#endif
+
 /////////////////////////////////////////////////////////////////////////// 
 // ------------------------------------------------------------- scale play
 // void scale_play

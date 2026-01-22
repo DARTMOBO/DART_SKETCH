@@ -8,7 +8,10 @@
  * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version. See the LICENSE file for details.
  */
+#if Scene
 void scene_morph_encsc(byte enc_chan);
+#endif
+
 void encoder(byte numero) 
 {
   //  NUMERO  corrisponde alla chan/memoryposition
@@ -27,12 +30,22 @@ void encoder(byte numero)
   if (lastbutton[numero] != 64)
   { 
 
-        if (dmxtable[numero] == 4)
+    // ============================================================
+    // CTRL-F: ENCSC_TYPE244_MARKER
+    // NUOVA REGOLA: ENCSC/SCENE-MORPH via TYPE marker (pseudomidi 244)
+    // - page-aware: typetable[] contiene PAGE1 e PAGE2, quindi usiamo +page
+    // - quando il marker è attivo, NON eseguiamo logica encoder normale
+    // - consumiamo l’impulso (63/65) riportando lastbutton a 64
+    // ============================================================
+   #if Scene
+    if (typetable[numero + page] == 244)
     {
-      scene_morph_encsc(numero);   // funzione in _scene.ino
-      lastbutton[numero] = 64;     // consumiamo l’impulso (63/65) e torniamo "fermo"
+      scene_morph_encsc(numero);   // funzione in D_scene.ino
+      lastbutton[numero] = 64;
       return;
     }
+#endif
+
     
     byte tocco;  
     cycletimer = 0;
@@ -218,13 +231,13 @@ void encoder_pot_mode (byte numero)
     // --- ANCHOR: PC_TO_CC_IN_POT_EMU ---
     byte t = typetable[numero + page];          // status (0x90..)
     byte group = (t - 144) / 16;                // 0=NOTE,1=AT,2=CC,3=PC,...
-
+#if Scene
     if (group == 3) {
       // PC (0xC0..0xCF) usato come marcatore "CC-SCENE":
       // trasformo in CC (0xB0..0xBF) mantenendo lo stesso canale
       t = t - 16;
     }
-
+#endif
     // ============================================================
     // CTRL-F: ENCSUBJECT_TO_CONVOY
     // Se questo encoder/spinner è uno scene-subject:
@@ -232,6 +245,7 @@ void encoder_pot_mode (byte numero)
     // - aggiorna il convoy (verità unica) e committa
     // - return per evitare doppio invio (convoy + button)
     // ============================================================
+#if Scene
     {
       byte si = convoy_find_subjectIndex(numero);  // numero = memoryposition dell'encoder
       if (si != 255) {
@@ -240,7 +254,7 @@ void encoder_pot_mode (byte numero)
         return;
       }
     }
-
+#endif
     // comportamento normale (non subject): invio diretto
     button(t, valuetable[numero + page], out, 1);
   }

@@ -49,7 +49,9 @@
       
             if (bit_read(4,page+chan)==0)              // 4 = toggletable // something happens only if the button is off in the toggletable
             { 
-               if ( eeprom_preset_active == 0 ) dmxtable[chan]++;    // ???? autodetect_dmx
+               #if (ENABLE_AUTODETECT == 1)
+               if ( eeprom_preset_active == 0 ) dmxtable[chan]++;    // autodetect_dmx
+               #endif
                
         
      //  Serial.println(mouse_mempos);
@@ -59,8 +61,9 @@
              
              
             
-         
+         #if (Scale ==1 )
             if (typetable[chan+page] < 160) scale_learn(valuetable[chan+page]);   // sotto 160 ci sono note on e off 
+         #endif
              
             #if (shifter_active == 1 && stratos == 0)    
             ledControl(chan, 1); // void ledControl (byte chann, byte stat)   // stat significa status 1 = acceso 0 = spento
@@ -103,7 +106,7 @@
           else {
            
               
-            #if PAD_VELO_DEBUG
+            #if Velo_pads_debug
             debugPadVelocityFilm();   // <<< qui parte il "filmato" dopo il gate
             #endif
          
@@ -130,7 +133,7 @@
             ledControl(chan, 0);
             ledrestore(page);
             #endif
-          
+         
 
            #if (Matrix_Pads == 1 )
             ledControl_matrix(chan,0);
@@ -238,18 +241,85 @@ void convoy_commit();
 
 
 
+// CTRL-F: POT_TAKEOVER_WINDOW
+// Finestra di aggancio in unità "raw" di pot_confronto (= abs(lastbutton*4 - valore))
+// 12 = circa 3 step (perché lastbutton lavora a scaglioni da 4)
+#define POT_TAKEOVER_WINDOW 24
 
 void pots ()
 {
+  // ============================================================
+  // CTRL-F: POTS_SCENE244_EARLY
+  // SCENE CONTROL (marker raw=244 / 0xF4 undefined MIDI)
+  //
+  // Nota pratica:
+  // - Il pot takeover (allowWrite=0) può bloccare il blocco "pot mosso",
+  //   e quindi impedire l'esecuzione di scene_control_pot() quando il REC
+  //   è armato. Il recording, invece, scatta proprio *dentro* scene_control_pot().
+  // - Qui bypassiamo takeover, curve e invio MIDI: per gli item scene-control
+  //   vogliamo solo la logica max-wins (e l'eventuale recording), basata
+  //   sulla lettura fisica del pot.
+  //
+  // NB: uso chan+page per coerenza con il resto del codice (type page-dependent).
+  // Se vuoi il scene-control sempre "page 0", qui basta sostituire con typetable[chan].
+  // ============================================================
+ 
+  #if Scene
+  if (typetable[chan + page] == 244) { scene_control_pot(); return; }
+#endif
+
  byte diff = 11; // #mod_finestra
+ // CTRL-F: POTS_LB_INDEX
+// page vale 0 o 60 (max_modifiers). Con /60 otteniamo 0 oppure 1.
+// Usiamo 64 come stride per NON pestare i primi 0..63.
+#if ENABLE_POT_TAKEOVER
+byte lb = chan + (byte)((page / max_modifiers) * 64);
+#else
+byte lb = chan; // legacy: no split
+#endif
+
 /*
  if (qwertyvalue[chan] >0 // && modetable[chan] <16
  ) diff = 3; // #mod_finestra
  */
   {
-    int pot_confronto = abs((lastbutton[chan] * 4)  - valore);
+    int pot_confronto = abs((lastbutton[lb] * 4)  - valore);
+
     
-    if ( pot_confronto > diff   ) // scaglioni da 4 - qundi 4 8 12 16 etc etc // #mod_finestra
+    // CTRL-F: POTS_TAKEOVER_GATE
+byte allowWrite = 1; // 1=può scrivere, 0=quarantena takeover
+
+#if ENABLE_POT_TAKEOVER
+if (bit_read(5, chan + page) == 1) // ARMED su questa pagina
+{
+  if (pot_confronto <= POT_TAKEOVER_WINDOW)
+  {
+    // ============================================================
+    // CTRL-F: TAKEOVER_SILENT_CATCH
+    // CATCH SILENZIOSO:
+    // Quando il software (scene/morph/midi) raggiunge il pot fisico,
+    // qui avviene l'aggancio. In questa situazione NON vogliamo che
+    // il pot "spari" subito il suo valore fisico (es. 0) sovrascrivendo
+    // l'automazione (scattino iniziale).
+    //
+    // Quindi:
+    // - disarmiamo (caught)
+    // - sincronizziamo lastbutton[lb] alla posizione fisica corrente
+    // - blocchiamo l'invio per QUESTO giro (allowWrite=0)
+    // ============================================================
+    bit_write(5, chan + page, 0);  // CAUGHT: sblocca
+    lastbutton[lb] = valore / 4;   // sync base to physical now
+    allowWrite = 0;                // non inviare nello stesso ciclo del catch
+  }
+  else
+  {
+    allowWrite = 0;                // ancora ARMED: non deve scrivere né inviare
+  }
+}
+#endif // ENABLE_POT_TAKEOVER
+
+    if ( allowWrite && pot_confronto > diff )
+   // if ( pot_confronto > diff   ) // scaglioni da 4 - qundi 4 8 12 16 etc etc // #mod_finestra
                                                            // the potentiometer has been moved
      {
        {
@@ -260,33 +330,33 @@ void pots ()
   {
     if (valore > upper_val ) { // -------------------------------------------------------
       
-      if ( lastbutton[chan]*4 < upper_val) { 
+      if ( lastbutton[lb]*4 < upper_val) { 
      qwerty_out(1,qwertyvalue[chan],0); 
   //  Serial.println("alto ");
     }
     
     }
     else 
-    if (valore < 124) { if ( lastbutton[chan]*4 > 124) { // if (maxvalue[chan] == 127) 
+    if (valore < 124) { if ( lastbutton[lb]*4 > 124) { // if (maxvalue[chan] == 127) 
     qwerty_out(1,minvalue[chan],0);
   // Serial.println("basso ");
     } }
      
     else //------------------------------------------------------------------------
     
-      if ( lastbutton[chan]*4 > upper_val) {
+      if ( lastbutton[lb]*4 > upper_val) {
         qwerty_out(0,qwertyvalue[chan],0); 
     //    Serial.println ("!alto ");
    
       }
       else 
-      if (lastbutton[chan]*4 < 124) { // if (maxvalue[chan] == 127)  
+      if (lastbutton[lb]*4 < 124) { // if (maxvalue[chan] == 127)  
      qwerty_out(0,minvalue[chan],0); 
    //   Serial.println ("!basso ");
       }
       
       
-      lastbutton[chan] = valore / 4 ;
+      lastbutton[lb] = valore / 4 ;
     //  delay(100);
      //   Serial.print ("valore: ");  Serial.println (valore);
   }
@@ -296,7 +366,7 @@ void pots ()
 
    {
 
- lastbutton[chan] = valore / 4 ;
+ lastbutton[lb] = valore / 4 ;
  
 
 
@@ -378,7 +448,7 @@ void pots ()
         case 2 :   noteOn(typetable[chan + (page)], valuetable[chan + (page)],  potOut, 1) ;
                    //Serial.println(encled);
         break; // cc
-         
+#if Scene
           case 3:  // PC  (nel DART: usato come "CC-scene" per pot continui)
 
     // ============================================================
@@ -408,6 +478,7 @@ void pots ()
            1);
 
     break;
+#endif
 
         case 4 :   noteOn(typetable[chan + (page)], potOut,  0, 1) ; break; // channel AT
         case 5 :  {
@@ -417,6 +488,18 @@ void pots ()
              encled[0] = abs( 15 - ((valore) / 64)) * 16 ;
           }
           break; // PB
+          #if Scene
+        case 6 :  // SCENE CONTROL (marker TYPE=6 -> typetable raw 244)
+          // ============================================================
+          // CTRL-F: POTS_TYPE6_SCENE_MARKER
+          // Questo case è attivo quando in EEPROM abbiamo scritto 244 (0xF4 undefined).
+          // Infatti: (244 - 144) / 16 = 6.  Il canale NON conta (marker fisso).
+          // Deviazione verso il max-wins scene control (D_scene.ino: scene_control_pot()).
+          // ============================================================
+          
+          scene_control_pot();
+          break;
+          #endif
       }
 
       ///  ----------------------------------------------------------
@@ -515,7 +598,7 @@ void pots ()
   #endif
   }
 
-     #if (Matrix_Pads > 0  && touch_led_onboard == 1)
+     #if (Matrix_Pads > 0  && touch_led_onboard == 1 && Touch_sensors_enable == 2)
      {
 
     //   if  ( lightable[chan] > 1)  Serial.println(bit_read(1,(lightable[chan]-1)+page)); 
@@ -541,202 +624,14 @@ void pots ()
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void seq()
-{
-// come funziona:
-// se su editor si assegna un valore solo al numberbox "A" allora seq funziona a scatti - gli altri numberbox sono vuoti, valore zero.
-// ogni scatto è una progrssione dal basso in alto da 0 a 127.
-// ogni scatto avanza tanto quanto viene specificato su "a"
-// -----------------------
-// se si assegna un valore anche al numberbox "b" allora seq funzionerà in modo alternato
-// la sequenza alternerà il valore A e il valore B, 
-// se type viene assegnato ad un messaggio NOTE allora ad ogni scatto verrà "spento" (note off) lo step precedente
-// se assegnamo un valore al numberbox C e D, allora la sequenza si estenderà anche a questi valori
-
-
-
-
-
-  
-    
-   if (valore < lower_val && lastbutton[chan] == 1)   ///// button pushed
-   {     
-       lastbutton[chan] = 0;
-
-     //  Serial.println("push");
-       // Serial.println(valore);
-      if  (maxvalue[chan] > 0) {
-switch (qwertyvalue[chan])   // qwertyvalue[chan] usato come contatore 
-
-                             // > 159 sono cc
-{
-  case 0 :
- // Serial.println(minvalue[chan]);
- 
-
- if (typetable[chan + (page)] < 160 )             // se sono note
- {
-  noteOn(typetable[chan + (page)], minvalue[chan],  127, 1) ;  // invio accensione
-  
-  if (lightable[chan] > 0 ) {                                  // invio spegnimento
-    noteOn(typetable[chan + (page)], lightable[chan],  0, 1) ;
-    }
-  else if (dmxtable[chan] > 0 )
-  {
-    noteOn(typetable[chan + (page)], dmxtable[chan],  0, 1) ;
-    }
-    else noteOn(typetable[chan + (page)], maxvalue[chan],  0, 1) ;
-  } 
-else                                             // se sono cc
-noteOn(typetable[chan + (page)], valuetable[chan + (page)],  minvalue[chan], 1) ;  // l?ultimo "1" è relativo al filtro anti doppioni
-  
-  qwertyvalue[chan]++;
-  break;
-
-  case 1 :
- // Serial.println(maxvalue[chan]);
- if (typetable[chan + (page)] < 160 ) 
- {
-   noteOn(typetable[chan + (page)], maxvalue[chan],  127, 1) ;
-
-    noteOn(typetable[chan + (page)], minvalue[chan],  0, 1) ;
-  } 
- else
- noteOn(typetable[chan + (page)], valuetable[chan + (page)],  maxvalue[chan], 1) ;
- 
-  if (dmxtable[chan] > 0 ) qwertyvalue[chan]++; else qwertyvalue[chan]= 0;
-  break;
-
-   case 2 :
- // Serial.println(dmxtable[chan]);
- if (typetable[chan + (page)] < 160 ) {
-   noteOn(typetable[chan + (page)], dmxtable[chan],  127, 1) ;
-   noteOn(typetable[chan + (page)],  maxvalue[chan],  0, 1) ;
-  }
- else
-  noteOn(typetable[chan + (page)], valuetable[chan + (page)],  dmxtable[chan], 1) ;
-  
-   if (lightable[chan] > 0 ) qwertyvalue[chan]++; else qwertyvalue[chan]= 0;
-  break;
-
-     case 3 :
- // Serial.println(lightable[chan]);
-  if (typetable[chan + (page)] < 160 )
-  {
-    noteOn(typetable[chan + (page)], lightable[chan],  127, 1) ;
-     noteOn(typetable[chan + (page)], dmxtable[chan],  0, 1) ;
-    }
-  else
-  noteOn(typetable[chan + (page)], valuetable[chan + (page)],  lightable[chan], 1) ;
-  qwertyvalue[chan]= 0;
-  break;
-  }}
-  else                                  // progressione a step - minvalue decide la grandezza dello step
-  {
-    qwertyvalue[chan] = qwertyvalue[chan]+minvalue[chan];
-    if (qwertyvalue[chan] > 127 ) qwertyvalue[chan] =0; 
-   // Serial.println(qwertyvalue[chan]);
-   noteOn(typetable[chan + (page)], valuetable[chan + (page)],  qwertyvalue[chan], 1) ;
-    
-    
-    }
-
-
-   }
-
-   if (valore > upper_val && lastbutton[chan] == 0)   ///// button released - non succede niente
-    {
-      lastbutton[chan] = 1;
-    //   Serial.println("release");
-     //   Serial.println(valore);
-    }
-
-
-
-        
-  }
-
-
 void user_item1 ()
 {
-  #if (hid_keys == 1)  
-  char ctrlKey = KEY_LEFT_CTRL; 
-  #endif
- 
-  if (valore < lower_val                            ///// button pushed
-        && lastbutton[chan] == 1    )
-      {  
-if (valuetable[chan + page] == 66) {
 
-
-  #if (hid_keys ==1)
-  delay(400);
-Keyboard.press(ctrlKey);
-  Keyboard.press('s');
-  delay(100);
-  Keyboard.releaseAll();
-  #endif
-  
-  
-  }
-}
   }
 
   void user_item2 ()
   {
- // ============================================================================
-// USER2: potenziometro con emulazione di carico SPI basata su "valore"
-// ----------------------------------------------------------------------------
-// - Usa il comportamento normale del potenziometro (pot(chan)) per il MIDI.
-// - Usa la variabile globale "valore" (0..1023) come sorgente per il delay.
-//
-//   valore =   0  -> delay ≈ 20 us   (simile a fastAnalog + Parola_diretta)
-//   valore = 1023 -> delay ≈ 100000 us (100 ms, esagerato per test limite)
-// ============================================================================
-
-//void user2(byte chan)
-
-{
-
-   int v = valore;
-  // 1) Comportamento standard del potenziometro:
- // pots();    // <-- usa la tua void pot(byte chan);
-
-  // 2) Leggo la variabile "valore" (0..1023)
-      // si assume che "valore" sia già aggiornato per questo chan
-
-  if (v < 0)     v = 0;
-  if (v > 1023)  v = 1023;
-
-  // 3) Calcolo del delay in microsecondi:
-  //    - base_min_us ≈ 20 us (fastAnalog + Parola_diretta)
-  //    - max_us      ≈ 100000 us (100 ms)
-  const unsigned long base_min_us = 20UL;       // ritardo minimo
-  const unsigned long max_us      = 100000UL;   // ritardo massimo ~100 ms
-
-   delay_us = base_min_us
-                          + ( (unsigned long)v * (max_us - base_min_us) ) / 1023UL;
-
-  // 4) Emulazione del blocco CPU, spezzata in blocchi da 16000 us
-  while (delay_us > 16000UL) {
-    delayMicroseconds(16000);
-    delay_us -= 16000UL;
-  }
-  if (delay_us > 0) {
-    delayMicroseconds((unsigned int)delay_us);
-  }
-
-  // Debug opzionale:
-  /*
-  Serial.print(F("USER2 chan="));
-  Serial.print(chan);
-  Serial.print(F(" valore="));
-  Serial.print(v);
-  Serial.print(F(" delay_us="));
-  Serial.println(delay_us);
-  */
-}
-
+ 
 
     
     }
@@ -752,6 +647,8 @@ Keyboard.press(ctrlKey);
  
   void reset() 
 {
+  // info: funzione che riporta un encoder ad un determinato punto della sua escursione , se impostato in Pot-Emulation
+  
   // Serial.println("reset pressed");
   // delay(100);
    
@@ -788,7 +685,11 @@ Keyboard.press(ctrlKey);
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void shifter_modifier() 
+
 {
+
+// funzione simile al pageswitch , tutti i messaggi midi vengono temporaneamente traslati di canale - in tal modo è possibile controllare più parametri
+  
      if (valore < lower_val && lastbutton[chan] > 0)   ///// button pushed
      {     
        lastbutton[chan] = 0;
@@ -833,846 +734,17 @@ void shifter_modifier()
 
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/* void pageswitch(){ //----------------------------------------------------- PAGE SWITCH
-  
- // if (lastbutton[page_mempos] > 0  ) 
-  {     
-  
-  if (pagestate==0 && page > 0) { 
-
-    
-  
-    page = 0;
-
-  shifter_modifier_=0;
-
-     reset_mempos();       // come in chiusura editor (241)
-  load_preset_base();   // riallinea typetable/valuetable ecc (base)
-  load_preset(page);    // poi carica la pagina corrente    
-  
-//  reset_mempos();  IMPORTANT DESIGN NOTE:
-// A page switch MUST perform a full state reload
-// (reset_mempos + load_preset_base + load_preset).
-// Reloading only the page left stale runtime (mouse) state,
-// which corrupted pots() anti-repeat logic and caused
-// continuous MIDI output on page change. 
-
-
-   
-    update_scala(1); // secondo spinner
-    update_scala(0); // primo spinner
-    
-    #if (shifter_active == 1 && stratos == 0)
-    shifter.setAll(LOW);
-    
-    shifterwrite=1;
-    ledrestore(page);
-    #endif
-
-    #if (Matrix_Pads > 0 )
-           // single_h(matrix_remap[chan-16],lightable[chan]-1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
-            digitalWrite(8,LOW); // se il led di segnalazione sta blinkando - cambiando page si potrebbe bloccare
-            matrix_restore(page);
-            // Serial.println(chan-16);
-            #endif
-  //  incomingByte = boolean(page);
- 
- /// Serial.println(minvalue[mouse_mempos]);
-  // Serial.println(maxvalue[mouse_mempos]);
-  //  Serial.println("----");
-
-midiOut(typetable[page_mempos],valuetable[page_mempos],minvalue[page_mempos]);
-
-
-
-
-page_leds_(0);
- 
-    shifterwrite=1;
-   // pagestate=0;
-    
-  
-  higher_Xen[0]= 40;
-  higher_Xen[1]=40;
-    lower_Xen[0]= 100;
-  lower_Xen[1]=100;
-
-
-    }
-  } 
-  
-  
- // if (lastbutton[page_mempos]==0  )
-  { // seconda
- 
- if (pagestate==1 && page == 0) {
-      page = max_modifiers;
-
-
- shifter_modifier_=0;
-    //    Serial.println(page);
-   //  Serial.println(valore);
-    // Serial.println(lastbutton[page_mempos]);
-    //  Serial.println("--");
-     // delay(50);
- 
- 
- reset_mempos();       // come in chiusura editor (241)
-  load_preset_base();   // riallinea typetable/valuetable ecc (base)
-  load_preset(page);    // poi carica la pagina corrente
-    
-    update_scala(1); // secondo spinner
-    update_scala(0); // primo spinner
- 
-    
-      
-      #if (shifter_active == 1 && stratos == 0 )
-      shifter.setAll(LOW);
-      shifterwrite=1;
-      ledrestore(page);
-      #endif
-
-      #if (Matrix_Pads > 0  )
-       //single_h(matrix_remap[chan-16],lightable[chan]-1,1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo)
-        digitalWrite(8,LOW);   // se il led di segnalazione sta blinkando - cambiando page si potrebbe bloccare
-      matrix_restore(page);
-            // Serial.println(chan-16);
-      #endif
-      
-   // incomingByte = boolean(page);
- //   Serial.println(minvalue[mouse_mempos]);
- //   Serial.println(maxvalue[mouse_mempos]);
- //   Serial.println("----");
-    
- midiOut(typetable[page_mempos],valuetable[page_mempos],maxvalue[page_mempos]);
-
-
-page_leds_(1);
-
-    shifterwrite=1;
-    
-  // pagestate=1;
- 
-    //    lower_Xen[0] = max(averageXen[0], readingsXen[indexXen]);
- 
- //    lower_Xen[0] = averageXen[0];
- //     lower_Xen[1] = averageXen[1];
-
-   higher_Xen[0]= 40;
-  higher_Xen[1]=40;
-  lower_Xen[0]= 100;
-  lower_Xen[1]=100;
-// test3();
-  }
-}
- }
-
-*/
-
-void pageswitch(){ //----------------------------------------------------- PAGE SWITCH
-
-  // 2 casi:
-  // A) pagestate==0 e page>0  -> torna alla page 0   (midiOut con MIN)
-  // B) pagestate==1 e page==0 -> va a max_modifiers (midiOut con MAX)
-  //
-  // Tutto il resto è IDENTICO nei due rami, quindi lo condividiamo
-  // per spremere flash.
-
-  byte targetPage;
-  byte outValue;   // minvalue o maxvalue del page_mempos
-  byte ledsMode;   // 0 oppure 1 (per page_leds_)
-
-  if (pagestate==0 && page > 0) {
-    targetPage = 0;
-    outValue   = minvalue[page_mempos];
-    ledsMode   = 0;
-  }
-  else if (pagestate==1 && page == 0) {
-    targetPage = max_modifiers;
-    outValue   = maxvalue[page_mempos];
-    ledsMode   = 1;
-  }
-  else {
-    return; // nessun cambio pagina richiesto
-  }
-
-  // Applica target
-  page = targetPage;
-
-  // Reset “modifiers” (come nel tuo)
-  shifter_modifier_ = 0;
-
-  // IMPORTANT DESIGN NOTE (la tua): page switch = full state reload
-  reset_mempos();       // come in chiusura editor (241)
-  load_preset_base();   // riallinea typetable/valuetable ecc (base)
-  load_preset(page);    // poi carica la pagina corrente
-
-  // Riallinea scale spinner (come nel tuo)
-  update_scala(1); // secondo spinner
-  update_scala(0); // primo spinner
-
-  // Restore shifter leds (solo se attivo e non stratos)
-  #if (shifter_active == 1 && stratos == 0)
-    shifter.setAll(LOW);
-    shifterwrite = 1;
-    ledrestore(page);
-  #endif
-
-  // Restore matrix (se presente)
-  #if (Matrix_Pads > 0)
-    // se il led di segnalazione sta blinkando - cambiando page si potrebbe bloccare
-    digitalWrite(8,LOW);
-    matrix_restore(page);
-  #endif
-
-  // Notifica pagina (come nel tuo: typetable/valuetable + min/maxvalue)
-  midiOut(typetable[page_mempos], valuetable[page_mempos], outValue);
-
-  // LED pagina (0 oppure 1)
-  page_leds_(ledsMode);
-
-  // Flag (come nel tuo)
-  shifterwrite = 1;
-
-  // Reset Xen (come nel tuo)
-  higher_Xen[0] = 40;
-  higher_Xen[1] = 40;
-  lower_Xen[0]  = 100;
-  lower_Xen[1]  = 100;
-}
-
-
-
-
- void page_leds_ (byte pagina)
- {
-if (pagina == 0)
-{ 
-  #if (page_LEDs == 1)   // indicatori led dedicati al page switch
-                if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {  // nomobo setup disattivo 
-                  #if (  shifter_active == 1)
-                shifter.setPin((dmxtable[page_mempos]-1), 1); 
-                #endif
-                bit_write(1,(dmxtable[page_mempos]-1)+page,1);
-                #if (  shifter_active == 1)
-                shifter.setPin((lightable[page_mempos]-1), 0); 
-                #endif
-                bit_write(1,(lightable[page_mempos]-1)+page,0);
-                }
-                else
-                {
-                // shifter.setPin((minvalue[page_mempos]-1), 1); 
-                digitalWrite(dmxtable[page_mempos]-1,1);
-                bit_write(1,(dmxtable[page_mempos]-1)+page,1);
-                // shifter.setPin((maxvalue[page_mempos]-1), 0); 
-                digitalWrite(lightable[page_mempos]-1,0);
-                bit_write(1,(lightable[page_mempos]-1)+page,0);
-                }
- #endif
- }
-else
-{
- #if (page_LEDs == 1)
-if (valuetable[general_mempos] == 0 && lightable[page_mempos]>0) {
-#if (  shifter_active == 1)
- shifter.setPin((dmxtable[page_mempos]-1), 0); 
- #endif
- bit_write(1,(dmxtable[page_mempos]-1)+page,0);
- #if (  shifter_active == 1)
- shifter.setPin((lightable[page_mempos]-1), 1); 
- #endif
- bit_write(1,(lightable[page_mempos]-1)+page,1);
-}
-else
- {
- // shifter.setPin((minvalue[page_mempos]-1), 1); 
- digitalWrite(dmxtable[page_mempos]-1,0);
- bit_write(1,(dmxtable[page_mempos]-1)+page,0);
- // shifter.setPin((maxvalue[page_mempos]-1), 0); 
- digitalWrite(lightable[page_mempos]-1,1);
- bit_write(1,(lightable[page_mempos]-1)+page,1);
- }
- #endif
-
-}
- }
- 
- //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void beam()  //----------------------------------------------------- BEAM SENSOR
-{
-
-lightable[distance_mempos] 
- // beamValue 
-  = constrain( map32(valore, minbeam, maxbeam, maxvalue[chan], minvalue[chan]) , minvalue[chan] , maxvalue[chan])  ;
-
-  if ( qwertyvalue[chan] == 0 ) // se impostato su POT mode
-  {
-
-    if (valore > minbeam)  { //  a threshold to eliminate sensor's noise
- //Serial.println(valore); 
-  //  Serial.println(lightable[distance_mempos]);
-   // Serial.println("");
-      noteOn(typetable[chan + (page)], valuetable[chan + (page)],lightable[distance_mempos], 1); // MIDIUSB.flush();
-       #if (DMX_active == 1  && stratos == 0)
-     //  DmxSimple.write(dmxtable[chan], lightable[distance_mempos] *2);
-      #endif
-      
-#if (shifter_active == 1 && stratos == 0)
-      beamefx();
-      #endif
-      
-
-      shifterwrite = 1;
-      lastbutton[distance_mempos] = 1;
-    }
-
-    else if (lastbutton[distance_mempos] == 1) {
-#if (shifter_active == 1 && stratos == 0)
-      ledrestore(page);
-      
-      shifterwrite = 1;
-      #endif
-      lastbutton[distance_mempos] = 0;
-    }
-
-  }
-
-  else     /////////////
-   if ( qwertyvalue[chan] == 1 )
-  {                                                            // imppostazione note trigger
-    if (valore > 300 && lastbutton[chan] == 1)  {
-      lastbutton[chan] = 0;
-
-      noteOn((typetable[chan + (page)]), valuetable[chan + (page)], lightable[distance_mempos] , 1 ); // MIDIUSB.flush();
-      buttonefx = 0;
-      buttonefxu = 0;
-      buttonefxd = 8;
-    }
-    if (valore < 270 && lastbutton[chan] == 0) {
-      noteOn((typetable[chan + (page)]), valuetable[chan + (page)], 0, 1 ); //  MIDIUSB.flush();
-      lastbutton[chan] = 1;
-    }
-
-  }
-  else //--------------------------------------------------- beam scale
- {
-   if (beam_counter == 0 ){
-    at = map32(lightable[distance_mempos] , 0, 127, minvalue[chan], maxvalue[chan] );
-    if ( beam_scala_buffer != at) // se diverso dal precedente sgnale inviato - evitare doppioni e note ripetute
-    {
-  //if (dmxtable[contoencoder] == 2)
- // scala_learn = scala[((page/max_modifiers)*2)]; // se dmxtable ÃƒÆ’Ã‚Â¨ su 3 allora verrÃƒÆ’Ã‚Â  usata la scala_learn
-      if  ( bitRead(scala_learn, (at)-((at/12)*12)) == 1)  // scala_learn
-      {
-       beam_scale_send ();
-      }
-       else 
-       {
-        while ( bitRead(scala_learn, (at)-((at/12)*12)) == 0) 
-        {
-       // encoder_pot_calcolo(numero);
-        at++;
-        if ( at > 126) break;
-       }
-          if ( beam_scala_buffer != at) { beam_scale_send ();
-    
-        }
-        }
-     } 
- }
-
-
-       beam_counter++;
- // if (mouse_wheel_speed_counter > abs(minvalue[contoencoder]-32)) mouse_wheel_speed_counter =0;
- if (beam_counter > 5) beam_counter =0;
-  // if (cycletimer = 10) { button(typetable[distance_mempos+page],beam_scala_buffer,0 ,0); }
-//  if (valore< minbeam || valore > maxbeam) if (beam_scala_buffer != at) { button(typetable[distance_mempos+page],beam_scala_buffer,0 ,0); beam_scala_buffer = at;}
-
-    }
-
-}
-//////////////////////////////////////////////
-
- void beam_scale_send ()
- {
-  #if (shifter_active == 1 && stratos == 0)
-            beamefx();
-  #endif
-        button(typetable[distance_mempos+page],beam_scala_buffer,0 ,0);
-        button(typetable[distance_mempos+page],at,127 ,1);  
-        beam_scala_buffer= at;
-        if (valore< minbeam || valore > maxbeam)  button(typetable[distance_mempos+page],beam_scala_buffer,0 ,0);
-       // cycletimer = 0;
-  }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
- #if ( stratos == 0)
- void piezo_pads () { 
-
-  // i pads vengono attivati da GENERAL SETTINGS, il messaggio MIDI emesso viene descritto nell'ITEM PADS
-  // attivando i pads viene disattivata la resistenza pullup sul sesto input analogico A5
-  // 
-  setPlexer(padNum*2); 
-
-// padVal = analogRead(5);
-padVal = analogRead_1024(5); 
-                              // la lettura viene ripetuta due volte per lasciare il tempo di scaricare corrente residua al pad
-                              // questa è solo una congettura... sto ancora facendo prove e test
-
-// if (padNum == 0) Serial.println(padVal);
-
-if (padVal > 2 && padDecay[padNum] == 0 ) {
-for(byte pad = 0; pad < 6; pad++)
-  {
- // setPlexer(padNum*2);
- padVal2 = analogRead_1024(5);
-  if (padVal2 > padVal) padVal = padVal2;
-}
-padDecay[padNum] =14 //+ (padVal / 40)
-;
-//midiOut(typetable[PADS_mempos+(page)],valuetable[PADS_mempos+(page)]+(padNum*2),(map32(padVal,0,512,0,127)));
-midiOut(typetable[PADS_mempos+(page)],valuetable[PADS_mempos+(page)]+(padNum*2),constrain(padVal,0,127));
-
-  buttonefx = 0;
-    // buttonefxu = 5;
-   buttonefxd = constrain((padVal/128), 0,3);
-}
-
-  { 
-     padNum++;
-    if (padNum > 3) padNum = 0 ;   
-{
-
-if (padDecay[padNum] >0) { padDecay[padNum] = padDecay[padNum] -1; 
-if (padDecay[padNum] == 1)  midiOut(typetable[PADS_mempos+(page)],valuetable[PADS_mempos+(page)]+(padNum*2),0);
-
-}
-   } 
-   }
-}
-#endif
+ 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if (capacitivesensor_active == 2) // variante della void touch_sensors dedicata all'utilizzo di ic touch esterni
-void touch_sensors(byte T_numero) {
-  
-     if (touch_mempos[T_numero] >0)  // SE ESISTE UN ITEM CON SETTAGGIO TOUCH ALLORA SI PROCEDE ALLA LETTURA
-     {                  
-      averageXen[T_numero] = digitalRead(7+(T_numero*2));
-   
-////
 
-  if (lightable[touch_mempos[T_numero]] == 0)  touch_execute(T_numero); // lightable : 0-capacitive, 1-virtual, 2-monitoring.
- //  else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, T_numero,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
-
-////
-     }
-}
-#endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if (capacitivesensor_active == 3) // variante della void touch_sensors dedicata all'utilizzo di ic touch esterni
-void touch_sensors(byte T_numero) {
-  
-     if (touch_mempos[T_numero] >0)  // SE ESISTE UN ITEM CON SETTAGGIO TOUCH ALLORA SI PROCEDE ALLA LETTURA
-     {                  
-      averageXen[T_numero] = digitalRead(7+(T_numero));
-   
-////
-
-  if (lightable[touch_mempos[T_numero]] == 0)  touch_execute(T_numero); // lightable : 0-capacitive, 1-virtual, 2-monitoring.
- //  else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, T_numero,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
-
-////
-     }
-}
-#endif
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#if (capacitivesensor_active == 4) // variante della void touch_sensors dedicata all'utilizzo di ic touch esterni
-void touch_sensors(byte T_numero) {
-  
-     if (touch_mempos[T_numero] >0)  // SE ESISTE UN ITEM CON SETTAGGIO TOUCH ALLORA SI PROCEDE ALLA LETTURA
-     {                  
-      averageXen[T_numero] = !(digitalRead(7+(T_numero*2)));
-   
-////
-
-  if (lightable[touch_mempos[T_numero]] == 0)  touch_execute(T_numero); // lightable : 0-capacitive, 1-virtual, 2-monitoring.
- //  else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, T_numero,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
-
-////
-     }
-}
-#endif
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#if (capacitivesensor_active == 1)
-void touch_sensors(byte T_numero) {
-  // in breve in questa void viene caricato un valore sulla variabile averageXen[T_numero] che poi verrà usato nella void touch_execute 
-  // per diventare un messaggio midi
-  
- //  if (decaysensor[T_numero] > 0 ) decaysensor[T_numero]--;
- 
-
-     if (touch_mempos[T_numero] >0)  // SE ESISTE UN ITEM CON SETTAGGIO TOUCH ALLORA SI PROCEDE ALLA LETTURA
-     {                  
-       #if touch_version == 1
-       readingsXen[T_numero][indexXen] = (cs_4_2[T_numero].capacitiveSensorRaw(72)); // SI FANNO DIVERSE LETTURE - INDEXXEN VA DA 0 A 3 vedi void loop
-       #endif
-       #if touch_version == 2
-       readingsXen[T_numero][indexXen]  = (cs_4_2[T_numero].capacitiveSensorRaw(8000)/64);
-       #endif
- 
-
-                     
-  averageXen[T_numero] = ((readingsXen[T_numero][0] + readingsXen[T_numero][1] + readingsXen[T_numero][2])  / 3) ;  // media delle letture 
-
-   
-///////////////////////////////////////////////////////////////////////////////////////////
-
-  if (lightable[touch_mempos[T_numero]] == 0)  touch_execute(T_numero); // lightable : 0-capacitive, 1-virtual, 2-monitoring.
-  else if  (lightable[touch_mempos[T_numero]] == 2) { noteOn(176, T_numero,   averageXen[T_numero] ,0);  delay(20); }          // monitoring dei valori del touch, si possono osservare da editor.
-
-///////////////////////////////////////////////////////////////////////////////////////////
-     }
-   
-
-{
-if (averageXen[T_numero] > higher_Xen[T_numero])  higher_Xen[T_numero] = averageXen[T_numero] ;                                       
-if (averageXen[T_numero] < lower_Xen[T_numero] && averageXen[T_numero] == readingsXen[T_numero][indexXen] )  lower_Xen[T_numero] = averageXen[T_numero] ;    
- // limite superiore e inferiore si adattano ale circostanze ambientali, in tel modo la soglia decisa via editor è sempre relativa al range
-
-
-}
-              
-// sistema di autolimiting : 
-// in base alla lettura touch piu' bassa viene stabilito il limite di velocita'  delle letture (interno alla libreria capacitivetouch)
-// questo sistema rende retrocompatibile l'algoritmo di sensing nche con i circuiti vecchi, che eramo molto piÃ¹ sensibili e necessitavano di piÃ¹ letture
-// piu' letture richiedono piu' tempo, rendendo il touchsensor piu' soggetto a interferenze da parte del DMX o di allungamenti e accorciamenti del loop principale
-// dovuti all'uso del side spinner per esempio...
-
-}
-#endif
-
-//...............................................................................................................................
-
-#if (capacitivesensor_active == 1)
-void touch_execute (byte numero_ex) 
-{
-
-   byte zero = 1;
-  byte uno = 0;
-  {        
-         ///////////////////////////////////////////////////////////////////////////////////////////////// rilascio del touch                                 
-  if (    averageXen[numero_ex]<
-  (higher_Xen[numero_ex]) 
-  - map32( minvalue[touch_mempos[numero_ex]],0,112,0,higher_Xen[numero_ex]-lower_Xen[numero_ex]) 
-  // metto 112 e non 127 - per creare piu separazione tra spazio accensione e spazio spegnimento
-  )
-
-  {
-     if (decaysensor[numero_ex] > 0 ) decaysensor[numero_ex]--;
-   //   if (numero_ex == 0) {Serial.println(decaysensor[numero_ex]); delay(50);}
-     
- if ( decaysensor[numero_ex] == 0 ///  
-  && lastbutton[touch_mempos[numero_ex]]==uno) /// evitare ripetizione messaggio 
- 
- {
-  //delay(500); 
- { noteOn(typetable[touch_mempos[numero_ex]+(page)], valuetable[touch_mempos[numero_ex]+(page)], 0,1); 
- // decaysensor[numero] = 0;
- //scala_learn =0; // resetta la scala che viene memorizzata tramite learn ogni volta che si tocca la wheel
-//scala_reset = 1;
-
-
-
-
- if (typetable[encoder_mempos[numero_ex]+page] < 160) // sotto 160 sono note on e note off
- // se encoder impostato su note allora manda il note off ( al rilascio)
- // serve per scale mode, per non lsciare note accese
- {
- button(typetable[encoder_mempos[numero_ex]+page],encodervaluepot_buffer[numero_ex],0 ,1);  
- }
-
-
- 
- 
- if (qwertyvalue[touch_mempos[numero_ex]] == 1)  // touch reset attivo
- { 
-       // se impostato su cc o altro - manda il touch reset
-       // button(typetable[encoder_mempos[numero]+(page)],valuetable[encoder_mempos[numero]+(page)],dmxtable[touch_mempos[numero]],1); 
-       // touch reset normale
-
-int smooth = (encodervaluepot[numero_ex]/8)-dmxtable[touch_mempos[numero_ex]]; // ritorno in modo graduale alla posizione originale
-   for (byte i = 8; i > 0; i--)
-   {
-    button(typetable[encoder_mempos[numero_ex]+(page)],valuetable[encoder_mempos[numero_ex]+(page)],dmxtable[touch_mempos[numero_ex]]+(smooth/8)*(i-1),1);
-    delay(15);
-   }
-      encodervaluepot[numero_ex] = dmxtable[touch_mempos[numero_ex]]*8;
- }
- 
- 
-
-lastbutton[touch_mempos[numero_ex]] = zero; 
-// encled=0; 
-encoder_block[numero_ex] = 64;
-
-bit_write(1,maxvalue[touch_mempos[numero_ex]]-1+page,0); // spengo il led nella tabella di memoria
-
-
-#if (shifter_active == 1 && stratos == 0)
-// shifter.setAll(LOW);  
-if (page==0) ledrestore(0); else ledrestore(1);  shifterwrite=1; 
-#endif
-
-#if ( stratos == 1)
-digitalWrite(16,LOW);
-#endif
-
-
-}
-
-} 
-  }
-
-//////////////////////////////////////////////////////////////////////////////// touch premuto
-
-if (    averageXen[numero_ex]> 
-// (minvalue[touch_mempos[numero]]) + 5
- ((higher_Xen[numero_ex]))  // piu' abbasso questo valore piu' aumenta la sensibilita'
-                         // sottraggo  (minvalue[touch_mempos[numero]]) - piu' aumenta piu' e' sensibile
-  - map32( minvalue[touch_mempos[numero_ex]],0,127,0,higher_Xen[numero_ex]-lower_Xen[numero_ex]) // la sottrazione e' proporzionale ad higher_xen
- //- minvalue[touch_mempos[numero]]
-  )
-  
- {
-
-#if ( stratos == 1)
-   decaysensor[numero_ex] = lightable[general_mempos]*10;
-   #endif
-
-   #if ( stratos == 0)
-   decaysensor[numero_ex] = lightable[general_mempos]*2;
-   #endif
-   
- if (lastbutton[touch_mempos[numero_ex]]==zero // && decaysensor[numero] <= 0
- )
-
-{
-/*
-  Serial.println(scala[0]);
-  Serial.println(scala[1]);
-  Serial.println(scala[2]);
-  Serial.println(scala[3]);
-   Serial.println("-");
-   */
-/*
-//  update_scala(0);
- for (byte i = 0; i< 12; i++) {
-Serial.print(bitRead(scala[0],i));}
-Serial.println(" - scala[]");
-
-//bitRead(valuetable[encoder_mempos[quale_spinner]+page] ,i)
-//Serial.print(valuetable[encoder_mempos[0]],BIN); Serial.println(" - valuetable[]");
-
- for (byte i = 0; i< 8; i++) {
-Serial.print(bitRead(valuetable[encoder_mempos[0]],i));}
-Serial.println(" - valuetable[]");
-
-
- for (byte i = 0; i< 8; i++) {
-//Serial.print(maxvalue[encoder_mempos[0]],i));}
-Serial.print(bitRead(maxvalue[encoder_mempos[0]],i));}
-Serial.println(" - maxvalue[]");
-
-Serial.println(" -//////////////- ");
-*/
-  
-{ //decaysensor[numero] = decaysensor_value; 
-scala_reset = 1;
-mouse_wheel_speed_counter=0;
-noteOn(typetable[touch_mempos[numero_ex]+(page)], valuetable[touch_mempos[numero_ex]+(page)], 127,1);  // MIDIUSB.flush();  
-  
-lastbutton[touch_mempos[numero_ex]] = uno;  //shifter.setAll(LOW); 
-encoder_block[numero_ex] = 64;
-
-
-bit_write(1,maxvalue[touch_mempos[numero_ex]]-1+page,1);
-#if (shifter_active == 1 && stratos == 0)
- shifter.setPin(maxvalue[touch_mempos[numero_ex]]-1,HIGH);  // accendo il led del touch , nella tabella di memoria
- #endif
-
-#if ( stratos == 1)
-
-
- digitalWrite(16,HIGH);
-  #endif 
-  
-// bit_write(1,4+numero+page,1);
-//  if (page==0) ledrestore(0); else ledrestore(1);  shifterwrite=1;
-shifterwrite=1;};// opencalibration[1]=HIGH;
-
-   }
-
-  
-   }
-   } 
- 
- }
- #endif
-
-//...............................................................................................................................
-
-#if (capacitivesensor_active > 1 )
-void touch_execute (byte numero_ex) 
-{
-
-  byte zero = 1;
-  byte uno = 0;
-  {        
-
-
-                 //////////////////////////////////////////////////////////////// touch rilasciato
-                 
-  if (    averageXen[numero_ex] == 0 ) 
-  
- 
-
- //
- { 
- if (decaysensor[numero_ex] > 0 ) decaysensor[numero_ex]--;
-
-   if (lastbutton[touch_mempos[numero_ex]]== uno && decaysensor[numero_ex] == 0) /// evitare ripetizione messaggio 
-  {
- { noteOn(typetable[touch_mempos[numero_ex]+(page)], valuetable[touch_mempos[numero_ex]+(page)], 0,1); 
-//decaysensor[numero] = 0;
- 
-//scala_learn =0; // resetta la scala che viene memorizzata tramite learn ogni volta che si tocca la wheel
-//scala_reset = 1;
-//Serial.println(typetable[encoder_mempos[numero]+page]);
-// Serial.println(valuetable[touch_mempos[numero]+(page)]);
-
- if (typetable[encoder_mempos[numero_ex]+page] < 160) // sotto 160 sono note on e note off
- // se encoder impostato su note allora manda il note off ( al rilascio)
- // serve per scale mode, per non lsciare note accese
- 
- {
- button(typetable[encoder_mempos[numero_ex]+page],encodervaluepot_buffer[numero_ex],0 ,1);  
- 
- 
- }
- 
- if (qwertyvalue[touch_mempos[numero_ex]] == 1)  // touch reset attivo
- { 
-       // se impostato su cc o altro - manda il touch reset
-       // button(typetable[encoder_mempos[numero]+(page)],valuetable[encoder_mempos[numero]+(page)],dmxtable[touch_mempos[numero]],1); 
-       // touch reset normale
-
-int smooth = (encodervaluepot[numero_ex]/8)-dmxtable[touch_mempos[numero_ex]]; // ritorno in modo graduale alla posizione originale
-   for (byte i = 8; i > 0; i--)
-   {
-    button(typetable[encoder_mempos[numero_ex]+(page)],valuetable[encoder_mempos[numero_ex]+(page)],dmxtable[touch_mempos[numero_ex]]+(smooth/8)*(i-1),1);
-    delay(15);
-   }
-      encodervaluepot[numero_ex] = dmxtable[touch_mempos[numero_ex]]*8;
- }
- 
- 
-
-lastbutton[touch_mempos[numero_ex]] = zero; 
-// encled=0; 
-encoder_block[numero_ex] = 64;
-
-
-
- 
-   
-#if (shifter_active == 1 && stratos == 0)
-if (maxvalue[touch_mempos[numero_ex]] > 0 )
- bit_write(1,maxvalue[touch_mempos[numero_ex]]-1+page,0);           // spengo il led nella tabella di memoria
- 
-   if (page==0) ledrestore(0); else ledrestore(1);  
-   shifterwrite=1; 
-   
-#endif
-
-#if (stratos == 1)
-digitalWrite(16,LOW);
-#endif
-
-#if (touch_led_onboard == 1 && capacitivesensor_active < 3)
-digitalWrite(8,LOW);
-#endif
-
-}
-
- }
-} 
-
-//////////////////////////////////////////////////////////////////////////// touch premuto
-if (    averageXen[numero_ex] == 1 
-
-  )
-  
- {
-  
-  decaysensor[numero_ex] = lightable[general_mempos]*2;
-  
- if (lastbutton[touch_mempos[numero_ex]]==zero  )
-
-{
-{ //decaysensor[numero] = decaysensor_value; 
-scala_reset = 1;
-mouse_wheel_speed_counter=0;
-noteOn(typetable[touch_mempos[numero_ex]+(page)], valuetable[touch_mempos[numero_ex]+(page)], 127,1);  
-  
-lastbutton[touch_mempos[numero_ex]] = uno;  //shifter.setAll(LOW); 
-encoder_block[numero_ex] = 64;
-
-
-
-
-#if (shifter_active == 1 && stratos == 0)
-if (maxvalue[touch_mempos[numero_ex]] > 0 )
-bit_write(1,maxvalue[touch_mempos[numero_ex]]-1+page,1);  // accendo il led nella tabella di memoria
-
- 
- shifter.setPin(maxvalue[touch_mempos[numero_ex]]-1,HIGH);  // accendo il led del touch , nella tabella di memoria
- #endif
- 
-#if ( stratos == 1)
- digitalWrite(16,HIGH);
-  #endif 
-
-#if (touch_led_onboard == 1 && capacitivesensor_active < 3)
-  digitalWrite(8,HIGH);
-#endif
-  
-// bit_write(1,4+numero+page,1);
-//  if (page==0) ledrestore(0); else ledrestore(1);  shifterwrite=1;
-shifterwrite=1;};// opencalibration[1]=HIGH;
-
-   }
-
- //  decaysensor[numero] = decaysensor_value;
-   }
-   } 
- 
- }
-#endif
-
-//----------------------------------------------------------------------------------------------------------------------------------
- 
  void virtual_touch_end(byte numero)
 {
   
@@ -1796,7 +868,6 @@ void restore_end()
 
 #endif
 }
-
 
 
   

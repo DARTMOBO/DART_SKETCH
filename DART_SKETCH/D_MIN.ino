@@ -15,6 +15,47 @@
 byte matrix_vert1;
 byte matrix_vert2;
   
+// ============================================================
+// CTRL-F: POT_MIDIFEEDBACK_TAKEOVER
+// Pot MIDI feedback -> aggiorna il TARGET software del pot (lastbutton per pagina)
+// e ARMA il takeover (bit_status bank 5), così il pot fisico non sovrascrive subito.
+//
+// Funziona solo per pot mode 11..15 e solo per CC (e per PC mappati come CC-scene).
+// Minimale: conversione value(0..127) -> raw target approx (63..960).
+// ============================================================
+static inline void pot_midifeedback_takeover_update(byte inType, byte inCC, byte inValue)
+{
+#if (ENABLE_POT_TAKEOVER == 1)
+  // Solo Control Change (176..191). Program Change puro non arriva ancora qui.
+  if (inType < 176 || inType > 191) return;
+
+  // Cerchiamo match su entrambe le pagine: pageOffset = 0 (P1) e max_modifiers (P2)
+  for (byte pageOffset = 0; pageOffset <= max_modifiers; pageOffset += max_modifiers)
+  {
+    for (byte c = 0; c < max_modifiers; c++)
+    {
+      byte mode = modetable[c];
+      if (mode < 11 || mode > 15) continue;          // solo pot / hypercurve (11..15)
+
+      byte t = typetable[c + pageOffset];            // tipo configurato in quella pagina
+      // Caso speciale: 'PC usato come CC-scene' (192..207) -> effettivamente manda CC (t-16).
+      if (t >= 192 && t <= 207) t = t - 16;
+
+      if (t != inType) continue;                     // canale MIDI deve combaciare
+      if (valuetable[c + pageOffset] != inCC) continue; // CC number deve combaciare
+
+      // Aggiorna il target software (lastbutton per pagina) in dominio 'raw' (0..1023 circa)
+      int rawTarget = map32((int)inValue, 0, 127, 63, 960);
+      byte lb = c + (byte)((pageOffset / max_modifiers) * 64);
+      lastbutton[lb] = (byte)(rawTarget >> 2);       // /4, coerente con pots()
+
+      // Arma takeover: finché il pot fisico non aggancia, non scrive né invia.
+      bit_write(5, c + pageOffset, 1);
+    }
+  }
+#endif
+}
+
 void midifeedback ()
   {
   {
@@ -30,9 +71,12 @@ void midifeedback ()
        load_preset_base();
        // load_preset(0);
        load_preset(page);        // load preset from eerom memory after upload   
-        
+
+        #if (Scale ==1) 
        update_scala(1);  
        update_scala(0); 
+        #endif
+       
        lastbutton[encoder_mempos[0]] = 0; // 
     for(int led = 0; led < 8; led++)    { // reset di tutti i led e tutti i banchi toggle   
    // bit_status[4][led]=0; bit_status[5][led]=0;
@@ -48,7 +92,7 @@ void midifeedback ()
     digitalWrite(16, LOW);
     #endif
 
-  #if (stratos == 0)
+  #if (stratos == 0 && Page_switch ==1)
    
     page_leds_(page);
       
@@ -109,10 +153,16 @@ else if ( (action==1)&&(note!=255) ){ // ...and then the velocity
  else {  // normali procedure di feedback midi // se openeditor == 0
 
   
+// CTRL-F: POT_MIDIFEEDBACK_CALL
+pot_midifeedback_takeover_update(type, note, velocity);
+
  if (velocity!=0 )                                            // ricevuto segnale ACCESO
  {
-   
+
+   #if (Scale ==1)
   if (type < 160) scale_learn(note); 
+  #endif
+
   
   #if (MIDI_thru == 1)
    if (type < 160)   noteOn(type,note,127,0); else noteOn(type,note,velocity,0);   // le note vengono sempre sparate fuori al massimo.
@@ -553,13 +603,30 @@ case 3 : ///////////////////////////////////////////////////////////////////////
        
     
 
-     EEPROM.write(memoryposition,type-176+(velocity*16)+144);      // TYPE // typetable[] // 
+    // ============================================================
+    // CTRL-F: EEPROM_TYPE_SCENE_MARKER_P1
+    // TYPE speciale: velocity==6 -> marker scene (pseudomidi fisso, channel-independent)
+    // Scriviamo 244 (0xF4 = Undefined MIDI).
+    // ============================================================
+    if (velocity == 6) {
+      EEPROM.write(memoryposition, 244);      // TYPE scene marker
+    } else {
+      EEPROM.write(memoryposition, type - 176 + (velocity * 16) + 144);      // TYPE // typetable[] //
+    }
      // note: velocity = miditype proveniente dall'editor numerato da 0 a 6 - viene moltiplicato per 16 e sistemato da 144 in poi a seconda del canale
      // type contiene ovviamente anche l'informazione del canale midi 0-16
      
      EEPROM.write(memoryposition+384,note); // qwerty // qwertyvalue[] //  =  memorizzato a partire dalla posizione 384
      } else{
-     EEPROM.write(memoryposition+512-64,type-176+(velocity*16)+144);  // type 2nd     
+    // ============================================================
+    // CTRL-F: EEPROM_TYPE_SCENE_MARKER_P2
+    // TYPE speciale 2nd page: velocity==6 -> marker scene (244).
+    // ============================================================
+    if (velocity == 6) {
+      EEPROM.write(memoryposition + 512 - 64, 244);  // type 2nd (scene marker)
+    } else {
+      EEPROM.write(memoryposition + 512 - 64, type - 176 + (velocity * 16) + 144);  // type 2nd
+    }
      EEPROM.write(memoryposition+384+512-64,note); //  trying not to cross memory limit - qwertyvalue stored 64 memory slots before
      }  // ATTENZIONE: c'è un -64 che serve per compensare la numerazione memoryposition 2nd page
      break;

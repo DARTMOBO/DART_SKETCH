@@ -63,7 +63,7 @@ typetable[general_mempos]++; // effetto led lampeggiante per indicare lo status 
   
 
  
-   #if (capacitivesensor_active>0)
+   #if (Touch_sensors_enable>0)
     indexXen++; if (indexXen == 3) indexXen = 0;
     touch_sensors(0);
           #if (stratos == 0)
@@ -93,7 +93,7 @@ typetable[general_mempos]++; // effetto led lampeggiante per indicare lo status 
  
  
 
-     #if (page_active > 0)  
+     #if (Page_switch > 0)  
    if (page_mempos > 0 ) pageswitch();
      #endif
    

@@ -27,17 +27,10 @@ shifter.setPin(led,
  
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-   #if (shifter_active == 0 && stratos == 0 && Matrix_Pads == 1)
+                
+  
    
-  void ledControl_matrix (byte chann, byte stat)  {
-
-
-      bit_write(1, matrix_remap[chann]+page,stat);  
-     
-    }
-   #endif
-                         
-                         #if (shifter_active == 1 && stratos == 0)
+   #if (shifter_active == 1 && stratos == 0)
 
 void ledControl (byte chann, byte stat)   // stat significa status 1 = acceso 0 = spento
 { 
@@ -171,23 +164,6 @@ else    // se siamo in modalità no-mobo -  solo arduino
 */
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-# if (LED_rings == 1) 
-void LED_rings_ ()
-{
-shifter.setAll(HIGH);
-for (byte i = 0; i < 16; i++) { 
-//  shifter.setPin((i/2)+16, 1);                                     // spegni tutti li led di controllo mettendoli a  +5
-  shifter.setPin(i, boolean(lightable[channel] / (i*16+16)) ); // accendi il led ring in base al valore della lightable degli item da 9 a 16
-}  
-
-//shifter.setPin(9, 0);
- // if (channel == 0) 
- // if (LED_counter == 16)
-   {shifter.setPin(channel+16, 0);}
-   
- 
-}
-#endif
 
 #endif
 
@@ -458,7 +434,7 @@ if (encled[0] < 240 ) shifter.setPin((encledtable[ripristino_led] ), bit_read(1,
    
    #endif
 
-#if (shifter_active == 1 && stratos == 0)
+#if (shifter_active == 1 && stratos == 0 && Distance_sensor == 1)
    void beamefx()
  {
      cycletimer = 0;

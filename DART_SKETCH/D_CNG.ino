@@ -1,62 +1,15 @@
 
 
-/*
-#DMX_LIMITS_DART
-------------------------------------------------------------
-DART – DMX QUICK REFERENCE (limits & logic overview)
-------------------------------------------------------------
-
-1. Why 127 channels?
-   The DART editor currently allows DMX addresses only in range 1–127.
-   To save RAM on the ATmega32u4, the DMX buffer is intentionally
-   reduced from 512 → 127 channels. This is fully adequate for DART's
-   creative/utility DMX use.
-
-2. Global DMX size control
-   In config.h:
-       #define DART_DMX_MAX_CHANNELS 127
-   This value defines the actual DMX universe size used by the firmware.
-   DMX_SIZE is now tied to this define. To expand (e.g., 256 or 512),
-   simply change the number and recompile.
-
-3. Library-level safety
-   dmxWrite() only accepts channels 1..DMX_SIZE.
-   - Valid channel  = written normally into dmxBuffer[channel-1].
-   - Above limit    = ignored safely (no crash, no memory breach).
-
-4. The “maxChannel(64)” confusion
-   The setup still calls:
-       DmxSimple.maxChannel(64);
-   This is *not* a hard cap. It only sets the initial “dmxMax”.
-   When any item writes to a higher channel (e.g., 70), the library
-   automatically extends dmxMax up to that value, as long as it is
-   ≤ DMX_SIZE (127). This is why channels >64 still work.
-
-5. Practical effect
-   - Editor assigns channels 1..127 → firmware handles them safely.
-   - Anything >127 → ignored without affecting system stability.
-   - Reducing buffer size frees ~400 bytes of RAM.
-
-6. Future expansion
-   To restore larger universes:
-     1) Edit DART_DMX_MAX_CHANNELS in config.h
-     2) Recompile
-     3) (Optional) update the editor UI to allow >127
-
-------------------------------------------------------------
-End of DMX quick reference.
-#DMX_LIMITS_DART
-*/
-
-
-// extraplex e fastanalog : al momento attuale ho fissato digitalread per tutto l'extraplex - la lettura fastanalog non funziona sull'extraplex non so perchè - pin 9 non corrisponde e non trovo soluzione
-//                          in futuro sarebbe carino avere lettura differenziata per MODE tra digitalread e analog-normale
-
-// dmx libreria si può finalmente sospendere da un falg unico in config.h
-// messo piezo pads sotto una flag apposita in config.h
-// tolto messaggi serialprint di test dalla funzione mouse
-
-// finalmente dmx si può attivare con un singolo flag , ho spostato tutti i define in config.h
+ 
+ /*
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * DART_SKETCH   —   Copyright (c) 2015–2025 M. Marchese - dartmobo.com
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version. See the LICENSE file for details.
+ */
 
 
 /*
@@ -392,6 +345,57 @@ ragionevole, appena si carica lo sketch.
 */
 
 
+
+
+/*
+#DMX_LIMITS_DART
+------------------------------------------------------------
+DART – DMX QUICK REFERENCE (limits & logic overview)
+------------------------------------------------------------
+
+1. Why 127 channels?
+   The DART editor currently allows DMX addresses only in range 1–127.
+   To save RAM on the ATmega32u4, the DMX buffer is intentionally
+   reduced from 512 → 127 channels. This is fully adequate for DART's
+   creative/utility DMX use.
+
+2. Global DMX size control
+   In config.h:
+       #define DART_DMX_MAX_CHANNELS 127
+   This value defines the actual DMX universe size used by the firmware.
+   DMX_SIZE is now tied to this define. To expand (e.g., 256 or 512),
+   simply change the number and recompile.
+
+3. Library-level safety
+   dmxWrite() only accepts channels 1..DMX_SIZE.
+   - Valid channel  = written normally into dmxBuffer[channel-1].
+   - Above limit    = ignored safely (no crash, no memory breach).
+
+4. The “maxChannel(64)” confusion
+   The setup still calls:
+       DmxSimple.maxChannel(64);
+   This is *not* a hard cap. It only sets the initial “dmxMax”.
+   When any item writes to a higher channel (e.g., 70), the library
+   automatically extends dmxMax up to that value, as long as it is
+   ≤ DMX_SIZE (127). This is why channels >64 still work.
+
+5. Practical effect
+   - Editor assigns channels 1..127 → firmware handles them safely.
+   - Anything >127 → ignored without affecting system stability.
+   - Reducing buffer size frees ~400 bytes of RAM.
+
+6. Future expansion
+   To restore larger universes:
+     1) Edit DART_DMX_MAX_CHANNELS in config.h
+     2) Recompile
+     3) (Optional) update the editor UI to allow >127
+
+------------------------------------------------------------
+End of DMX quick reference.
+#DMX_LIMITS_DART
+*/
+
+
 /*
  * 
  * 
@@ -610,35 +614,39 @@ load_preset()
 il commento di mappa EEPROM presente in D_MIN.ino
 
 ed eventuali funzioni che si aspettano la PAGE 2.
+
+
+// ------------------------------------------------------------------------------------
+// APPROFONDIMENTO: AUTODETECT dentro AIN() (D_INS.ino)
+// ------------------------------------------------------------------------------------
+// AUTODETECT entra in funzione SOLO quando eeprom_preset_active == 0.
+// Questo succede quando load_preset() non trova una "firma" valida del preset
+// (general_mempos con modetable == 26) e quindi carica un preset di emergenza (aux_preset()).
+//
+// aux_preset() imposta una base sicura per partire:
+// - modetable[] = 1  (tutti button)
+// - typetable[] = 144 (NOTE ON di default)
+// - range min/max standard
+// - (attenzione) lightable[] viene inizializzato con remapper(i) nella versione classica.
+//
+// Durante AUTODETECT, AIN() legge l'analogico e fa due azioni principali:
+// 1) detect_plexer(): quando vede attività, diversifica valuetable[] nel gruppo di 8 canali
+//    per evitare che più input mandino la stessa nota.
+// 2) pot-detect: se il valore letto cade in una fascia "intermedia" (indicativa di un pot),
+//    promuove il canale a POT (modetable=11) e lo sposta su messaggi CC (typetable=176).
+//
+// Nota pratica: quando un canale passa a POT, possono attivarsi gli effetti LED tipici dei pot.
+// Per evitare lampeggi confusionali durante AUTODETECT si può:
+// - forzare lightable[chan] = 0 quando modetable[chan] viene messo a 11
+//   (oppure inizializzare lightable[] a 0 in aux_preset() quando eeprom_preset_active==0).
+
+
 */
-// 24 11 25 - merge con aggiornamento funzioni void pushbuttons - adesso i velopads possono essere settati in toggle - correzioni varie anche su outnucleo
-
-// 18 11 25 - oggi ho fatto un allineamento alle impostazioni da editor per gli effetti led dei pot - attuale : 0 no effetti, 1-32 blinker con numero lightable che corrisponde al led che blinka, >32 effetti led a 16led
-  // eliminato il #define fader_type
-
-// ho sistemato le cose per fare funzionare fastanalogread a pieno regime: mi serviva una variabile per la finestra temporale e ho usato qwertyvalue - 
-
-// 13 11 25 - ho raqggiunto un buon funzionamento dei pad velocity sensitive con soglie ben studiate per attivazione dell'accensione pulsante e registrazione della velocity
-// tutto si gioca con le soglie upper_val e lower_val - se si tratta di pulsanti normali abbiamo una lettura digital quindi le soglie 900 400 vanno benissimo per tutto 
-// se si tratta di velocity sensing ho scelto di usare minvalue come selettore di sensibilità del pad - più aumenta minvalue più la soglia di trigger si abbassa e il pad diventa sensibile.
-// la velocity viene adattata al range di trigger minimo, quindi, vicino alla soglia avremo velocity bassa e lontano dalla sogli velocity alta - il range è adattivo
-
-// 
 
 
 
-// 10 11 25 sostituisco analogread() con analogread_1024() in tutto lo sketch 
- 
- 
- /*
- * SPDX-License-Identifier: GPL-3.0-or-later
- *
- * DART_SKETCH   —   Copyright (c) 2015–2025 M. Marchese - dartmobo.com
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version. See the LICENSE file for details.
- */
+
+
 
 
 // #martrix_led_info_efx
@@ -684,4 +692,200 @@ ed eventuali funzioni che si aspettano la PAGE 2.
 //  lo shifter NON è collegato quando Matrix_Pads è diverso da 0.
 //  ────────────────────────────────────────────────────────────────
 // #martrix_led_info_efx - fine
+
+
+
+# /*
+
+DART – OWNERSHIP ENCSC (MORPH)
+Lock temporizzato (500 ms) per evitare ping‑pong tra 2 spinner
+==============================================================
+
+PAROLA CHIAVE PER RICERCA:
+CTRL-F: MORPH_OWNER_LOCK
+
+## PROBLEMA OSSERVATO
+
+Quando due ENCSC (spinner) vengono mossi quasi insieme mentre il morph è
+attivo, la logica pre-esistente poteva alternare rapidamente l’owner:
+A → B → A → B ...
+
+Effetto pratico:
+
+* reset continui dello stato morph
+* avanzamento che non progredisce
+* possibile “sospensione” del flusso MIDI (meglio della confusione, ma non ideale)
+
+## OBIETTIVO
+
+Stabilizzare l’ownership in modo musicale:
+
+* “last touch wins”
+* ma l’owner NON può essere rubato immediatamente dall’altro spinner
+* viene introdotto un lock temporale: 500 ms
+
+## COME FUNZIONA (REGOLA)
+
+Se morph è attivo e c’è già un owner:
+
+* gli impulsi provenienti dallo spinner NON-owner vengono ignorati
+  finché l’owner ha mosso negli ultimi 500 ms.
+
+In pratica:
+
+* spinner A inizia → A diventa owner
+* se muovi B mentre A è ancora “fresco” → B è ignorato
+* quando A smette (nessun impulso per 500 ms) → B può prendere ownership
+
+## IMPLEMENTAZIONE (MINIMA)
+
+Dove: file D_scene.ino, funzione:
+scene_morph_encsc(byte enc_chan)
+
+1. Definizione costante:
+   CTRL-F: MORPH_OWNER_LOCK_MS
+   #define MORPH_OWNER_LOCK_MS 500
+
+2. Guardia (gate) all’inizio della funzione:
+   CTRL-F: MORPH_OWNER_LOCK_GUARD
+
+   * legge millis()
+   * se enc_chan != morph_owner
+   * controlla quanto tempo è passato dall’ultimo movimento dell’owner
+     usando morph_last_ms[ownerIdx]
+   * se < 500 ms → return; (ignora l’impulso del NON-owner)
+
+## CODICE CHIAVE: DOVE METTERE L’ANCORA
+
+Consigliato inserire l’ancora direttamente:
+
+* sopra la #define
+* e sopra la guardia
+
+Esempio:
+// CTRL-F: MORPH_OWNER_LOCK
+#define MORPH_OWNER_LOCK_MS 500
+
+...
+// CTRL-F: MORPH_OWNER_LOCK
+if (morph_active ... ) { ... return; }
+
+## NOTE IMPORTANTI
+
+* Questa ownership riguarda SOLO gli ENCSC (spinner) usati per il morph.
+* Non coinvolge gli encoder generici dello scanning AIN().
+* L’approccio è volutamente minimale: niente tabelle nuove, niente stato extra.
+* Se in futuro vuoi un feeling più reattivo:
+
+  * riduci MORPH_OWNER_LOCK_MS (es. 250–350)
+    Se vuoi più “DJ safe”:
+  * aumenta (es. 600–800)
+
+====================================================================
+*/
+
+# /*
+
+DART – TAKEOVER POT / SCENE SUBJECT
+Aggiornamento della base software dei pot-subject
+=================================================
+
+PAROLA CHIAVE PER RICERCA:
+CTRL-F: POT_SCENE_BASE_SYNC
+
+## CONTESTO
+
+Nel sistema DART i pot-scene-subject (pot che controllano parametri di scena)
+possono essere modificati da due meccanismi interni:
+
+1. MAXWINS (pot analogici: vince il valore più alto)
+2. MORPH   (encoder: interpolazione temporale dei valori)
+
+Senza un aggiornamento della "base software" dei pot, questi diventano
+"duri": quando l'utente li tocca dopo un morph o un maxwins,
+il valore fisico scatta brutalmente verso la posizione precedente.
+
+## OBIETTIVO
+
+Rendere i pot-scene-subject "morbidi" tramite il meccanismo di TAKEOVER,
+aggiornando la loro base software quando il valore del subject cambia
+PER CAUSE INTERNE (maxwins o morph), senza generare loop o feedback.
+
+## SCELTA ARCHITETTURALE (CRITICA)
+
+L'aggiornamento della base dei pot NON deve passare da:
+
+* convoy_commit()
+* sistemi globali di dispatch
+
+Perché:
+
+* convoy è re-entrante
+* genera feedback logici interni
+* può causare oscillazioni sugli encoder-scene-subject
+
+La base software dei pot viene quindi aggiornata SOLO:
+
+* nel punto in cui il valore finale del subject viene deciso
+* localmente
+* senza invii MIDI
+
+## IMPLEMENTAZIONE
+
+La stessa identica logica viene applicata in due punti:
+
+A) MAXWINS
+B) MORPH
+
+In entrambi i casi:
+
+* il codice è attivo SOLO se ENABLE_POT_TAKEOVER == 1
+* vale SOLO per pot (mode 11..15)
+* vale SOLO per Page1 (regola fissa nel mondo scene)
+
+## PSEUDOCODICE
+
+if (ENABLE_POT_TAKEOVER)
+{
+if (subject_mode is POT)
+{
+// aggiorna base software del pot
+lastbutton[subject_chan] = final_value << 1;  // coerente con pots()
+
+```
+// arma takeover: il pot non scriverà finché non aggancia
+bit_write(ARMED_BANK, subject_chan, 1);
+```
+
+}
+}
+
+## EFFETTO
+
+* Quando MAXWINS o MORPH cambiano un subject:
+
+  * il pot fisico viene riallineato internamente
+  * il takeover evita scatti quando l'utente lo tocca
+
+* Nessun invio MIDI extra
+
+* Nessun feedback interno
+
+* Nessuna interferenza con encoder-scene-subject
+
+## NOTE IMPORTANTI
+
+* Questa logica NON va spostata in convoy
+* Questa logica NON va eseguita durante lo scanning AIN
+* Questa logica è intenzionalmente duplicata (maxwins / morph)
+  per mantenere il controllo locale e ridurre effetti collaterali
+
+## ESTENSIONI FUTURE (NON IMPLEMENTATE)
+
+* Ownership degli encoder-scene-subject
+* Takeover scena-parametro completo (valutare costo/beneficio)
+
+====================================================================
+*/
+
  

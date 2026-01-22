@@ -78,6 +78,7 @@ void setup()
   digitalWrite(20, HIGH); // analog in 2
   digitalWrite(21, HIGH); // analog in 3
   digitalWrite(22, HIGH); // analog in 4
+ 
   digitalWrite(23, HIGH); // analog in 5
 }
             #endif
@@ -159,21 +160,30 @@ void setup()
   if (lastbutton[page_mempos] > 0  )  {page = 0;  // pagestate=0; 
   pagestate = 1;
   load_preset(0); //ledrestore(); // levetta a destra caricamento preset eeprom pagina 1
+
+   #if (Page_switch == 1)
     page_leds_(0);
-    
+   #endif
+
+   #if (Scale == 1)
      update_scala(1);  
      update_scala(0);   
- 
+  #endif
         
  }
  else 
  {page= max_modifiers;   pagestate=0; 
  load_preset(1);  //ledrestore2(); // levetta a sinistra preset 2
 
+#if (Page_switch ==1)
   page_leds_(1);
+  #endif
+
+
+  #if (Scale == 1)
      update_scala(1);  
      update_scala(0);  
-
+  #endif
  
  } 
  }
@@ -247,6 +257,29 @@ if (valuetable[general_mempos] != 0) { // 0 = nomobo
   digitalWrite(11, LOW);
    digitalWrite(10, LOW);
 }
+
+
+// [TOUCH_PULLUP_SETUP]
+// External touch inputs: optionally enable internal pullups (for buttons to GND / open-drain).
+// Applies ONLY when Touch_sensors_enable is 2 (pins 7&9) or 3 (pins 7&8).
+if (Touch_sensors_enable == 2 || Touch_sensors_enable == 3)
+{
+  const byte tPin0 = 7;
+  const byte tPin1 = (Touch_sensors_enable == 2) ? 9 : 8;
+
+  if (touch_pullup)
+  {
+    pinMode(tPin0, INPUT_PULLUP);
+    pinMode(tPin1, INPUT_PULLUP);
+  }
+  else
+  {
+    pinMode(tPin0, INPUT);
+    pinMode(tPin1, INPUT);
+  }
+}
+
+
 
  openeditor = 0;
  note = 255;  // out of range (0-127) value
@@ -346,7 +379,12 @@ int analogRead_1024(uint8_t analogPin) {
 #if (Fast_analogread == 0)
 
 int analogRead_1024(uint8_t analogPin) {
-  return analogRead(analogPin);   // restituisce 0..1023, come prima
+   // dummy read: scarta la prima conversione (assestamento S/H)
+  // (void)analogRead(analogPin);
+
+  // lettura "buona"
+  return analogRead(analogPin);
+  
 }
 
 
