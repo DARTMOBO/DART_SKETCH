@@ -1,4 +1,4 @@
- /*
+/*
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * DART_SKETCH   —   Copyright (c) 2015–2025 M. Marchese - dartmobo.com
@@ -8,8 +8,7 @@
  * (at your option) any later version. See the LICENSE file for details.
  */
 
-
-#define ENABLE_BOOSTAX  // Disattiva commentando questa riga
+#define ENABLE_BOOSTAX // Disattiva commentando questa riga
 
 // ------------------------------------------------------------
 // helper unico per X e Y (più corto, evita abs(), meno confronto)
@@ -20,42 +19,49 @@ static void mouse_axis_step(int8_t d, int16_t* accum,
                             uint16_t* boost_counter,
 #endif
                             int8_t baseSpeed,
-                            uint8_t moveAxis)
-{
+                            uint8_t moveAxis) {
   // deadzone: abs(d) <= 2  --> confronto equivalente senza abs()
   if (d >= -2 && d <= 2) {
     *accum = 0;
-#ifdef ENABLE_BOOSTAX
+    #ifdef ENABLE_BOOSTAX
     *boost_counter = 0;
-#endif
+    #endif
     return;
   }
 
   int8_t boost = 0;
 
-#ifdef ENABLE_BOOSTAX
+  #ifdef ENABLE_BOOSTAX
   // Costanti identiche alla tua taratura
-  const uint16_t boost_delay_max  = 200;
-  const uint8_t  boost_step_delay = 12;
-  const uint8_t  boost_max        = 35;
-  const uint16_t boost_limit      = 620; // 200 + 12*35
+  const uint16_t boost_delay_max = 200;
+  const uint8_t boost_step_delay = 12;
+  const uint8_t boost_max = 35;
+  const uint16_t boost_limit = 620; // 200 + 12*35
 
   // abs(d) >= 14  --> confronto equivalente
   if (d <= -14 || d >= 14) {
-    if (*boost_counter < boost_limit) (*boost_counter)++;
+    if (*boost_counter < boost_limit) {
+      (*boost_counter)++;
+    }
   } else {
-    if (*boost_counter > 0) (*boost_counter)--;
+    if (*boost_counter > 0) {
+      (*boost_counter)--;
+    }
   }
 
   if (*boost_counter > boost_delay_max) {
     boost = (int8_t)((*boost_counter - boost_delay_max) / boost_step_delay);
-    if (boost > boost_max) boost = boost_max;
+    if (boost > boost_max) {
+      boost = boost_max;
+    }
   }
-#endif
+  #endif
 
   const int8_t speed_total = baseSpeed + boost;
 
-  if (speed_total <= 0) return;
+  if (speed_total <= 0) {
+    return;
+  }
 
   *accum += (int16_t)((d * speed_total) / 8);
 
@@ -65,8 +71,11 @@ static void mouse_axis_step(int8_t d, int16_t* accum,
     *accum -= (int16_t)(move * 16);
 
     #if (hid_mouse == 1)
-      if (moveAxis == 0) Mouse.move(move, 0, 0);
-      else               Mouse.move(0, move, 0);
+    if (moveAxis == 0) {
+      Mouse.move(move, 0, 0);
+    } else {
+      Mouse.move(0, move, 0);
+    }
     #endif
   }
 }
@@ -89,12 +98,18 @@ static inline uint8_t mouse_block_allow(uint8_t active) {
     unsigned long now = millis();
     last = now;
 
-    if (t0 == 0) t0 = now;
+    if (t0 == 0) {
+      t0 = now;
+    }
 
-    if (!blocked && (now - t0 >= MOUSE_BLOCK_MS)) blocked = 1;
+    if (!blocked && (now - t0 >= MOUSE_BLOCK_MS)) {
+      blocked = 1;
+    }
 
-    if (blocked) return 0; // STOP
-    return 1;              // OK
+    if (blocked) {
+      return 0; // STOP
+    }
+    return 1; // OK
   }
 
   // deadzone: non resettare subito (l'altro asse potrebbe essere ancora attivo)
@@ -110,24 +125,25 @@ static inline uint8_t mouse_block_allow(uint8_t active) {
 }
 #endif
 
-
 // ------------------------------------------------------------
 // mouse_control() compatibile con la tua logica attuale
 // ------------------------------------------------------------
 void mouse_control() {
   #if defined(__AVR_ATmega32U4__)
   if (mouse_mempos != 0) {
-
     static int16_t accum_x = 0;
     static int16_t accum_y = 0;
 
-#ifdef ENABLE_BOOSTAX
+    #ifdef ENABLE_BOOSTAX
     static uint16_t boost_counter_x = 0;
     static uint16_t boost_counter_y = 0;
-#endif
+    #endif
 
     int8_t raw_speed = dmxtable[mouse_mempos];
-    if (raw_speed == 0) return;
+    if (raw_speed == 0) {
+      return;
+    }
+    
     int8_t baseSpeed = raw_speed - 32;
 
     // inversioni via lightable[mouse_mempos]
@@ -136,15 +152,15 @@ void mouse_control() {
 
     // ---- ASSE X ----
     if (chan == minvalue[mouse_mempos]) {
-
       valore = analogRead_1024(plexer);
 
       // prima: mousex = 111 + ((valore + 1) / 32); d = mousex - 127;
       // ora: d = ((valore + 1) >> 5) - 16;  (identico, ma più corto)
       int8_t d = (int8_t)(((valore + 1) >> 5) - 16);
 
-      if (inv & 0x02) d = -d;  // invert X
-
+      if (inv & 0x02) {
+        d = -d; // invert X
+      }
 
       // CTRL-F: MOUSE_BLOCK_GATE
       #if (mouse_block == 1)
@@ -153,28 +169,30 @@ void mouse_control() {
         // blocco attivo: azzera accumulatori per evitare "scatti" alla ripresa
         accum_x = 0;
         accum_y = 0;
-      #ifdef ENABLE_BOOSTAX
+        #ifdef ENABLE_BOOSTAX
         boost_counter_x = 0;
         boost_counter_y = 0;
-      #endif
+        #endif
         return;
       }
       #endif
+      
       mouse_axis_step(d, &accum_x,
-#ifdef ENABLE_BOOSTAX
-                      &boost_counter_x,
-#endif
-                      baseSpeed, 0);
+        #ifdef ENABLE_BOOSTAX
+        &boost_counter_x,
+        #endif
+        baseSpeed, 0);
     }
 
     // ---- ASSE Y ----
     else if (chan == maxvalue[mouse_mempos]) {
-
       valore = analogRead_1024(plexer);
 
       int8_t d = (int8_t)(((valore + 1) >> 5) - 16);
 
-      if (inv & 0x01) d = -d;  // invert Y
+      if (inv & 0x01) {
+        d = -d; // invert Y
+      }
 
       // CTRL-F: MOUSE_BLOCK_GATE
       #if (mouse_block == 1)
@@ -184,25 +202,23 @@ void mouse_control() {
           // blocco attivo: azzera accumulatori per evitare "scatti" alla ripresa
           accum_x = 0;
           accum_y = 0;
-        #ifdef ENABLE_BOOSTAX
+          #ifdef ENABLE_BOOSTAX
           boost_counter_x = 0;
           boost_counter_y = 0;
-        #endif
+          #endif
           return;
         }
       }
       #endif
 
-
       mouse_axis_step(d, &accum_y,
-#ifdef ENABLE_BOOSTAX
-                      &boost_counter_y,
-#endif
-                      baseSpeed, 1);
+        #ifdef ENABLE_BOOSTAX
+        &boost_counter_y,
+        #endif
+        baseSpeed, 1);
     }
   }
   #endif
 }
-
 
 //-------------------------------------------

@@ -123,23 +123,14 @@ const int minbeam = 290;
 #if (LED_pattern == 0) 
    const byte encledtable[16]= { 4,5,6,7, 12,13,14,15, 3,2,1,0, 11,10,9,8,};  // dart one 
  #endif
- 
- // const byte encledtable[16]= { 4,5,6,7, 12,13,14,15, 3,2,1,16, 11,10,9,8,};  // dart one - darietto
-  
- 
-//  const byte encledtable[16] = { 15,15,14,14,13,13,12,12,11,11,10,10,9,9,8,8,};  // vector
-
- // const byte encledtable[16] = { 8,8,9,9,10,10,11,11,12,12,13,13,14,14,15,15};  // vector inverted
 
  #if (LED_pattern == 1) 
   const byte encledtable[16] = { 12,13,14,14,15,0,7,7,1,6,2,2,5,3,4,4};  // kombat
 #endif
 
-/*
-#if (LED_pattern == 3) 
-  const byte encledtable[16] = { 1,4,3,3,2,8,7,7,6,5,12,12,11,10,9,9};  // kombat - nb // 1,4,3,2, 8,7,6,5, 12 ,11,10,9
+#if (LED_pattern == 2) 
+   const byte encledtable[16]= { 15,14,13,12,  7,6,5,4,  8,9,10,11,  0,1,2,3};  // NB-boards
 #endif
-*/
 
 #if (LED_pattern == 3) 
  // const byte encledtable[16] = {0,3,2,2,1,7,6,6,5,4,11,11,10,9,8,8};  // kombat - nb // 
@@ -157,19 +148,11 @@ const int minbeam = 290;
 #endif
 
 #if (LED_pattern == 6) 
- // const byte encledtable[16] = {0,3,2,2,1,7,6,6,5,4,11,11,10,9,8,8};  // kombat - nb3 // 
-   //   const byte encledtable[16] = {11,11,9,9,8,8,10,10,0,0,1,1,2,2,3,3}; // 11 9 8 10
+ // const byte encledtable[16] = {0,3,2,2,1,7,6,6,5,4,11,11,10,9,8,8};  // kombat - nb4 // 
     const byte encledtable[16] = {11,11,10,10,9,9,8,8,3,3,2,2,1,1,0,0}; // 11 9 8 10
 #endif
 
- #if (LED_pattern == 2) 
-   const byte encledtable[16]= { 
-   15,14,13,12,
-  7,6,5,4,
-   8,9,10,11,
-   0,1,2,3
-   };  // NB-boards
-#endif
+ 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -470,7 +453,7 @@ const byte modetable_readmode[41] = {
   1, 1, 1, 1, 1,                   // 11–15: potenziometri → analogRead
   0,                                  // 16 seq
   0,                                   // 17 page
-  1,                                // beam
+  4,                                // beam
   2,                               // 19: encoder
   0,                               // 20
   3,                               // 21  spinner 1 - inutile leggere due volte - si salta la lettura, perchè gli spinner vengono letti a parte

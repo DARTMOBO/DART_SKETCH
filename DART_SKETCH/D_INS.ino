@@ -189,11 +189,15 @@ switch (readmode) {
   case 1: // Potenziometri / analogici → analogRead
  
     #if (Dummy_read == 1)
+        #if (pullups_active == 1)
         digitalWrite(18+plexer, LOW);
+        #endif
         valore = analogRead_1024(plexer);
         delayMicroseconds(5); 
         valore = analogRead_1024(plexer);
+        #if (pullups_active == 1)
         digitalWrite(18+plexer, HIGH);
+        #endif
  #endif
   #if (Dummy_read == 0)
       valore = analogRead_1024(plexer);
@@ -216,6 +220,21 @@ switch (readmode) {
     updateEncoder(chan);
     break;
 
+  // ila CASE 3 è vuoto, serve per saltare la lettura dove non serve
+
+  case 4:
+        #if (pullups_active == 1)
+        digitalWrite(18+plexer, LOW);
+        #endif
+     
+      //  delayMicroseconds(5); 
+        valore = analogRead_1024(plexer);
+        
+        #if (pullups_active == 1)
+        digitalWrite(18+plexer, HIGH);
+        #endif
+  
+  break;
   
 }
 
