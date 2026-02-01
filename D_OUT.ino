@@ -19,6 +19,7 @@ void noteOn(byte cmd, byte pitch, byte velocity, byte filter) {
       old_velocity = velocity;
     }
   } else if (filter == 2) { // modalita utilizzata solo da encoders settati in endless 0-127
+    #if (MIDI_OUT_CLEANER == 1) // CTRL-F: MIDI_OUT_CLEANER_SWITCH
     /*
      * mettendo filter su 2 si può fare in modo che il segnale in uscita di encoders non di alta qualità sia più pulito
      * (devo vedere 0 o 127 puliti che escono fuori a sconda della direzione di rotazione)
@@ -46,6 +47,9 @@ void noteOn(byte cmd, byte pitch, byte velocity, byte filter) {
     // if (cmd != old_cmd) 
     // Serial.println(cmd);
     
+    #else
+      midiOut(cmd, pitch, velocity); // cleaner OFF: uscita diretta, nessun filtraggio extra
+    #endif
     old_cmd = cmd; 
     old_pitch = pitch;  
     old_velocity = velocity;

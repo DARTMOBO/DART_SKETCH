@@ -5,7 +5,7 @@
 // www.dartmobo.com      //
 ///////////////////////////
 
- /* m5
+ /* 
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * DART_SKETCH   —   Copyright (c) 2015–2025 M. Marchese - dartmobo.com
@@ -15,7 +15,7 @@
  * (at your option) any later version. See the LICENSE file for details.
  */
 
-#define DART_PROFILE 1   // 1=STANDARD 2=CUSTOM 3=KOROVA
+#define DART_PROFILE 5   // 1=STANDARD 2=CUSTOM 3=KOROVA 4=LIME 5=KOMBAT
 #include "DART_config.h"   // central compile-time settings (currently DMX_active)
 
  
@@ -109,7 +109,9 @@ CapacitiveSensor   cs_4_2[2]  = {CapacitiveSensor(8,7), CapacitiveSensor(8,9)};
  unsigned long delay_us;
 //byte diff_pot = 19;
 //#if (stratos == 1)
+#if (MIDI_OUT_CLEANER == 1) // CTRL-F: MIDI_OUT_CLEANER_VAR
 byte out_filter; // usato in void noteon come filtro antiflicker per gli encoders di scarsa qualità
+#endif
 //#endif
 byte shifter_modifier_; // usato in midiout per shiftare i segnali su altro canale ottenendo un effetto simile a PAGE 
 

@@ -144,6 +144,7 @@ void setup() {
   load_preset(0);
 
   #if (stratos == 0) // se trovo un preset lo carico e controllo lo stato di PAGE
+  #if (Page_switch == 1)
   {
     if (eeprom_preset_active == 1 && page_mempos > 0) { // 1 = c'è un preset nella eeprom // eeprom_preset_active viene settato da setup_mempos 
                                                         // che a sua volta è richiamata da load_preset
@@ -181,9 +182,21 @@ void setup() {
       // update_scala(1);  
       // update_scala(0); 
     }
-  }
+    }
+      #else
+    // Page_switch disattivo: ignora completamente l’eventuale lever nel preset.
+    // Forza sempre PAGE 1.
+    page = 0;
+    // pagestate qui è irrilevante se Page_switch==0 (pageswitch() non gira),
+    // ma lo lasciamo “tranquillo”.
+    pagestate = 0;
+    load_preset(0);  // opzionale ma coerente: riallinea sempre la pagina 1
   #endif
 
+  
+  #endif // 
+ 
+ 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   #if (stratos == 1) // se trovo un preset lo carico e controllo lo stato di PAGE
   {

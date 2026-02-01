@@ -423,22 +423,3 @@ void Extraplexer_read() {
   }
 }
 #endif
-
-#if (Side_spinner == 1)
-void Side_spinner_read() {
-  { // gestione del SIDE SPINNER // dmxtable[general_mempos] >1 significa che un side spinner è stato "istituito" via editor, nel mio preset.
-    #if defined (__AVR_ATmega32U4__)
-    MSB[1] = digitalRead(22);
-    LSB[1] = digitalRead(23);
-    #endif
-    
-    #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
-    MSB[1] = digitalRead(18);
-    LSB[1] = digitalRead(19);
-    #endif
-      
-    updateEncoder(encoder_mempos[1]); 
-    encoder(encoder_mempos[1]);
-  }
-}
-#endif
