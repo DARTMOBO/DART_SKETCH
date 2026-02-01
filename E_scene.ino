@@ -84,9 +84,24 @@ byte scene_final_value[SCENE_PARAM_COUNT];
 // - più avanti estenderemo a: max-wins scene_control e morph
 // RAM: 16+16+2 = 34 byte
 // ============================================================
+// MORPH_GEN_SYSTEM_OVERVIEW
+// Idea: gli ENCSC devono rifare lo "snapshot base" (morph_base) quando
+// il "mondo reale" dei subject cambia *fuori dal morph* (es: max-wins POT, pot singoli, ecc).
+//
+// convoy_gen            = contatore che aumenta quando convoy_commit() invia DAVVERO un cambiamento.
+// morph_base_gen        = valore di convoy_gen memorizzato al momento dello snapshot morph_base.
+// convoy_gen_suppress   = quando =1, convoy_commit() NON incrementa convoy_gen.
+//                         Serve SOLO durante il morph, per evitare auto-riarmo:
+//                         mentre stai morphando avanti/indietro, non vogliamo che il morph stesso
+//                         faccia cambiare convoy_gen e quindi costringa a rifare snapshot continuamente.
 byte convoy_live_value[SCENE_PARAM_COUNT];   // verità corrente (fotografabile)
 byte convoy_out_value[SCENE_PARAM_COUNT];    // ultimo valore effettivamente inviato
 uint16_t convoy_dirty_mask = 0;
+
+  byte anySent = 0;  // 1 se in questo commit abbiamo inviato almeno un valore diverso (così evitiamo bump inutili di convoy_gen)
+byte convoy_gen = 0;                  
+byte convoy_gen_suppress = 0;  // 1=non incrementare convoy_gen (usato dal morph per non auto-riarmare la FOTO)
+// incrementa quando convoy_commit() invia almeno 1 soggetto (re-arm snapshot morph)
 
 byte convoy_find_subjectIndex(byte mem_chan)
 {
@@ -166,6 +181,8 @@ void convoy_commit()
   if (!m) return;
   convoy_dirty_mask = 0;
 
+  byte anySent = 0;  // 1 se in questo commit abbiamo inviato almeno un valore diverso (così evitiamo bump inutili di convoy_gen)
+
   for (byte i = 0; i < scene_subject_count && i < SCENE_PARAM_COUNT; i++)
   {
     if (!(m & (uint16_t)(1 << i))) continue;
@@ -174,11 +191,22 @@ void convoy_commit()
     if (v == convoy_out_value[i]) continue;
     convoy_out_value[i] = v;
     convoy_send_subject(c, v);
+     anySent = 1;
 
       convoy_sync_encoder_base(c, v); 
     // manteniamo allineato anche scene_final_value (così snapshot vecchi restano coerenti)
     scene_final_value[i] = v;
   }
+
+// CONVOY_GEN_BUMP_RULES
+// convoy_gen incrementa SOLO se:
+// 1) abbiamo inviato almeno un valore (cambiamento reale), e
+// 2) convoy_gen_suppress == 0
+//
+// Motivazione: convoy_gen è il "semaforo" che segnala agli ENCSC:
+// "il mondo è cambiato fuori dal morph, quindi la base va rifotografata".
+// Durante il morph lo suppress è attivo per non auto-riarmare lo snapshot.
+  if (anySent && !convoy_gen_suppress) convoy_gen++;
 }
 
 // ============================================================
@@ -209,6 +237,7 @@ byte morph_active = 0;
 byte morph_scene  = 0;                // usato solo quando NON siamo in test forced
 byte morph_value  = 0;                // 0..127
 byte morph_base[SCENE_PARAM_COUNT];   // foto base (16 byte)
+byte morph_base_gen = 0;             // copia di convoy_gen al momento dello snapshot (serve a capire se i subject sono cambiati)
 
 // posizione per i 2 encoder fisici (indicizzati via encoder_mempos[0/1])
 byte morph_pos[2]    = {0, 0};
@@ -329,6 +358,8 @@ void scene_build_subject_list()
   }
   convoy_dirty_mask = 0;
 
+  byte anySent = 0;  // 1 se in questo commit abbiamo inviato almeno un valore diverso (così evitiamo bump inutili di convoy_gen)
+
 }
 
 //-------------------------------------
@@ -426,6 +457,11 @@ void scene_control_pot()
 
   // ============================================================
   // CTRL-F: MAXWINS_CONVOY_COMMIT
+// MAXWINS_MUST_BUMP_CONVOY_GEN
+// IMPORTANTISSIMO: il max-wins (POT scene-control) deve far incrementare convoy_gen,
+// perché è un cambiamento "reale del mondo" esterno al morph.
+// Se qui si usasse convoy_gen_suppress, gli ENCSC non vedrebbero il cambio mondo
+// e non rifarebbero lo snapshot base quando ripartono.
   // Un solo commit: invia davvero MIDI/DMX (anti-spam) e aggiorna scene_final_value.
   // ============================================================
   convoy_commit();
@@ -805,6 +841,18 @@ void scene_morph_encsc(byte enc_chan)
   // ============================================================
 
   if (morph_owner != enc_chan) need_snapshot = 1;
+
+  // ============================================================
+  // CTRL-F: MORPH_REARM_ON_CONVOYGEN
+  // Se lo stesso ENCSC riparte ma nel frattempo il "mondo" è cambiato
+  // (pot singoli / pot-scene-control max-wins / altro), allora dobbiamo
+  // rifare la FOTO base. Questo è il caso che ti interessa.
+  // Nota: durante il morph, convoy_gen NON viene incrementato (suppress),
+  // quindi non ci auto-riarmiamo mentre stiamo morphando avanti/indietro.
+  // ============================================================
+  if (!need_snapshot && morph_owner == enc_chan && convoy_gen != morph_base_gen) need_snapshot = 1;
+
+  else if (convoy_gen != morph_base_gen) need_snapshot = 1;   // re-arm: qualcuno ha cambiato i subject dopo l'ultima FOTO
   // else if ((now - morph_last_ms[idx]) > MORPH_REARM_MS) need_snapshot = 1; // DISABLED (see MORPH_NO_RESNAPSHOT_SAME_OWNER)
 
   // questa chiamata esiste perché c'è stato un impulso: aggiorno il tempo
@@ -819,7 +867,11 @@ void scene_morph_encsc(byte enc_chan)
     // FOTO = stato reale attuale (include anche i subject mossi live)
     // (per ora lasciamo questa: NON snapshot da convoy, come mi hai chiesto)
    //  scene_snapshot_subjects(morph_base);
+// MORPH_SNAPSHOT_TAKEN
+// morph_base = fotografia del mondo corrente (convoy_live_value).
+// Salviamo anche morph_base_gen per sapere "a quale mondo" appartiene questa foto.
 convoy_snapshot(morph_base);
+    morph_base_gen = convoy_gen;
 
     // riparti da 0 così NON ci sono scatti bruschi
     morph_pos[idx] = 0;
@@ -927,7 +979,9 @@ void scene_morph_apply(byte scene_index, byte morph)
   // CTRL-F: MORPH_CONVOY_COMMIT
   // Commit: qui avviene davvero l'invio (con anti-spam).
   // ============================================================
+  convoy_gen_suppress = 1;
   convoy_commit();
+  convoy_gen_suppress = 0;
 }
 
 // ============================================================
