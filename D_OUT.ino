@@ -41,7 +41,8 @@ void noteOn(byte cmd, byte pitch, byte velocity, byte filter) {
       out_filter = 0;
     }
 
-    if (out_filter > 2 || pitch != old_pitch) {
+    if (out_filter > 1  // settaggio soglia MIDI OUT CLEANER // 2 = standard //  1 = ancora fa qualcosa 
+    || pitch != old_pitch) {
       midiOut(cmd, pitch, velocity);
     }
     // if (cmd != old_cmd) 

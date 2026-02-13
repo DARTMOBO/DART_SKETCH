@@ -12,7 +12,9 @@
 
 //---------------------------------------------------------------------------------------------------------------
 void push_buttons(byte velo) {
-  // gestione pulsanti
+  
+
+// gestione pulsanti
   // la variabile "velo" ha valore 0 o 1 - se impstata su 1 attiva la lettura della velocity
   // lastbutton[] gestisce il debouncing del pulsante 
   //          - si fa riferimento a lastbutton_debounce che è una variabile fissa 
@@ -34,8 +36,31 @@ void push_buttons(byte velo) {
         Serial.print(minvalue[19]-32); Serial.println(" - speed");
         */
 
-        //   Serial.println(chan);
-        
+        /*
+        ============================================================
+        CTRL-F: PAGESWITCH_DIAG_PRINT_ON_BUTTON  (DISABLED)
+        Diagnostica takeover/pageswitch (contatori + dump arm bank5)
+        usata solo per inchiodare il problema del takeover armato al boot.
+        Ora rimossa/commentata.
+        ============================================================
+
+        for (byte i = 0; i < max_modifiers; i++) {
+          Serial.println(bit_read(5, i + 0));
+        }
+
+        static byte ps_diag_printed = 0;
+        if (!ps_diag_printed) {
+          ps_diag_printed = 1;
+          Serial.print(F("[PS] calls="));    Serial.print(ps_calls);
+          Serial.print(F(" changes="));      Serial.print(ps_changes);
+          Serial.print(F(" arm="));          Serial.println(ps_arm);
+          Serial.print(F("[PS] first page="));      Serial.print(ps_first_page);
+          Serial.print(F(" first pagestate="));     Serial.print(ps_first_pagestate);
+          Serial.print(F(" first reason="));        Serial.println(ps_first_reason);
+          Serial.print(F("[PS] setup page="));       Serial.print(ps_setup_page);
+          Serial.print(F(" setup pagestate="));     Serial.println(ps_setup_pagestate);
+        }
+        */
         if (modetable[chan] >= 3 && modetable[chan] != 27) {
           offgroup(chan, 1);      // da 3 in poi ci sono i toggle groups e radio groups
         }
@@ -234,7 +259,7 @@ void pots() {
  
   #if Scene
   if (typetable[chan + page] == 244) {
-    scene_control_pot();
+    scene_control_pot(); // TEST_ASSASSINO
     return;
   }
   #endif
@@ -258,6 +283,9 @@ void pots() {
 
     // CTRL-F: POTS_TAKEOVER_GATE
     byte allowWrite = 1; // 1=può scrivere, 0=quarantena takeover
+
+ 
+
 
     #if ENABLE_POT_TAKEOVER
     if (bit_read(5, chan + page) == 1) { // ARMED su questa pagina
@@ -323,13 +351,13 @@ void pots() {
               valore = map32(valore, 63, 960, minvalue[chan], maxvalue[chan]);
             } // pot normale 
             // NOTA: il constrain da 0 a 127 viene fatto in seguito sulla variabile potout
-          } else if (modetable[chan] == 12) {
-            valore = map32(valore, 63, 256, minvalue[chan], maxvalue[chan]); // hypercurve 1
+          } else if (modetable[chan] == 12) { // CTRL-F: HYPERCURVE_INPUT_CLAMP_FIX
+            valore = map32(constrain(valore, 63, 256), 63, 256, minvalue[chan], maxvalue[chan]); // hypercurve 1 (clamp input)
             #if (shifter_active == 1 && stratos == 0)
             shifter.setAll(LOW); // non ricordo a che serve questo spegnimento
             #endif
           } else if (modetable[chan] == 13) {
-            valore = map32(valore, 768, 960, minvalue[chan], maxvalue[chan]); // hypercurve 2
+            valore = map32(constrain(valore, 768, 960), 768, 960, minvalue[chan], maxvalue[chan]); // hypercurve 2 (clamp input)
             #if (shifter_active == 1 && stratos == 0) 
             shifter.setAll(LOW); 
             #endif
@@ -354,6 +382,21 @@ void pots() {
           ///  ----------------------------------------------------------
           //---------------------------------------------------------
           potOut = constrain(valore, 0, 127); // serve per inviare midi!!! - in realtà constrain è una sorta di misura di sicurezza - per non avere valori essessivi - ma perchè dovrebbero esserci??
+
+          // CTRL-F: POTS_USER_RANGE_CENTER_OUT
+          byte potSend = potOut;  // default: invio normale (0..127)
+
+         if (modetable[chan] > 13) { // solo centercurve 14/15
+  int a = minvalue[chan];
+  int b = maxvalue[chan];
+  int lo = (a < b) ? a : b;
+  int hi = (a < b) ? b : a;
+
+  int v = map32(potOut, 0, 127, a, b);     // mantiene l'inversione se a>b
+  potSend = (byte)constrain(v, lo, hi);    // chiusura sul range utente
+}
+
+
       
           #if (shifter_active == 1)    
           encled[0] = abs(15 - ((potOut) / 8)) * 16; // spiegazione? boh --- mi pare di capire che con questa formula arrivo a una escursione 0 - 240 - ma quantizzata
@@ -377,13 +420,13 @@ void pots() {
           ///  ----------------------------------------------------------
           switch ((typetable[chan + (page)] - 144) / 16) { ////////// qui viene inviato il segnale midi definitivo
             case 0:
-              noteOn(typetable[chan + (page)] + 32, valuetable[chan + (page)], potOut, 1);
+              noteOn(typetable[chan + (page)] + 32, valuetable[chan + (page)], potSend, 1);
               break; // if (chan < 8) noteOn(176, chan,  valore/8, 0) ; break;// note
             case 1:
-              noteOn(typetable[chan + (page)], valuetable[chan + (page)], potOut, 1);
+              noteOn(typetable[chan + (page)], valuetable[chan + (page)], potSend, 1);
               break; // poly AT
             case 2:
-              noteOn(typetable[chan + (page)], valuetable[chan + (page)], potOut, 1);
+              noteOn(typetable[chan + (page)], valuetable[chan + (page)], potSend, 1);
               // Serial.println(encled);
               break; // cc
             #if Scene
@@ -414,7 +457,7 @@ void pots() {
               break;
             #endif
             case 4:
-              noteOn(typetable[chan + (page)], potOut, 0, 1);
+              noteOn(typetable[chan + (page)], potSend, 0, 1);
               break; // channel AT
             case 5: {
               valore = constrain(map32(valore, 24, 1000, 0, 1024), 0, 1023); // PB - pitch bend e la preparazione encled per l'effetto visivo
@@ -431,7 +474,7 @@ void pots() {
               // Infatti: (244 - 144) / 16 = 6.  Il canale NON conta (marker fisso).
               // Deviazione verso il max-wins scene control (D_scene.ino: scene_control_pot()).
               // ============================================================
-              scene_control_pot();
+              scene_control_pot(); // TEST_ASSASSINO
               break;
             #endif
           }
@@ -447,7 +490,11 @@ void pots() {
           #if (blinker == 1)
           else {
             if (lightable[chan] > 0) { // 0= no efetti - 1=effetti - 2=blinker
-              if ((potOut > 0 && modetable[chan] < 14) || (potOut != 64 && modetable[chan] > 13)) { // hypercurve o normal / centercurve
+              // CTRL-F: BLINKER_OFF_IS_RANGE_MIN
+              // Blinker "stile Traktor": per POT/HYPER (mode 11/12/13) è acceso quando il valore NON è sul minimo del range scelto.
+              // Nota: il minimo del range è min(minvalue, maxvalue). Questo funziona anche se l'utente inverte (min > max).
+              byte blinkOff = (byte)((minvalue[chan] < maxvalue[chan]) ? minvalue[chan] : maxvalue[chan]);
+              if (((potOut != blinkOff) && (modetable[chan] < 14)) || ((potOut != 64) && (modetable[chan] > 13))) { // hypercurve o normal / centercurve
                 bit_write(1, (lightable[chan] - 1) + page, 1);  
               } else {     
                 bit_write(1, (lightable[chan] - 1) + page, 0);

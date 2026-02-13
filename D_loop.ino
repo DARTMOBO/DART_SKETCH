@@ -32,10 +32,12 @@ void loop() {
     } while (rx.header != 0);
  
     #if (stratos == 0) // DIN MIDI in
+    #if defined(__AVR_ATmega32U4__)
     if (Serial1.available() > 0) { 
       incomingByte = Serial1.read();
       midifeedback(); 
     } 
+    #endif
     #endif
     #endif
 

@@ -51,6 +51,44 @@ static inline void pot_midifeedback_takeover_update(byte inType, byte inCC, byte
   #endif
 }
 
+// per midi feedback veloce dedicato a leds (35) o dmx (36)
+#if (FAST_FEEDBACK == 1)
+// CTRL-F: FAST_FEEDBACK_HELPER 
+static inline void fast_feedback_apply(byte ch, byte vel)
+{
+  // --- LED ONLY (35) ---
+  if (modetable[ch] == 35) {
+    if (lightable[ch] == 0) return;
+
+    byte on = (vel != 0);
+
+    if (valuetable[general_mempos] != 0) {
+      #if (shifter_active == 1 && stratos == 0)
+      ledControl(ch, on);
+      #endif
+    } else {
+      #if (shifter_active == 1 && stratos == 0)
+      shifter.setPin(lightable[ch] - 1, on);
+      shifterwrite = 1;
+      #endif
+    }
+    return;
+  }
+
+  // --- DMX ONLY (36) ---
+  if (modetable[ch] == 36) {
+    #if (DMX_active == 1 && stratos == 0)
+    // stessa scala che usi già: velocity * 2
+    byte out = (vel == 0) ? 0 : (byte)(vel * 2);
+    DmxSimple.write(dmxtable[ch], out);
+    #endif
+    return;
+  }
+}
+#endif // FAST_FEEDBACK
+
+
+
 void midifeedback() {
   {
     // read the incoming byte:
@@ -168,7 +206,14 @@ void midifeedback() {
           // 4 - bit_toggle 1 e 2
           
           for(int ledD = 0; ledD < max_modifiers; ledD++) { // elaborazione led feedback
+            
             if (valuetable[ledD] == note && bit_read(3, ledD) == 1) {
+              #if (FAST_FEEDBACK == 1)
+              if (modetable[ledD] == 35 || modetable[ledD] == 36) { // fast feedback per LED-ONLY e DMX-ONLY
+                fast_feedback_apply(ledD, velocity);
+                continue; // salta logiche pesanti (toggle/offgroup/matrix ecc.)
+              }
+              #endif
               if (modetable[ledD] < 16) {    
                 #if (DMX_active == 1 && stratos == 0)
                 DmxSimple.write(dmxtable[ledD], velocity * 2);
@@ -225,6 +270,14 @@ void midifeedback() {
 
             // -------------------------------------------------- 
             if (valuetable[ledD + max_modifiers] == note && bit_read(3, ledD + max_modifiers) == 1) {
+
+                       #if (FAST_FEEDBACK == 1)
+                       if (modetable[ledD] == 35 || modetable[ledD] == 36) { // fast feedback per modalità LED-ONLY e DMX-ONLY
+                fast_feedback_apply(ledD, velocity);
+                continue;
+              }
+                       #endif
+              
               if (modetable[ledD] < 16) {
                 #if (DMX_active == 1 && stratos == 0)
                 DmxSimple.write(dmxtable[ledD], velocity * 2); 
@@ -291,6 +344,14 @@ void midifeedback() {
   
           for(int ledE = 0; ledE < max_modifiers; ledE++) { // shifter.setPin(led, ledstatus2[led]);   // elaborazione led feedback
             if (valuetable[ledE] == note && bit_read(3, ledE) == 1) { // il feedback visivo funziona solo per i pulsanti, non per i pot e altro
+
+                          #if (FAST_FEEDBACK == 1)
+                          if (modetable[ledE] == 35 || modetable[ledE] == 36) { // fast feedback per LED-ONLY e DMX-ONLY
+                fast_feedback_apply(ledE, 0);
+                continue;
+              }
+                          #endif
+              
               if (modetable[ledE] < 16) {
                 #if (DMX_active == 1 && stratos == 0)
                 DmxSimple.write(dmxtable[ledE], 0);

@@ -362,12 +362,54 @@ void encoder_pot_calcolo(byte chan_, byte moltiplicatore) {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void lettura_enc_principale() { // legge l'encoder principale , collegato ad pins con capacità interrupt.
-  MSB[0] = digitalRead(3); // MSB = most significant bit
-  LSB[0] = digitalRead(2); // LSB = least significant bit
-  updateEncoder(encoder_mempos[0]);
-  // lastbutton[encoder_mempos[1]]=64;
-  // updateEncoder_main();
+// =====================================================================
+// TOP SPINNER (interrupt) — lockout leggero, senza majority
+// CTRL-F: TOPSPIN_LOCKOUT_ISR
+// Note:
+// - Qui NON usiamo majority burst: in ISR sarebbe pesante (delayMicroseconds) e può creare jitter.
+// - Usiamo solo LOCKOUT temporale (time-gate) + updateEncoder(), che già scarta transizioni illegali.
+// - ENC_TOP_LOCKOUT_US permette un timing dedicato per top spinner (ottico vs meccanico).
+// =====================================================================
+#if (ENABLE_ENC_LOCKOUT == 1)
+extern uint32_t enc_lock_last_us[60];   // dichiarato in D_INS.ino (array globale per memoryposition 0..59)
+#endif
+
+void lettura_enc_principale() { // legge l'encoder principale (TOP SPINNER) via interrupt
+  const byte chan_enc = encoder_mempos[0];
+
+  // Lettura immediata dei 2 bit (A/B).
+  // NB: qui manteniamo la polarità originale del top spinner (nessun '!').
+  byte msb = (byte)digitalRead(3); // MSB = most significant bit
+  byte lsb = (byte)digitalRead(2); // LSB = least significant bit
+  byte encoded = (byte)((msb << 1) | lsb); // 0..3
+
+#if (ENABLE_ENC_LOCKOUT == 1)
+  // ---------------- LOCKOUT (time-gate) ----------------
+  // Se arrivano interrupt troppo ravvicinati (bounce meccanico / raffiche ottico),
+  // ignoriamo la generazione di step per un attimo.
+  // IMPORTANTISSIMO: aggiorniamo comunque maxvalue[chan_enc] (fase quadrature) per non creare salti alla ripresa.
+  uint32_t now = micros();
+  if ((uint32_t)(now - enc_lock_last_us[chan_enc]) < (uint32_t)ENC_TOP_LOCKOUT_US) {
+    MSB[0] = msb;
+    LSB[0] = lsb;
+    maxvalue[chan_enc] = encoded;   // 'previous state' usato da updateEncoder()
+    lastbutton[chan_enc] = 64;      // nessuno step
+    return;
+  }
+#endif
+
+  // Aggiorna i bit globali come faceva il codice originale, poi decodifica.
+  MSB[0] = msb;
+  LSB[0] = lsb;
+  updateEncoder(chan_enc);
+
+#if (ENABLE_ENC_LOCKOUT == 1)
+  // Armiamo il lockout SOLO se updateEncoder() ha prodotto uno step valido.
+  // (Se lastbutton resta 64, vuol dire: nessun movimento reale.)
+  if (lastbutton[chan_enc] != 64) {
+    enc_lock_last_us[chan_enc] = now;
+  }
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////

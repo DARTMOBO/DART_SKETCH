@@ -15,7 +15,7 @@
 // Logic inversion controlled by touch_invert (0=normal, 1=invert).
 #if (Touch_sensors_enable == 2 || Touch_sensors_enable == 3)
 
-void touch_sensors(byte T_numero) {
+void touch_sensors(byte T_numero) { // void dedicata al touch esterno - con uso di chip dedicati, che sgravano il codice
   // SE ESISTE UN ITEM CON SETTAGGIO TOUCH ALLORA SI PROCEDE ALLA LETTURA
   if (touch_mempos[T_numero] > 0) {
     const byte pin0 = 7;

@@ -30,14 +30,14 @@ void setup() {
       set_unit(12);
       set_unit(13);
     }
-    #endif
+    #endif // (Matrix_Pads > 0 && stratos == 0)
   }
 
   { // DMX setup
     #if (DMX_active == 1 && stratos == 0)
     DmxSimple.usePin(13);
     DmxSimple.maxChannel(64);
-    #endif
+    #endif // (DMX_active == 1 && stratos == 0)
   }
 
   { // setup 4051 chips
@@ -45,12 +45,27 @@ void setup() {
     for (byte bit = 4; bit < 7; bit++) {
       pinMode(bit, OUTPUT); // set the three select pins to output // 4051
     }
-    #endif
+    #endif // (stratos == 0)
   }
-   
-  for (byte bit = 0; bit < 64; bit++) {
+
+
+
+
+
+   #if ENABLE_POT_TAKEOVER
+  for (byte bit = 0; bit < 128; bit++) {
     lastbutton[bit] = 1; // ?? 
   }
+  #else // !ENABLE_POT_TAKEOVER
+  for (byte bit = 0; bit < 64; bit++) {
+    lastbutton[bit] = 1; // ?? 
+    }
+#endif // ENABLE_POT_TAKEOVER
+
+
+
+
+
 
   { // encoder e midi-DIN inputs - su dartmobo
     #if (stratos == 0) 
@@ -62,7 +77,7 @@ void setup() {
     
     pinMode(0, INPUT); // ------------ midi over DIN settings
     digitalWrite(0, HIGH);
-    #endif
+    #endif // (stratos == 0)
   }
 
   { // gestione pullups
@@ -78,8 +93,7 @@ void setup() {
           digitalWrite(22, HIGH); // analog in 4
           digitalWrite(23, HIGH); // analog in 5
         }
-        #endif
-
+        #endif // (stratos == 0)
         #if (stratos == 1) // stratos pullups 
         {
           pinMode(0, INPUT);
@@ -111,10 +125,9 @@ void setup() {
           pinMode(15, OUTPUT); 
           pinMode(16, OUTPUT); // led touch
         }
-        #endif
+        #endif // (stratos == 1)
       }
-      #endif
-
+      #endif // defined (__AVR_ATmega32U4__)
       #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) // gestione pullups
       {
         digitalWrite(14, HIGH);
@@ -124,20 +137,19 @@ void setup() {
         digitalWrite(18, HIGH);
         digitalWrite(19, HIGH);
       }
-      #endif
-    #endif
+      #endif // defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
+    #endif // (pullups_active == 1)
   }
 
   { // serial begin
     #if defined (__AVR_ATmega32U4__)
       #if (stratos == 0)  
       Serial1.begin(31250); // midi over DIN connectors - specific baud rate - su stratos non serve
-      #endif  
-    #endif
-    
+      #endif // (stratos == 0)  
+    #endif // defined (__AVR_ATmega32U4__)
     #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
     Serial.begin(31250); // midi specific baud rate
-    #endif
+    #endif // defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
   }
  
   load_preset_base();
@@ -149,33 +161,41 @@ void setup() {
     if (eeprom_preset_active == 1 && page_mempos > 0) { // 1 = c'è un preset nella eeprom // eeprom_preset_active viene settato da setup_mempos 
                                                         // che a sua volta è richiamata da load_preset
       setPlexer((page_mempos) - ((page_mempos / 8) * 8)); 
-      lastbutton[page_mempos] = map32(analogRead_1024((page_mempos / 8)), 0, 1024, 0, 2); // read page switch state. // se valore alto (valore alto è normale, se non viene portato in basso dal cortocircuito di un pulsante)
+    
+     // lastbutton[page_mempos] = map32(analogRead_1024((page_mempos / 8)), 0, 1024, 0, 2); // read page switch state. // se valore alto (valore alto è normale, se non viene portato in basso dal cortocircuito di un pulsante)   
+    
+     // In setup usiamo analogRead classico per evitare dipendenze da fastADC_init.
+     lastbutton[page_mempos] = map32(analogRead((page_mempos / 8)), 0, 1024, 0, 2);         // read page switch state. // se valore alto (valore alto è normale, se non viene portato in basso dal cortocircuito di un pulsante) 
+
+
 
       if (lastbutton[page_mempos] > 0) {
         page = 0; // pagestate=0; 
-        pagestate = 1;
+        pagestate = 0;
         load_preset(0); // ledrestore(); // levetta a destra caricamento preset eeprom pagina 1
 
         #if (Page_switch == 1)
         page_leds_(0);
-        #endif
+        #endif // (Page_switch == 1)
 
         #if (Scale == 1)
         update_scala(1);  
         update_scala(0);   
-        #endif
+        #endif // (Scale == 1)
       } else {
-        page = max_modifiers; // pagestate=0; 
+        page = max_modifiers; // 
+        pagestate=1; 
+        
         load_preset(1); // ledrestore2(); // levetta a sinistra preset 2
 
         #if (Page_switch == 1)
         page_leds_(1);
-        #endif
+        #endif // (Page_switch == 1)
 
         #if (Scale == 1)
         update_scala(1);  
         update_scala(0);  
-        #endif
+        #endif // (Scale == 1)
       } 
     } else {
       page = 0;
@@ -183,7 +203,7 @@ void setup() {
       // update_scala(0); 
     }
     }
-      #else
+      #else // !(Page_switch == 1)
     // Page_switch disattivo: ignora completamente l’eventuale lever nel preset.
     // Forza sempre PAGE 1.
     page = 0;
@@ -191,11 +211,42 @@ void setup() {
     // ma lo lasciamo “tranquillo”.
     pagestate = 0;
     load_preset(0);  // opzionale ma coerente: riallinea sempre la pagina 1
-  #endif
-
-  
-  #endif // 
+  #endif // (Page_switch == 1)
  
+  
+//#if (ENABLE_POT_TAKEOVER == 1)
+  //   takeover_init = 0;
+  // #endif // (ENABLE_POT_TAKEOVER == 1)
+
+
+// ============================================================
+// CTRL-F: TAKEOVER_BOOT_FREE_STARTPAGE
+// Boot-friendly: sulla pagina di AVVIO i pot devono essere subito "live".
+// Disarmo takeover (bank5) SOLO per la pagina corrente.
+// Pageswitch / Scene potranno riarmarlo più avanti quando serve.
+// ============================================================
+#if (ENABLE_POT_TAKEOVER == 1)
+for (byte i = 0; i < max_modifiers; i++) {
+  bit_write(5, i + 0, 0);              // Page1 NOT ARMED
+  bit_write(5, i + max_modifiers, 0);  // Page2 NOT ARMED
+  // opzionale "rassicurante":
+  // lastbutton[i] = 128;
+  // lastbutton[i + 64] = 128;  // SOLO se il tuo lb usa stride 64 (come in pots)
+}
+#endif
+/*
+    #if ENABLE_POT_TAKEOVER
+  for (byte bit = 0; bit < 128; bit++) {
+    lastbutton[bit] = 128; // ?? 
+  }
+    #endif // ENABLE_POT_TAKEOVER
+*/
+
+
+  #endif // (stratos == 0)
+
+
+
  
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   #if (stratos == 1) // se trovo un preset lo carico e controllo lo stato di PAGE
@@ -221,24 +272,26 @@ void setup() {
       }
     }
   }
-  #endif
+  #endif // (stratos == 1)
 
   if (maxvalue[general_mempos] == 0) { // se i pads sono attivi bisogna togliere la pullup
     #if (stratos == 0)
       #if defined (__AVR_ATmega32U4__) 
       digitalWrite(23, LOW);
-      #endif
+      #endif // defined (__AVR_ATmega32U4__)
       #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
       digitalWrite(19, LOW);
-      #endif
-    #endif
+      #endif // defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
+   #endif // (stratos == 0)
   }  
 
+#if (stratos == 0)
   if (valuetable[general_mempos] != 0) { // 0 = nomobo
     digitalWrite(12, LOW);
     digitalWrite(11, LOW);
     digitalWrite(10, LOW);
   }
+#endif // (stratos == 0)
 
   // [TOUCH_PULLUP_SETUP]
   // External touch inputs: optionally enable internal pullups (for buttons to GND / open-drain).
@@ -266,7 +319,16 @@ void setup() {
 
   #if (Fast_analogread == 1)
   fastADC_init();
-  #endif
+  #endif // (Fast_analogread == 1)
+
+  /*
+  // ============================================================
+  // CTRL-F: PAGESWITCH_DIAG_SNAPSHOT_END_SETUP (DISABLED)
+  // Snapshot usato per diagnostica takeover/pageswitch al boot.
+  // ============================================================
+  ps_setup_page = page;
+  ps_setup_pagestate = pagestate;
+  */
 }
 
 // "Antidoto" alla fastADC_init: rimette l'ADC come si aspetta analogRead()
@@ -303,7 +365,7 @@ uint8_t analogReadFast8(uint8_t analogPin) {
     ch = analogPinToChannel(analogPin);
   #else
     ch = analogPin; // fallback se la macro non esiste
-  #endif
+  #endif // analogPinToChannel
 
   // 2) Gestione canali alti (A6..A11) su Leonardo → MUX5 in ADCSRB
   #if defined(MUX5)
@@ -313,7 +375,7 @@ uint8_t analogReadFast8(uint8_t analogPin) {
   } else {
     ADCSRB &= ~_BV(MUX5);
   }
-  #endif
+  #endif // defined(MUX5)
 
   // 3) Imposta il canale mantenendo riferimento e ADLAR
   uint8_t refbits = ADMUX & 0b11100000; // REFS1:0 + ADLAR
@@ -337,7 +399,7 @@ int analogRead_1024(uint8_t analogPin) {
   // moltiplica per 4 → 0, 4, 8, ... 1020
   return (int)v8 << 2; // equivalente a v8 * 4
 }
-#endif
+#endif // (Fast_analogread == 1)
 
 #if (Fast_analogread == 0)
 int analogRead_1024(uint8_t analogPin) {
@@ -347,8 +409,4 @@ int analogRead_1024(uint8_t analogPin) {
   // lettura "buona"
   return analogRead(analogPin);
 }
-#endif
-
-
-
- 
+#endif // (Fast_analogread == 0)

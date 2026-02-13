@@ -1,6 +1,15 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void pageswitch() { //----------------------------------------------------- PAGE SWITCH
+  /*
+  // ============================================================
+  // CTRL-F: PAGESWITCH_DIAG_HOOK_TOP  (DISABLED)
+  // Diagnostica usata per capire perché il takeover veniva armato al boot.
+  // ============================================================
+  ps_calls++;
+  if (ps_first_page == 255) { ps_first_page = page; ps_first_pagestate = pagestate; }
+  */
+
   // 2 casi:
   // A) pagestate==0 e page>0  -> torna alla page 0   (midiOut con MIN)
   // B) pagestate==1 e page==0 -> va a max_modifiers (midiOut con MAX)
@@ -21,12 +30,29 @@ void pageswitch() { //----------------------------------------------------- PAGE
     outValue = maxvalue[page_mempos];
     ledsMode = 1;
   } else {
+    /*
+    // CTRL-F: PAGESWITCH_DIAG_NOCHANGE  (DISABLED)
+    if (ps_first_reason == 255) ps_first_reason = 0;
+    */
     return; // nessun cambio pagina richiesto
   }
 
   // Applica target
   byte oldPage = page;
   page = targetPage;
+
+  /*
+  // ============================================================
+  // CTRL-F: PAGESWITCH_DIAG_CHANGE  (DISABLED)
+  // ============================================================
+  ps_changes++;
+  if (ps_first_reason == 255) {
+    if (page == max_modifiers) ps_first_reason = 1;
+    else if (page == 0)        ps_first_reason = 2;
+    else                       ps_first_reason = 0;
+  }
+  */
+
 
   // CTRL-F: TAKEOVER_INIT_PAGE2_ON_FIRST_ENTRY
   #if ENABLE_POT_TAKEOVER
@@ -43,6 +69,10 @@ void pageswitch() { //----------------------------------------------------- PAGE
   #endif
   
   // CTRL-F: TAKEOVER_ARM_ON_PAGESWITCH
+  /*
+  // CTRL-F: PAGESWITCH_DIAG_ARM  (DISABLED)
+  ps_arm++;
+  */
   #if ENABLE_POT_TAKEOVER
   // Appena entri in una pagina: ARMED su tutti i pot (chan 0..59) di quella pagina.
   // pots() li sbloccherà (CAUGHT) solo quando agganciano il loro target.

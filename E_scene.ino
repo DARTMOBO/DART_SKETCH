@@ -385,8 +385,14 @@ void scene_control_pot()
   // Se mappiamo da 0..960, lo "zero assoluto" (buio totale) diventa irraggiungibile
   // e i livelli minimi risultano 1..n.
   byte level = (valore <= 63) ? 0 : (byte)map32(valore, 63, 960, 0, 127);
+  // CTRL-F: SCENE_CONTROL_INVERT_MIN_GT_MAX
+  // Inversione per singolo item: se l'utente imposta min > max, invertiamo l'escursione.
+  // Nota: QUI vogliamo invertire anche lo 0, altrimenti in fondo corsa (valore<=63) la scena resta azzerata.
+  if (minvalue[chan] > maxvalue[chan]) {
+    level = (byte)(127 - level);  // 0<->127, 1<->126 ... (scala completa invertita)
+  }
 
-  // quale scena controlla questo pot (da valuetable)
+// quale scena controlla questo pot (da valuetable)
   byte scene_index = valuetable[chan] & 0x07;   // 0..7
 
   // aggiorna il livello della scena (vince l’ultimo pot mosso se duplicati)
@@ -440,6 +446,7 @@ void scene_control_pot()
 	
 	      // Arm takeover per questo pot (Page1): finché l'utente non aggancia, pots() non deve sparare.
 	      bit_write(5, c, 1);
+    //   Serial.println(F("SCENE armed takeover (Page1)"));
 	    }
 #endif // ENABLE_POT_TAKEOVER
 

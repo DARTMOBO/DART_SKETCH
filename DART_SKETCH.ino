@@ -1,4 +1,3 @@
- 
 ///////////////////////////
 // DART_SKETCH   v1.88   // 
 // Massimiliano Marchese //
@@ -15,7 +14,7 @@
  * (at your option) any later version. See the LICENSE file for details.
  */
 
-#define DART_PROFILE 5   // 1=STANDARD 2=CUSTOM 3=KOROVA 4=LIME 5=KOMBAT
+
 #include "DART_config.h"   // central compile-time settings (currently DMX_active)
 
  
@@ -49,38 +48,41 @@ static inline uint8_t map7_0_1023_to_0_127(uint16_t x)
 
   #if (hid_mouse == 1)
 #include <Mouse.h>
- #endif
+ #endif // (hid_mouse == 1)
 
 #define ENABLE_BOOSTAX  // ← ATTIVO // commentare per disattivare // sezione mouse 
 
 //---------------------------------------------------------------
 
+#if ( hid_keys  == 1)
 #include <Keyboard.h>
+
+#endif // (hid_keys == 1)
 midiEventPacket_t rx;
-#endif
+#endif // defined (__AVR_ATmega32U4__)
 
 #if (Touch_sensors_enable == 1)
 // pin 9 e 7 sono gli input - 8 è l'emettitore
 #include "_DART_Touch_Sensor.h"
 #if (stratos == 1 )
 CapacitiveSensor   cs_4_2[1] = {CapacitiveSensor(9,8)}; // stratos
-#endif
+#endif // (stratos == 1)
 #if (stratos == 0 )
 CapacitiveSensor   cs_4_2[2]  = {CapacitiveSensor(8,7), CapacitiveSensor(8,9)};
-#endif
+#endif // (stratos == 0)
  
-#endif
+#endif // (Touch_sensors_enable == 1)
 
 
 #if (DMX_active == 1 && stratos == 0)
-#include "_DART_DMX_Out.h"
-#endif
+#include "_DART_Dmx_Out.h"
+#endif // (DMX_active == 1 && stratos == 0)
 
 #include "_DART_EEPROM.h"
 
 #if (shifter_active == 1 && stratos == 0)
 #include "_DART_Shifter.h"
-#endif
+#endif // (shifter_active == 1 && stratos == 0)
 
 //-----------------------------------------------------------------------------------
  #if (Matrix_Pads >0  && stratos == 0)
@@ -97,12 +99,12 @@ CapacitiveSensor   cs_4_2[2]  = {CapacitiveSensor(8,7), CapacitiveSensor(8,9)};
 #if DART_USE_HW_SPI
   #include "_DART_LedControl.h"
   typedef DartLedControl DartLedLib;
-#else
+#else // !DART_USE_HW_SPI
   #include "LedControl.h"
   typedef LedControl DartLedLib;
-#endif
+#endif // DART_USE_HW_SPI
 
- #endif  // (Matrix_Pads >0  && stratos == 0)
+ #endif // (Matrix_Pads >0  && stratos == 0)
 //--------------------------------------------------------------------------------------
 
 
@@ -110,8 +112,8 @@ CapacitiveSensor   cs_4_2[2]  = {CapacitiveSensor(8,7), CapacitiveSensor(8,9)};
 //byte diff_pot = 19;
 //#if (stratos == 1)
 #if (MIDI_OUT_CLEANER == 1) // CTRL-F: MIDI_OUT_CLEANER_VAR
-byte out_filter; // usato in void noteon come filtro antiflicker per gli encoders di scarsa qualità
-#endif
+byte out_filter; // usato in void noteon come filtro antiflicker per gli encoders di scarsa qualità 
+#endif // (MIDI_OUT_CLEANER == 1)
 //#endif
 byte shifter_modifier_; // usato in midiout per shiftare i segnali su altro canale ottenendo un effetto simile a PAGE 
 
@@ -124,35 +126,35 @@ const int minbeam = 290;
 ///////////////////////////////////////////////////////////////////////
 #if (LED_pattern == 0) 
    const byte encledtable[16]= { 4,5,6,7, 12,13,14,15, 3,2,1,0, 11,10,9,8,};  // dart one 
- #endif
+ #endif // (LED_pattern == 0)
 
  #if (LED_pattern == 1) 
   const byte encledtable[16] = { 12,13,14,14,15,0,7,7,1,6,2,2,5,3,4,4};  // kombat
-#endif
+#endif // (LED_pattern == 1)
 
 #if (LED_pattern == 2) 
    const byte encledtable[16]= { 15,14,13,12,  7,6,5,4,  8,9,10,11,  0,1,2,3};  // NB-boards
-#endif
+#endif // (LED_pattern == 2)
 
 #if (LED_pattern == 3) 
  // const byte encledtable[16] = {0,3,2,2,1,7,6,6,5,4,11,11,10,9,8,8};  // kombat - nb // 
     const byte encledtable[16] = {8,8,9,10,11,11,4,5,6,6,7,1,2,2,3,0};
-#endif
+#endif // (LED_pattern == 3)
 
 #if (LED_pattern == 4) 
  // const byte encledtable[16] = {0,3,2,2,1,7,6,6,5,4,11,11,10,9,8,8};  // kombat - nb2 // 
     const byte encledtable[16] = {8,8,10,11,9,9,4,5,6,6,7,1,2,2,3,0};
-#endif
+#endif // (LED_pattern == 4)
 
 #if (LED_pattern == 5) 
  // const byte encledtable[16] = {0,3,2,2,1,7,6,6,5,4,11,11,10,9,8,8};  // kombat - nb3 // 
     const byte encledtable[16] = {11,11,9,8,10,10,4,5,6,6,7,1,2,2,3,0}; // 11 9 8 10
-#endif
+#endif // (LED_pattern == 5)
 
 #if (LED_pattern == 6) 
  // const byte encledtable[16] = {0,3,2,2,1,7,6,6,5,4,11,11,10,9,8,8};  // kombat - nb4 // 
     const byte encledtable[16] = {11,11,10,10,9,9,8,8,3,3,2,2,1,1,0,0}; // 11 9 8 10
-#endif
+#endif // (LED_pattern == 6)
 
  
 
@@ -225,7 +227,7 @@ byte chan;
 
 
 // ricordiamo che se premuto il valore scende verso gnd cioè zero 0 - se rilasciato il pulsante va in alto verso 1024 (consiverando valore in un range 0-1024 classico - il range poi con le funzioni fastanalog si restringe a 8bit 0-255
-const int upper_val = 800; // ho scelto 800 perchè ho visto che alcuno pads velocity sensitive , a riposo non salgono sopra 840 - ricordiamo che a riposo il valore tende all'altro cioì 1024 - 
+const int upper_val = 800; // ho scelto 800 perché ho visto che alcuno pads velocity sensitive , a riposo non salgono sopra 840 - ricordiamo che a riposo il valore tende all'altro cioè 1024 - 
 const int lower_val = 400;
 /*
   // per pad velocity molto sensibile - un pad premuto fortissimo si avvicina allo zero - premuto piano scende facilmente sotto i 750 
@@ -264,9 +266,10 @@ byte page_mempos;
 // CTRL-F: PAGE_BOOT_SELECT
 #if ENABLE_POT_TAKEOVER
 byte page = 0; // takeover: boot in Page1
-#else
+//byte takeover_init = 1;
+#else // !ENABLE_POT_TAKEOVER
 byte page = max_modifiers ; // legacy boot
-#endif
+#endif // ENABLE_POT_TAKEOVER
 
 byte cycletimer;   /// conteggio di tempo in base ai cicli - serve per regolare effetti visivi led - e per il timing del virtualtouch
                    // viene aumenato di +1 ad ogni ciclo - fino a un max di 250
@@ -301,11 +304,11 @@ volatile byte  readingsXen[2][3] ;      // the readings from the analog input
 
 #if ( stratos == 1)
 int decaysensor[2]; //= decaysensor_value;
-#endif
+#endif // (stratos == 1)
 
 #if ( stratos == 0)
 byte decaysensor[2]; //= decaysensor_value;
-#endif
+#endif // (stratos == 0)
 
 byte indexXen = 0;                  // the index of the current reading
 // unsigned int totalXen[2];                  // the running total
@@ -329,7 +332,7 @@ byte higher_Xen[2] = {40,40};
 #define SRCLK_Pin 12 //CLOCK
 #define NUM_REGISTERS 4 // how many registers are in the chain
 Shifter shifter(SER_Pin, RCLK_Pin, SRCLK_Pin, NUM_REGISTERS);
-#endif 
+#endif // (shifter_active == 1 && stratos == 0)
 
 #if (Matrix_Pads > 0 && stratos == 0)
 
@@ -346,7 +349,7 @@ Shifter shifter(SER_Pin, RCLK_Pin, SRCLK_Pin, NUM_REGISTERS);
  * è una questione proprio di distribuzione elettrica di rumore sul circuito 
  * penso che in effetti questi chip siano stati pensati per essere collegati in serie quindi vogliono la corrente all'inizio dela catena
  * 
- * l'ultima matrice non si accendeva perchè ho messo delle resistenze in serie du load e clock
+ * l'ultima matrice non si accendeva perché ho messo delle resistenze in serie du load e clock
  * non so se queste resistenze abbiano un reale beneficio comunque ho messo resistenze troppo forti 10k 
  * si dovrebbero usare resistenze da 2k secondo quello che leggo sul forum 
  * su https://forum.allaboutcircuits.com/threads/long-chain-of-max7219-matrix-displays-fail.151773/page-2
@@ -363,8 +366,8 @@ Shifter shifter(SER_Pin, RCLK_Pin, SRCLK_Pin, NUM_REGISTERS);
  * 
  * ------------- 
  * 
- * allo stato attuale mi rimane da capire perchè le ultime 4 matrici sono sempre leggermente più luminose
- * e perchè l'aggiornamento degli sprite funziona bene col midi feedback ma non premendo sui tasti... - adesso sembra superato anche questo problema.
+ * allo stato attuale mi rimane da capire perché le ultime 4 matrici sono sempre leggermente più luminose
+ * e perché l'aggiornamento degli sprite funziona bene col midi feedback ma non premendo sui tasti... - adesso sembra superato anche questo problema.
  * 
  * ...................
  * 
@@ -381,7 +384,7 @@ Shifter shifter(SER_Pin, RCLK_Pin, SRCLK_Pin, NUM_REGISTERS);
  * 
  * ----------------------------------------------------------
  * 
- * bisogno chiarire esattamente come vengono associati gli sprite ai pulsanti, erchè nn mi ricordo.
+ * bisogno chiarire esattamente come vengono associati gli sprite ai pulsanti, erché nn mi ricordo.
  * 
  * 
  * 
@@ -402,10 +405,10 @@ byte max_units = 12;
   // SPI hardware: la libreria ignora DIN/CLK e usa direttamente MOSI/SCK hardware.
   // Qui passi SOLO il CS e il numero di dispositivi.
   DartLedLib lc = DartLedLib(MAX_CS_PIN, max_units);
-#else
+#else // !DART_USE_HW_SPI
   // Bitbang: come prima, 4 argomenti (DIN, CLK, CS, numDevices)
   DartLedLib lc = DartLedLib(MAX_DIN_PIN, MAX_CLK_PIN, MAX_CS_PIN, max_units);
-#endif
+#endif // DART_USE_HW_SPI
 
 
 
@@ -424,7 +427,7 @@ byte max_units = 12;
   lc.clearDisplay(number_of_unit); 
    }
    
-#endif
+#endif // (Matrix_Pads > 0 && stratos == 0)
 
 //////////////////////////////////////////////////////////////////////////////////////
 //byte contoencoder;
@@ -439,16 +442,16 @@ byte encoder_block[2]= {64,64} ; // serve per bloccare l'attivita'  dell'encode
 // CTRL-F: LASTBUTTON_SIZE_SWITCH
 #if ENABLE_POT_TAKEOVER
 volatile byte lastbutton[128] ; // split: 0..63 legacy + 64..127 Page2 pots
-#else
+#else // !ENABLE_POT_TAKEOVER
 volatile byte lastbutton[64] ; // legacy size
-#endif
+#endif // ENABLE_POT_TAKEOVER
 #if ( stratos == 0)
 byte lastbutton_debounce = 5;
-#endif
+#endif // (stratos == 0)
 
 #if ( stratos == 1)
 byte lastbutton_debounce = 40;
-#endif
+#endif // (stratos == 1)
 
 const byte modetable_readmode[41] = {
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //  0–10: pulsanti → digitalRead
@@ -458,8 +461,8 @@ const byte modetable_readmode[41] = {
   4,                                // beam
   2,                               // 19: encoder
   0,                               // 20
-  3,                               // 21  spinner 1 - inutile leggere due volte - si salta la lettura, perchè gli spinner vengono letti a parte
-  3,                               // 22  spinner 2  - inutile leggere due volte - si salta la lettura, perchè gli spinner vengono letti a parte
+  3,                               // 21  spinner 1 - inutile leggere due volte - si salta la lettura, perché gli spinner vengono letti a parte
+  3,                               // 22  spinner 2  - inutile leggere due volte - si salta la lettura, perché gli spinner vengono letti a parte
   3,                              // 23 touch 1
   3,                                 // 24 touch 2
   3,                                   // 25 mouse
@@ -469,8 +472,13 @@ const byte modetable_readmode[41] = {
   0,                                // 29 - enc reset
   0,                            // 30: shifter
   1, 1, 1, 1,                       // 31–34: analogici user
-  1,
-  1,
+#if (FAST_FEEDBACK == 1)
+  3,                              // 35 LED ONLY -> skip lettura (fast MIDI->LED)
+  3,                              // 36 DMX ONLY -> skip lettura (fast MIDI->DMX)
+#else
+  1,                              // 35 LED ONLY (FAST_FEEDBACK=0): torna analogRead legacy
+  1,                              // 36 DMX ONLY (FAST_FEEDBACK=0): torna analogRead legacy
+#endif
   1,                                // 37 qwerty-pot
   1, // 38 scene_control_pot
   0,  // 39 scene_record_button
@@ -521,9 +529,9 @@ Channel Pressure  208 + Channel 0-127 Pressure  Not used
 // CTRL-F: BITSTATUS_SIZE_SWITCH
 #if ENABLE_POT_TAKEOVER
 volatile byte bit_status[5][max_modifiers/4];
-#else
+#else // !ENABLE_POT_TAKEOVER
 volatile byte bit_status[4][max_modifiers/4];
-#endif
+#endif // ENABLE_POT_TAKEOVER
                                               // il feedback e i led
      
  // 1 - ledstatus 1 e 2
@@ -543,12 +551,30 @@ volatile byte bit_status[4][max_modifiers/4];
   
 ///////////////////////////////////////////////////////////////////////////
 boolean pagestate = 0;
+
+
+/*
+// ============================================================
+// CTRL-F: PAGESWITCH_DIAG_COUNTERS  (DISABLED)
+// Diagnostica pageswitch (boot-safe): contatori leggibili DOPO il boot.
+// Usata SOLO per inchiodare l'"assassino" del takeover al boot.
+// Ora non serve più: lasciata commentata per riferimento futuro.
+// ============================================================
+volatile unsigned long ps_calls = 0;
+volatile unsigned long ps_changes = 0;
+volatile unsigned long ps_arm = 0;
+volatile byte ps_first_page = 255;
+volatile byte ps_first_pagestate = 255;
+volatile byte ps_first_reason = 255;
+volatile byte ps_setup_page = 255;
+volatile byte ps_setup_pagestate = 255;
+*/
 // CTRL-F: POTPAGE_INIT_MASK
 // bit0=Page1 init OK, bit1=Page2 init done (targets copied once)
 // CTRL-F: POTPAGEINITMASK_GUARD
 #if ENABLE_POT_TAKEOVER
 byte potPageInitMask = 1; // bit0 Page1 ok, bit1 Page2 init pending
-#endif
+#endif // ENABLE_POT_TAKEOVER
 
 /////////////////////////////////////////////////////////////////////////// 
 // ------------------------------------------------------------- scale play
@@ -567,5 +593,5 @@ byte scala_reset;
 
 
 
- /////////////////////////////////////////////////////////////////////////////////////////////////////////////////7
+ /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
  ///////////////////////////////////////////////////////////////////////////////////////////////////////////

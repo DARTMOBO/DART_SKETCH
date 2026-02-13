@@ -1,7 +1,11 @@
  /*
+
+
+
+
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * DART_SKETCH   —   Copyright (c) 2015–2025 M. Marchese - dartmobo.com
+ * DART_SKETCH   â   Copyright (c) 2015â2025 M. Marchese - dartmobo.com
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -9,11 +13,145 @@
  */
 
 
- 
+
+#if (ENABLE_ENC_MAJORITY == 1) && (ENABLE_ENC_MAJ_WINDOW == 1)
+extern uint32_t enc_maj_window_until_us;
+#endif
+
+// ============================================================================
+// ENCODER INPUT CLEANER (DART classico / stratos=0)
+// - Majority burst: N letture ravvicinate di A/B (stato 2-bit 00/01/10/11)
+// - Lockout: dopo un passo valido, ignora per X microsecondi (anti doppi/contrari)
+// NOTE: Questa implementazione lavora con il modello esistente:
+//   - MSB[1] / LSB[1] contengono lo stato quadratura corrente
+//   - updateEncoder(chan) calcola lastbutton[chan] (+/-) e aggiorna maxvalue[chan]
+// ============================================================================
+
+#if (encoders_ == 1) && (ENABLE_ENC_LOCKOUT == 1)
+uint32_t enc_lock_last_us[60];   // 60 slot = memoryposition 0..59
+#endif
+
+#if (ENABLE_ENC_MAJORITY == 1) && (ENABLE_ENC_MAJ_WINDOW == 1)
+uint32_t enc_maj_window_until_us = 0;   // finestra globale majority (0 = chiusa)
+#endif
+
+#if (ENABLE_ENC_MAJORITY == 1)   // >>> majority functions compiled only when enabled (ordine visivo) <<<
+
+static inline byte enc_majority_state_from_pins_core(byte pinMSB, byte pinLSB,
+                                                     byte samples, unsigned int usDelay,
+                                                     byte invertRead)
+{
+  // ============================================================
+  // Majority "burst" con PRE-CHECK adattivo (switchabile via define)
+  //
+  // Obiettivo:
+  // - Quando l'encoder e' fermo (stato AB stabile) NON vogliamo fare sempre
+  //   N letture con delay: sarebbe tempo perso in un sistema scan-based.
+  //
+  // Come funziona:
+  // 1) (Se ENABLE_ENC_MAJ_ADAPTIVE == 1) facciamo ENC_MAJ_PRECHECK letture
+  //    velocissime (di default 3) e verifichiamo se sono tutte uguali.
+  //    - Se SI: ritorniamo subito quello stato (risparmio enorme a riposo).
+  //    - Se NO: passiamo al cluster completo (robustezza come prima).
+  //
+  // 2) Nel cluster completo contiamo quante volte compare ciascuno stato 0..3
+  //    e prendiamo lo stato predominante (tie-break: ultimo letto).
+  //
+  // invertRead:
+  // - 0  -> polarita' normale (digitalRead diretto)  [mondo DART classico]
+  // - 1  -> polarita' invertita (!digitalRead)       [STRATOS encoder]
+  //
+  // Nota prestazioni:
+  // - invertRead e' passato come costante (0 o 1), quindi il compilatore
+  //   ottimizza l'XOR senza ramificazioni pesanti.
+  // ============================================================
+
+  // ------- helper locale: legge i due pin e costruisce stato 2-bit 0..3 -------
+  // Stato: bit0 = LSB, bit1 = MSB
+  auto readState = [&](void) -> byte {
+    // digitalRead() ritorna 0/1. XOR con invertRead equivale a:
+    // - invertRead=0 -> lascia invariato
+    // - invertRead=1 -> inverte (come !digitalRead)
+    byte msb = (byte)digitalRead(pinMSB) ^ invertRead;
+    byte lsb = (byte)digitalRead(pinLSB) ^ invertRead;
+    return (byte)((msb << 1) | lsb);
+  };
+
+  // ------------------------------------------------------------
+  // 1) PRE-CHECK adattivo (se abilitato)
+  // ------------------------------------------------------------
+#if (ENABLE_ENC_MAJ_ADAPTIVE == 1)
+  // Se i campioni richiesti sono troppo pochi, l'adattivo non ha senso:
+  // facciamo direttamente il cluster completo.
+  if (samples >= (byte)ENC_MAJ_PRECHECK && (byte)ENC_MAJ_PRECHECK >= 2) {
+
+    // Leggiamo ENC_MAJ_PRECHECK volte, velocissime.
+    // Se sono tutte uguali, ritorniamo subito.
+    byte first = readState();
+    bool allSame = true;
+
+    for (byte i = 1; i < (byte)ENC_MAJ_PRECHECK; i++) {
+      if (ENC_MAJ_PRE_USDELAY) delayMicroseconds((unsigned int)ENC_MAJ_PRE_USDELAY);
+      byte s = readState();
+      if (s != first) { allSame = false; break; }
+    }
+
+    if (allSame) {
+      return first; // risparmio enorme a encoder fermo
+    }
+    // Se siamo qui: stato instabile -> procediamo con cluster completo.
+  }
+#endif
+
+  // ------------------------------------------------------------
+  // 2) Cluster completo: majority vote
+  // ------------------------------------------------------------
+  byte cnt0 = 0, cnt1 = 0, cnt2 = 0, cnt3 = 0;
+  byte last = 0;
+
+  while (samples--) {
+    byte s = readState();
+    last = s;
+
+    if      (s == 0) cnt0++;
+    else if (s == 1) cnt1++;
+    else if (s == 2) cnt2++;
+    else             cnt3++;
+
+    if (usDelay) delayMicroseconds(usDelay);
+  }
+
+  // pick max (tie-break: ultimo letto)
+  byte best = 0, bestCnt = cnt0;
+  if (cnt1 > bestCnt || (cnt1 == bestCnt && last == 1)) { best = 1; bestCnt = cnt1; }
+  if (cnt2 > bestCnt || (cnt2 == bestCnt && last == 2)) { best = 2; bestCnt = cnt2; }
+  if (cnt3 > bestCnt || (cnt3 == bestCnt && last == 3)) { best = 3; /*bestCnt = cnt3;*/ }
+
+  return best;
+}
+
+// Wrapper pubblico: mondo DART classico (polarita' normale)
+static inline byte enc_majority_state_from_pins(byte pinMSB, byte pinLSB,
+                                                byte samples, unsigned int usDelay)
+{
+  return enc_majority_state_from_pins_core(pinMSB, pinLSB, samples, usDelay, 0);
+}
+
+// Wrapper pubblico: STRATOS (polarita' invertita, equivalente a !digitalRead)
+static inline byte enc_majority_state_from_pins_inv(byte pinMSB, byte pinLSB,
+                                                    byte samples, unsigned int usDelay)
+{
+  return enc_majority_state_from_pins_core(pinMSB, pinLSB, samples, usDelay, 1);
+}
+
+#endif  // ENABLE_ENC_MAJORITY
+
+
+
   #if (stratos == 0)
   void AIN()
  { 
-for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del multiplexer vado poi a leggere tutti gli ingressi analogici (cioè l'uscita di ogni plexer)
+for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del multiplexer vado poi a leggere tutti gli ingressi analogici (cioÃ¨ l'uscita di ogni plexer)
 { 
    
   
@@ -21,7 +159,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
    
   
 #if (top_spinner == 1) 
-     if (lastbutton[encoder_mempos[0]] == 64 || dmxtable[general_mempos] == 0)  //  [encoder_mempos[0] è l0'idirizzo di memoria per lo spinner principale, quello che dave avere maggiore risoluzione e priorità di esecuzione su tutto.
+     if (lastbutton[encoder_mempos[0]] == 64 || dmxtable[general_mempos] == 0)  //  [encoder_mempos[0] Ã¨ l0'idirizzo di memoria per lo spinner principale, quello che dave avere maggiore risoluzione e prioritÃ  di esecuzione su tutto.
     
     
       // 64 = no encoder action - the MAIN spinner has priority over any other action.
@@ -65,7 +203,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
   {
   
     
-   chan = (plexer * 8) + channel  ;        // chan sarà il mio punto di riferimento per tutti e 56 (48+ EXTRA PLEXER) gli input della mia DARTMOBO. 
+   chan = (plexer * 8) + channel  ;        // chan sarÃ  il mio punto di riferimento per tutti e 56 (48+ EXTRA PLEXER) gli input della mia DARTMOBO. 
                         
  
 
@@ -76,19 +214,19 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
 
 // CTRL-F: AUTODETECT_DOC_SIMPLE
 // AUTODETECT (attivo solo quando NON esiste un preset valido)
-// In questa modalità il firmware parte da aux_preset(): tutti gli input sono "button" (modetable=1).
+// In questa modalitÃ  il firmware parte da aux_preset(): tutti gli input sono "button" (modetable=1).
 // Qui dentro, AIN() osserva i valori analogici e fa due cose:
 //
-// 1) Se vede "attività" (valore sotto una soglia), chiama detect_plexer():
+// 1) Se vede "attivitÃ " (valore sotto una soglia), chiama detect_plexer():
 //    - serve a diversificare valuetable[] nel gruppo di 8 canali, evitando note duplicate.
 //
-// 2) Se il valore è in una fascia "intermedia", promuove l'input a POT:
+// 2) Se il valore Ã¨ in una fascia "intermedia", promuove l'input a POT:
 //    - modetable[chan] = 11  (POT)
 //    - typetable[chan] = 176 (CC)
 //
 // Nota LED (anti "blinker party"):
 // Quando un canale passa a POT, possono attivarsi gli effetti LED tipici dei pot.
-// Per evitare lampeggi confusionali durante AUTODETECT, si può forzare lightable[chan]=0
+// Per evitare lampeggi confusionali durante AUTODETECT, si puÃ² forzare lightable[chan]=0
 // nel punto in cui viene impostato modetable=11.
 
     
@@ -125,25 +263,25 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
  #endif
 
 // ===========================
-// MODALITÀ DI INPUT (modetable[chan])
+// MODALITÃ DI INPUT (modetable[chan])
 // ===========================
-//  0–10   → Pulsanti digitali (lettura rapida con digitalRead)
+//  0â10   â Pulsanti digitali (lettura rapida con digitalRead)
 //           Usati per trigger veloci o pulsanti on/off semplici.
-// 11–15   → Potenziometri analogici (lettura con analogRead)
+// 11â15   â Potenziometri analogici (lettura con analogRead)
 //           Controlli continui tipo fader, slider, rotativi lenti.
-// 16–18   → Potenziometri con curve speciali (hypercurve, log/exp?)
+// 16â18   â Potenziometri con curve speciali (hypercurve, log/exp?)
 //           Per controlli con risposta non lineare.
-// 19      → Encoder rotativo (lettura MSB/LSB su 2 pin digitali)
+// 19      â Encoder rotativo (lettura MSB/LSB su 2 pin digitali)
 //           Tipico per knob infiniti o jogwheel laterali.
-// 27      → Modalità speciale non documentata (da verificare).
-// 29–30   → Funzioni speciali (es. reset hardware, toggle di sistema).
+// 27      â ModalitÃ  speciale non documentata (da verificare).
+// 29â30   â Funzioni speciali (es. reset hardware, toggle di sistema).
 //           Usati raramente, attivati da preset o in condizioni particolari.
 //
 // NOTE: Altri valori potrebbero essere validi se gestiti altrove (es. modetable > 30)
 // ===========================
                 
        /*                
-     if (modetable[chan] < 11 || modetable[chan] == 29 || modetable[chan] == 30 || modetable[chan] == 27) // per tutti i pulsanti si usa digitalread, che legge in modo più rapido
+     if (modetable[chan] < 11 || modetable[chan] == 29 || modetable[chan] == 30 || modetable[chan] == 27) // per tutti i pulsanti si usa digitalread, che legge in modo piÃ¹ rapido
          #if defined (__AVR_ATmega32U4__)
        //  valore = digitalRead(plexer+18)*1020; // valore = digitalRead(pin) << 10;
             valore = digitalRead(plexer+18) << 10;
@@ -176,7 +314,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
    byte readmode = modetable_readmode[modetable[chan]];
 
 switch (readmode) {
-  case 0: // Pulsanti → digitalRead
+  case 0: // Pulsanti â digitalRead
     #if defined (__AVR_ATmega32U4__)
     //  valore = digitalRead(plexer + 18) * 1020;
         valore = digitalRead(plexer+18) << 10;
@@ -186,7 +324,7 @@ switch (readmode) {
     #endif
     break;
 
-  case 1: // Potenziometri / analogici → analogRead
+  case 1: // Potenziometri / analogici â analogRead
  
     #if (Dummy_read == 1)
         #if (pullups_active == 1)
@@ -206,21 +344,91 @@ switch (readmode) {
       
     break;
 
-  case 2: // Encoder (digitalRead x2)
-    #if defined (__AVR_ATmega32U4__)
-   //  valore = analogRead_1024(plexer);
-  //   valore = analogRead_1024(plexer+1);
-      MSB[1] = digitalRead(plexer + 18);
-      LSB[1] = digitalRead(plexer + 19);
-      
-    #elif defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
-      MSB[1] = digitalRead(plexer + 14);
-      LSB[1] = digitalRead(plexer + 15);
+  case 2: // Encoder (digitalRead x2)  [ENC_MAJORITY]
+    #if (encoders_ == 1)
+
+      // 1) Decide quali pin leggere (dipende dalla MCU)
+      #if defined (__AVR_ATmega32U4__)
+        byte pinMSB = (byte)(plexer + 18);
+        byte pinLSB = (byte)(plexer + 19);
+      #elif defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
+        byte pinMSB = (byte)(plexer + 14);
+        byte pinLSB = (byte)(plexer + 15);
+      #endif
+
+      // 2) Lettura A/B: singola (storica) oppure majority burst (nuova)
+          // 2) Lettura A/B:
+      //    - RAW sempre (economico)
+      //    - MAJORITY solo dentro una finestra aperta dal movimento (se abilitata)
+      byte msb_raw = (byte)digitalRead(pinMSB);
+      byte lsb_raw = (byte)digitalRead(pinLSB);
+      byte s_raw   = (byte)((msb_raw << 1) | lsb_raw); // 0..3
+
+  #if (ENABLE_ENC_MAJORITY == 1) && (ENABLE_ENC_MAJ_WINDOW == 1)
+
+        bool maj_window_open = false;
+
+        // Se cambia lo stato rispetto all'ultimo stabile (maxvalue), apri subito la finestra.
+        if (s_raw != maxvalue[chan]) {
+          uint32_t now_w = micros();
+          enc_maj_window_until_us = now_w + (uint32_t)ENC_MAJ_WINDOW_US;
+          maj_window_open = true;
+        }
+        // Se non è cambiato, controlla solo se la finestra era già aperta.
+        else if (enc_maj_window_until_us != 0) {
+          uint32_t now_w = micros();
+          if ((int32_t)(enc_maj_window_until_us - now_w) > 0) {
+            maj_window_open = true;
+          } else {
+            enc_maj_window_until_us = 0; // chiudi: evita micros() inutili a riposo
+          }
+        }
+      #endif
+
+      #if (ENABLE_ENC_MAJORITY == 1) 
+        #if (ENABLE_ENC_MAJORITY == 1) && (ENABLE_ENC_MAJ_WINDOW == 1)
+          byte s = maj_window_open
+            ? enc_majority_state_from_pins(pinMSB, pinLSB, ENC_MAJ_SAMPLES, ENC_MAJ_USDELAY)
+            : s_raw;
+        #else
+          byte s = enc_majority_state_from_pins(pinMSB, pinLSB, ENC_MAJ_SAMPLES, ENC_MAJ_USDELAY);
+        #endif
+
+        MSB[1] = (byte)((s >> 1) & 1);
+        LSB[1] = (byte)(s & 1);
+      #else
+        // Majority OFF: sempre raw
+        MSB[1] = msb_raw;
+        LSB[1] = lsb_raw;
+      #endif
+
+
+      // 3) Lockout (anti doppi / colpi contrari) â opzionale e reversibile
+      #if (ENABLE_ENC_LOCKOUT == 1)
+        uint32_t now = micros();
+
+        if ((uint32_t)(now - enc_lock_last_us[chan]) < (uint32_t)ENC_LOCKOUT_US) {
+          // Dentro la finestra di lockout:
+          // - NON generiamo passi (lastbutton resta fermo)
+          // - ma aggiorniamo comunque lo "stato precedente" (maxvalue) per non creare salti strani appena finisce il lockout
+          maxvalue[chan]   = (byte)((MSB[1] << 1) | LSB[1]);
+          lastbutton[chan] = 64;
+          break;
+        }
+      #endif
+
+      // 4) Calcolo quadratura standard (come prima)
+      updateEncoder(chan);
+
+      // 5) Aggiorna lockout solo se c'e' stato un vero passo (+/-)
+      #if (ENABLE_ENC_LOCKOUT == 1)
+        if (lastbutton[chan] != 64) enc_lock_last_us[chan] = now;
+      #endif
+
     #endif
-    updateEncoder(chan);
     break;
 
-  // ila CASE 3 è vuoto, serve per saltare la lettura dove non serve
+  // ila CASE 3 Ã¨ vuoto, serve per saltare la lettura dove non serve
 
   case 4:
         #if (pullups_active == 1)
@@ -250,7 +458,7 @@ switch (readmode) {
  //  delay(50);
  // }
  
-     ain_nucleo(); // vai a eseguire effettivamente la traduzione da segnale elettrico a segnale MIDI, secondo tutte le modalità disponibili. 
+     ain_nucleo(); // vai a eseguire effettivamente la traduzione da segnale elettrico a segnale MIDI, secondo tutte le modalitÃ  disponibili. 
      
   
   
@@ -304,11 +512,11 @@ switch (readmode) {
     case 0:   // Blind Input
       break;
 
-    case 1 ... 10:  // Button, Toggle, Toggle Group 1–4, Radio Group 1–4
+    case 1 ... 10:  // Button, Toggle, Toggle Group 1â4, Radio Group 1â4
       push_buttons(0);
       break;
 
-    case 11 ... 15:  // POT, Hypercurve 1–2, Center-curve, Center-curve2
+    case 11 ... 15:  // POT, Hypercurve 1â2, Center-curve, Center-curve2
       pots();
       break;
 
@@ -420,13 +628,19 @@ switch (readmode) {
       user_item4();
       break;
       
+#if (FAST_FEEDBACK == 1)
+      case 35:  // LED ONLY (nessuna lettura/azione input)
+        break;
+      case 36:  // DMX ONLY (nessuna lettura/azione input)
+        break;
+#endif // FAST_FEEDBACK
       case 37:  // qwerty_pot
       pots();
       break;
 
    #if Scene
     case 38:  // scene_control
-      scene_control_pot();
+     // scene_control_pot();
       break;
 
     case 39:  // scene_record_button
@@ -439,7 +653,7 @@ switch (readmode) {
      // break;
 
 
-    default:  // modalità non gestita
+    default:  // modalitÃ  non gestita
       break;
   }
 }
@@ -522,20 +736,102 @@ void aindbg_valueOnly(int valore_ora)
 
  
 #if (Side_spinner == 1)
-void Side_spinner_read() {
+void Side_spinner_read() { // ===== SIDE_SPINNER_LOCKOUT =====
   { // gestione del SIDE SPINNER // dmxtable[general_mempos] >1 significa che un side spinner è stato "istituito" via editor, nel mio preset.
+
+    // -------------------------------------------------------------------------
+    // SIDE SPINNER: filtro leggero e reversibile
+    // - LOCKOUT: time-gate anti bounce (usa ENC_LOCKOUT_US)
+    // - MAJORITY (opzionale): usa le funzioni majority GENERALI (stessi define globali)
+    //
+    // Regola d'oro: se chiamiamo encoder(chan_enc) qui dentro, armiamo il lockout
+    // SUBITO dopo updateEncoder(), perché encoder() spesso "consuma" lastbutton[].
+    // -------------------------------------------------------------------------
+
+    // 1) Pin mapping (compatibilita' 32u4 vs UNO/328P)
     #if defined (__AVR_ATmega32U4__)
-    MSB[1] = digitalRead(22);
-    LSB[1] = digitalRead(23);
+      const byte pin_msb = 22;
+      const byte pin_lsb = 23;
+    #elif defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
+      const byte pin_msb = 18;
+      const byte pin_lsb = 19;
     #endif
-    
-    #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
-    MSB[1] = digitalRead(18);
-    LSB[1] = digitalRead(19);
+
+    const byte chan_enc = encoder_mempos[1];
+
+    // 2) Lettura singola "raw" (serve sempre: viene usata anche durante il lockout)
+    byte msb_raw = (byte)digitalRead(pin_msb);
+    byte lsb_raw = (byte)digitalRead(pin_lsb);
+    byte encoded_raw = (byte)((msb_raw << 1) | lsb_raw); // 0..3
+
+    // 3) LOCKOUT (time-gate) — usa timing generico da config (ENC_LOCKOUT_US)
+    //    Se siamo dentro la finestra di lockout, non generiamo step.
+    //    IMPORTANTISSIMO: aggiorniamo comunque la fase (maxvalue[]) per evitare salti alla ripresa.
+    #if (ENABLE_ENC_LOCKOUT == 1)
+      uint32_t now = micros();
+      if ((uint32_t)(now - enc_lock_last_us[chan_enc]) < (uint32_t)ENC_LOCKOUT_US) {
+        MSB[1] = msb_raw;
+        LSB[1] = lsb_raw;
+        maxvalue[chan_enc]   = encoded_raw; // stato precedente per updateEncoder()
+        lastbutton[chan_enc] = 64;          // nessuno step
+        return;
+      }
     #endif
-      
-    updateEncoder(encoder_mempos[1]); 
-    encoder(encoder_mempos[1]);
+
+    // 4) MAJORITY (opzionale): se abilitata, sostituisce la lettura raw con una lettura "a voto".
+    //    Nota: NON la facciamo durante lockout (sopra) per risparmiare tempo.
+ #if (ENABLE_ENC_MAJORITY == 1) && (ENABLE_ENC_MAJ_WINDOW == 1)
+
+      bool maj_window_open = false;
+
+      if (encoded_raw != maxvalue[chan_enc]) {
+        uint32_t now_w = micros();
+        enc_maj_window_until_us = now_w + (uint32_t)ENC_MAJ_WINDOW_US;
+        maj_window_open = true;
+      }
+      else if (enc_maj_window_until_us != 0) {
+        uint32_t now_w = micros();
+        if ((int32_t)(enc_maj_window_until_us - now_w) > 0) {
+          maj_window_open = true;
+        } else {
+          enc_maj_window_until_us = 0;
+        }
+      }
+    #endif
+
+    #if (ENABLE_ENC_MAJORITY == 1)
+      #if (ENABLE_ENC_MAJORITY == 1) && (ENABLE_ENC_MAJ_WINDOW == 1)
+
+        byte encoded = maj_window_open
+          ? enc_majority_state_from_pins(pin_msb, pin_lsb, ENC_MAJ_SAMPLES, ENC_MAJ_USDELAY)
+          : encoded_raw;
+      #else
+        byte encoded = enc_majority_state_from_pins(pin_msb, pin_lsb, ENC_MAJ_SAMPLES, ENC_MAJ_USDELAY);
+      #endif
+
+      byte msb = (byte)((encoded >> 1) & 1);
+      byte lsb = (byte)(encoded & 1);
+    #else
+      byte encoded = encoded_raw;
+      byte msb = msb_raw;
+      byte lsb = lsb_raw;
+    #endif
+
+
+    // 5) Pipeline standard
+    MSB[1] = msb;
+    LSB[1] = lsb;
+    updateEncoder(chan_enc);
+
+    // 6) Armiamo il lockout SOLO se updateEncoder() ha prodotto uno step valido.
+    //    (Se lastbutton resta 64, vuol dire: nessun movimento reale.)
+    #if (ENABLE_ENC_LOCKOUT == 1)
+      if (lastbutton[chan_enc] != 64) {
+        enc_lock_last_us[chan_enc] = now;
+      }
+    #endif
+
+    encoder(chan_enc);
   }
 }
 #endif

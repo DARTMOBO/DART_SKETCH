@@ -84,7 +84,9 @@ void load_preset(boolean numero) {
     // if (i == mouse_mempos) maxvalue[i] = remapper(EEPROM.read(i+320+(numero*512))-1); else maxvalue[i] =EEPROM.read(i+320+(numero*512));
     qwertyvalue[i] = EEPROM.read(i + 384 + (numero * 512));
   }
- 
+
+   
+  
   if (encoder_mempos[0] == 0) {
     // 181 risolto il problema tra b6 (input in posizione reale = 0) e lo spinner1 (quando non viene dichiarato nel preset.
     // da adesso , quando encoder_mempos[0] = 0 il controller va a verificare che non ci sia un conflitto con un item in memoryposition 0 
@@ -182,6 +184,15 @@ void setup_mempos(byte i) { // richiamato da load_preset
   if (modetable[i] == 30 || modetable[i] == 16) {
     lastbutton[i] = 1;
   }
+
+ 
+  #if (ENABLE_POT_TAKEOVER == 1)
+  if (modetable[i] >10 && modetable[i] < 16) {
+   // if (takeover_init == 1) lastbutton[i+page] = 128;
+ //   if (takeover_init == 1) lastbutton[i + (byte)((page / max_modifiers) * 64)] = 128;
+  }
+   #endif
+  
   
   // if (dmxtable[general_mempos] > 1) { modetable[45] = 0; modetable[37] =0;} // disattiva lo scanning sugli input dedicati al secondo encoder
   // se il secondo encoder è attivo

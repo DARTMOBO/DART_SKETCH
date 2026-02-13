@@ -297,6 +297,46 @@ Se all’avvio non viene trovato un preset valido in EEPROM:
 • eeprom_preset_active rimane a 0
 • viene attivata la modalità AUTODETECT (vedi punto successivo).
 
+ =====================================================================
+   [CNG_ADDENDUM_PRESET_MIDI_EEPROM]  (2026-02-11)
+
+   Preset upload via MIDI -> scrittura in EEPROM (riassunto operativo)
+
+   Dove avviene davvero:
+   - Ricezione / parsing + writer EEPROM:  D_MIN.ino
+   - Lettura preset da EEPROM (boot e refresh): D_STP_Presets.ino
+
+   1) Ingresso/uscita modalità "editor upload"
+   - Un byte speciale (241 / 0xF1) fa toggle di `openeditor`.
+     * openeditor=1  -> i messaggi MIDI ricevuti vengono interpretati come dati preset
+     * openeditor=0  -> si esce dall’upload e si ricaricano le tabelle dalla EEPROM:
+                       reset_mempos(); load_preset_base(); load_preset(page);
+
+   2) Quando si scrive in EEPROM
+   - Durante openeditor=1, quando arriva un messaggio MIDI “completo” (type + note + velocity),
+     se `type < 208` viene chiamata `eeprom_write()` che esegue EEPROM.write(...) immediatamente.
+   - I Pitch Bend (type 224) NON scrivono subito: aggiornano `matrix_vert1/2` che possono
+     influenzare alcuni bit durante le scritture (bit7).
+
+   3) Struttura del trasferimento (sequenza)
+   - L’editor invia una sequenza di messaggi per lo stesso ITEM (memoryposition).
+   - `eeprom_write()` usa `editorcounter` (switch case 0..6) per capire quale “pezzo” sta arrivando.
+   - Una NOTE (type < 160) è trattata come inizio blocco: resetta `editorcounter = 0`.
+
+   4) Layout EEPROM (concetto)
+   - I dati sono memorizzati per tabelle contigue (type/value/mode/dmx/min/max/qwerty/light/…).
+   - PAGE 2 usa un offset base di +512 rispetto alla PAGE 1.
+     (nel writer esistono anche compensazioni tipo “-64” per alcuni range di memoryposition,
+      vedi commenti nel codice: è parte della compatibilità storica del mapping).
+
+   Nota: questo blocco descrive il flusso; per i dettagli esatti (indirizzi, casi, remap, user bytes)
+   fare riferimento direttamente a `eeprom_write()` in D_MIN.ino.
+   ===================================================================== 
+
+
+-----------------------
+
+
 Varianti hardware, NOMOBO e modalità AUTODETECT
 
 Lo sketch è progettato per funzionare su più controller usando un unico codice:
@@ -887,5 +927,178 @@ bit_write(ARMED_BANK, subject_chan, 1);
 
 ====================================================================
 */
+
+
+/* 
+ *  ============================================================================
+
+ADDENDUM (CNG) — ENCODER DIGITAL FILTERING: MAJORITY + ADAPTIVE + LOCKOUT
+Data: 2026-02-09 (Europe/Rome)
+Scope: DART Sketch — encoder reliability improvements (scan-based + STRATOS + side + top spinner)
+
+WHY THIS EXISTS
+---------------
+In the DART ecosystem we can have:
+- scan-based encoders (through 4051 chain, read inside ain())
+- STRATOS encoders (direct pins, different polarity; still read inside AIN_stratos())
+- side spinner (dedicated read function, but same logical encoder pipeline)
+- top spinner (read via interrupts, special case)
+
+Goal: reduce bounce / “opposite direction spikes” / noisy states while keeping the system fast.
+We achieved it with 3 independent software devices:
+
+  (A) MAJORITY (burst vote on the 2-bit quadrature state)
+  (B) ADAPTIVE pre-check (speed optimization for majority)
+  (C) LOCKOUT (time-gate after a valid step)
+
+IMPORTANT: these are NOT hierarchical. You can enable/disable them independently.
+
+-------------------------------------------------------------------------------
+DEVICE A) MAJORITY (burst vote)
+-------------------------------------------------------------------------------
+What it does:
+- Reads A/B repeatedly (N times), produces a 2-bit state (00/01/10/11) each time.
+- Counts occurrences and returns the most frequent state (the “winner”).
+- Purpose: stabilize dirty reads before quadrature decoding.
+
+Config knobs (per profile):
+- ENABLE_ENC_MAJORITY       (0/1)  : master switch
+- ENC_MAJ_SAMPLES           (N)    : number of samples in a burst (typical 9..16)
+- ENC_MAJ_USDELAY           (us)   : delay between samples (typical 10..25)
+Notes:
+- Increasing ENC_MAJ_USDELAY pushes the system from micro-time to milli-time.
+  Above ~100us the encoder remains usable but starts degrading when rotating fast.
+  Above ~300us it becomes slow and can mis-vote during real movement.
+- Increasing ENC_MAJ_SAMPLES increases time cost linearly but does NOT increase RAM.
+
+Time cost rule-of-thumb (digitalRead-based AVR):
+  T_burst ≈ N * (cost_digitalRead_AB + ENC_MAJ_USDELAY)
+where cost_digitalRead_AB is a few microseconds (2x digitalRead + packing).
+
+Memory:
+- RAM: no permanent RAM increase per “N”; only small local counters on stack.
+- Flash: presence of majority code costs some Flash, but if ENABLE_ENC_MAJORITY=0
+  we guard/compile it out for visual + compile cleanliness.
+
+Polarity:
+- DART classic: uses normal digitalRead() polarity.
+- STRATOS: historically used inverted reads (!digitalRead). We support that via
+  a dedicated wrapper (e.g. enc_majority_state_from_pins_inv()).
+
+-------------------------------------------------------------------------------
+DEVICE B) ADAPTIVE (pre-check for majority)
+-------------------------------------------------------------------------------
+What it does:
+- A speed optimization for scan-based systems: when the encoder is stable (not moving),
+  we want to avoid running the full burst every time.
+- Performs ENC_MAJ_PRECHECK quick reads; if they are all equal, returns immediately.
+- If not stable, runs the full burst.
+
+Config knobs (per profile):
+- ENABLE_ENC_MAJ_ADAPTIVE   (0/1)  : independent switch
+- ENC_MAJ_PRECHECK          (k)    : number of pre-reads (typical 3..5)
+- ENC_MAJ_PRE_USDELAY       (us)   : delay between pre-reads (typical 0..5)
+
+Notes:
+- Adaptive only has effect if ENABLE_ENC_MAJORITY=1.
+- Low PRECHECK values can “exit too early” on borderline states (less cleaning).
+  Increasing PRECHECK makes early-exit rarer and “safer”.
+
+Memory:
+- No extra RAM. Very small Flash delta.
+
+-------------------------------------------------------------------------------
+DEVICE C) LOCKOUT (time-gate after a valid step)
+-------------------------------------------------------------------------------
+What it does:
+- After a valid decoded step (CW or CCW), we ignore new steps for a short time.
+- Purpose: kill bounce and “reverse spikes” after a step.
+- Implemented with a per-encoder timestamp array:
+    enc_lock_last_us[60]  // indexed by MemoryPosition (0..59)
+
+Config knobs (per profile):
+- ENABLE_ENC_LOCKOUT        (0/1)  : independent switch
+- ENC_LOCKOUT_US            (us)   : lockout duration for scan-based + side + STRATOS
+- ENC_TOP_LOCKOUT_US        (us)   : dedicated lockout for TOP spinner (interrupt)
+
+Key implementation detail:
+- During lockout we still update the “previous quadrature state”
+  (maxvalue[chan] in this codebase) so that when lockout ends we do not create
+  phase jumps and false steps.
+
+Arm rule:
+- Lockout is armed ONLY when updateEncoder() actually produced a step.
+  We detect that via lastbutton[chan] != 64 (64 == no-step sentinel).
+
+IMPORTANT PITFALL (found and fixed on side spinner):
+- encoder(chan) often CONSUMES lastbutton[chan] and resets it to 64 after output.
+  Therefore: if you arm lockout AFTER calling encoder(chan), you may NEVER arm it.
+  Correct sequence is:
+      updateEncoder(chan);
+      if (step) enc_lock_last_us[chan] = now;   // arm here
+      encoder(chan);                            // then output
+This is critical for any code path where updateEncoder() and encoder() are called
+back-to-back inside the same function (e.g. side spinner read).
+
+-------------------------------------------------------------------------------
+WHERE EACH DEVICE IS USED
+-------------------------------------------------------------------------------
+1) Generic scan-based encoders (4051 / ain()):
+- can use MAJORITY (+ optional ADAPTIVE) before updateEncoder()
+- can use LOCKOUT around updateEncoder() results
+
+2) STRATOS (AIN_stratos()):
+- old STRATOS-specific majority/lockout removed
+- uses the same general functions:
+    - majority inv wrapper for pin polarity (!digitalRead)
+    - lockout uses enc_lock_last_us[chan] and ENC_LOCKOUT_US
+- if ENABLE_ENC_MAJORITY=0 -> STRATOS falls back to “traditional” single-read mode
+
+3) Side spinner (Side_spinner_read()):
+- now supports LOCKOUT and can optionally use MAJORITY on its A/B pins
+- same timing as scan-based: ENC_LOCKOUT_US (generic)
+- MUST arm lockout immediately after updateEncoder() and before encoder()
+
+4) Top spinner (interrupt: lettura_enc_principale()):
+- NO MAJORITY (do NOT do burst+delay inside ISR)
+- YES LOCKOUT (time-gate) using ENC_TOP_LOCKOUT_US
+- uses chan_enc = encoder_mempos[0] (top spinner memoryposition), then updateEncoder(chan_enc)
+- lockout check is in ISR; phase is still updated during lockout to avoid jumps
+
+-------------------------------------------------------------------------------
+TUNING GUIDELINES (starting points)
+-------------------------------------------------------------------------------
+Majority:
+- ENC_MAJ_SAMPLES:   9..16
+- ENC_MAJ_USDELAY:   10..25  (micro-time zone)
+- Adaptive:
+  - ENC_MAJ_PRECHECK: 3..5
+  - ENC_MAJ_PRE_USDELAY: 0..5
+
+Lockout:
+- ENC_LOCKOUT_US (scan-based/side/stratos): 400..1000 (depends on bounce + feel)
+- ENC_TOP_LOCKOUT_US:
+  - mechanical “micro touches”: 600..900 (e.g. 800)
+  - optical rare “threshold chatter”: 20..50
+
+Sanity check:
+- huge lockout (e.g. 8000UL) produces visible “brake”/latency -> proves gate works.
+
+-------------------------------------------------------------------------------
+FOR FUTURE REFINEMENTS (notes for later chats)
+-------------------------------------------------------------------------------
+- If needing more speed: reduce ENC_MAJ_SAMPLES and keep USDELAY low.
+- If needing more cleaning (without big delays): increase samples slightly, keep delay micro.
+- Consider hardware improvements as next step:
+  better encoders, proper RC + Schmitt/trigger, cleaner grounding, shorter cables.
+- Top spinner: if more robustness is needed, prefer illegal-transition rejection or
+  ISR-minimal + decoding in loop, not majority bursts in ISR.
+
+END ADDENDUM
+============================================================================ 
+*/
+
+
+
 
  
