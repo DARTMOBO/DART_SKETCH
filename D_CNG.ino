@@ -1098,7 +1098,7 @@ END ADDENDUM
 ============================================================================ 
 */
 
-
+// per installare e sperimentare con adafruit metro m0 express https://adafruit.github.io/arduino-board-index/package_adafruit_index.json - aggiungere url in preferenze poi installare schede adafruit 
 
 
  

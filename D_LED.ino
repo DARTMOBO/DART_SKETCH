@@ -25,6 +25,10 @@ void ledrestore (boolean numero) { // riscrive sullo shifter la pagina - numero 
 
 void ledControl (byte chann, byte stat) { // stat significa status 1 = acceso 0 = spento
   // versione commentata
+
+  // GUARD: se questo canale non ha un LED assegnato, NON fare nulla.
+  // Evita underflow (lightable[chann]-1) e qualsiasi effetto indesiderato.
+  if (lightable[chann] == 0) return;
   
   // Se general_mempos == 0 siamo in modalità "MOBO":
   // DART completo, con tutta la controlboard e lo shifter attaccato.

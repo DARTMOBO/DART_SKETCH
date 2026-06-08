@@ -3,7 +3,7 @@
 // ===============================================
      // metti 0 per spegnere tutto
 
-#if Velo_pads_debug
+#if (Velo_pads_debug == 1)
 
 void debugPadVelocityFilm()
 {

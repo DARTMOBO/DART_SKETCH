@@ -63,28 +63,94 @@ void noteOn(byte cmd, byte pitch, byte velocity, byte filter) {
   #endif
 }
 
+
+#if ( MIDI_OUT_SAFE_OFFSET   == 1) 
+// CTRL-F: MIDI_OFFSET_SAFE_HELPER
+static inline byte applyOffsetToStatus(byte status, byte off)
+{
+  // Se è un messaggio "System" (0xF0..0xFF), non ha canale: non toccare.
+  if ((status & 0xF0) == 0xF0) return status;
+
+  off &= 0x0F;              // offset recintato 0..15
+  if (off == 0) return status;
+
+  byte hi = status & 0xF0;  // tipo messaggio (NoteOn, CC, ecc.)
+  byte ch = status & 0x0F;  // canale 0..15
+  ch = (ch + off) & 0x0F;   // wrap entro 16 canali
+  return hi | ch;
+}
+
+#endif
+
+
+
+#if ( MIDI_OUT_SAFE_OFFSET   == 0) 
+
 void midiOut(byte cmd, byte pitch, byte velocity) {
   #if (MIDI_OUT_block == 0)
   // velocity = constrain(velocity,0,127)
   #if defined (__AVR_ATmega32U4__)  
     #if (stratos == 0)
-    Serial1.write(cmd + shifter_modifier_);
+    Serial1.write(cmd + offset_modifier_);
     Serial1.write(pitch);
     Serial1.write(velocity);
     #endif
 
-    midiEventPacket_t event = {((cmd + shifter_modifier_ - 144) / 16) + 9, cmd + shifter_modifier_, pitch, velocity};
+    midiEventPacket_t event = {((cmd + offset_modifier_ - 144) / 16) + 9, cmd + offset_modifier_, pitch, velocity};
     MidiUSB.sendMIDI(event);
     MidiUSB.flush();
   #endif
 
+  #if defined(ARDUINO_ARCH_SAMD) && !defined(__AVR_ATmega32U4__)
+    DART_MIDI_Send_SAMD((uint8_t)(cmd + offset_modifier_), (uint8_t)pitch, (uint8_t)velocity);
+  #endif
+
   #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
-    Serial.write(cmd + shifter_modifier_);
+    Serial.write(cmd + offset_modifier_);
     Serial.write(pitch);
     Serial.write(velocity);
   #endif
   #endif
 }
+
+ #endif
+
+
+#if ( MIDI_OUT_SAFE_OFFSET   == 1) 
+void midiOut(byte cmd, byte pitch, byte velocity) {
+  #if (MIDI_OUT_block == 0)
+  // velocity = constrain(velocity,0,127)
+
+   byte cmd2 = applyOffsetToStatus(cmd, offset_modifier_);
+
+   
+  #if defined (__AVR_ATmega32U4__)
+    #if (stratos == 0)
+    Serial1.write(cmd2);
+    Serial1.write(pitch);
+    Serial1.write(velocity);
+    #endif
+
+  // USB-MIDI: header = (cable<<4) | CIN, e per i channel message CIN coincide col nibble alto (8..E)
+    midiEventPacket_t event = { (byte)((0 << 4) | (cmd2 >> 4)), cmd2, pitch, velocity };
+    MidiUSB.sendMIDI(event);
+    MidiUSB.flush();
+  #endif
+
+  #if defined(ARDUINO_ARCH_SAMD) && !defined(__AVR_ATmega32U4__)
+    DART_MIDI_Send_SAMD((uint8_t)cmd2, (uint8_t)pitch, (uint8_t)velocity);
+  #endif
+
+  #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
+    Serial.write(cmd2);
+    Serial.write(pitch);
+    Serial.write(velocity);
+  #endif
+  
+  #endif
+}
+#endif
+
 
 void button(byte cmd, byte pitch, byte velocity, byte filterr) {
   #if (MIDI_OUT_block == 0)

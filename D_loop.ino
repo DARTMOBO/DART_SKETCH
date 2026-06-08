@@ -9,7 +9,12 @@
  */
  
 void loop() {
-  if (cycletimer < 250) {
+ // delay(100);
+  #if defined(ARDUINO_ARCH_SAMD) && !defined(__AVR_ATmega32U4__)
+  DART_MIDI_Task_SAMD();
+  DART_MIDI_Heartbeat_SAMD();
+  #endif
+if (cycletimer < 250) {
     cycletimer++;
   }
 
@@ -30,6 +35,20 @@ void loop() {
         midifeedback();
       }
     } while (rx.header != 0);
+    #endif
+
+    #if defined(ARDUINO_ARCH_SAMD) && !defined(__AVR_ATmega32U4__) && (DART_M0_USB_MIDI_FEEDBACK == 1)
+    // CTRL-F: M0_USB_MIDI_IN_LOOP
+    // M0/SAMD: leggi il MIDI IN USB byte per byte tramite TinyUSB e inoltra
+    // tutto a midifeedback(), come nello sketch di test che e' stato validato.
+    {
+      uint8_t dart_m0_in_byte = 0;
+      while (DART_MIDI_ReadByte_SAMD(&dart_m0_in_byte)) {
+        incomingByte = dart_m0_in_byte;
+        midifeedback();
+      }
+    }
+    #endif
  
     #if (stratos == 0) // DIN MIDI in
     #if defined(__AVR_ATmega32U4__)
@@ -37,7 +56,6 @@ void loop() {
       incomingByte = Serial1.read();
       midifeedback(); 
     } 
-    #endif
     #endif
     #endif
 
@@ -101,6 +119,9 @@ void loop() {
     }
     #endif
   }
+
+
+  
 }
 
 //--------------

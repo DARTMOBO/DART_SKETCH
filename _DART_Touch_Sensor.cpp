@@ -10,6 +10,29 @@
 
 #include "_DART_Touch_Sensor.h"
 
+// =========================================================================
+// NOTE PORTING (Metro M0 / SAMD / non-AVR)
+// Questa implementazione usa registri di PORT AVR (digitalPinToPort + port*Register)
+// e quindi NON è compatibile con MCU non-AVR.
+// Per il porting step-by-step: su non-AVR forniamo uno stub che compila.
+// =========================================================================
+
+#if !defined(__AVR__)
+
+CapacitiveSensor::CapacitiveSensor(uint8_t sendPin, uint8_t receivePin)
+{
+  (void)sendPin;
+  (void)receivePin;
+}
+
+int CapacitiveSensor::capacitiveSensorRaw(uint16_t limit)
+{
+  (void)limit;
+  return 0;
+}
+
+#else // __AVR__
+
 
 CapacitiveSensor::CapacitiveSensor(uint8_t sendPin, uint8_t receivePin)
 {
@@ -33,6 +56,8 @@ CapacitiveSensor::CapacitiveSensor(uint8_t sendPin, uint8_t receivePin)
     interrupts();
 
 }
+
+// (chiusura guard __AVR__ a fine file)
 
 // Public Methods //////////////////////////////////////////////////////////////
 // Functions available in Wiring sketches, this library, and other libraries
@@ -108,3 +133,5 @@ while (
    
 return total;
 }
+
+#endif // !defined(__AVR__)

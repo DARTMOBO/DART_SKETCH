@@ -7,7 +7,7 @@
  * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version. See the LICENSE file for details.
  */
-#if Scene
+#if (Scene == 1)
 void scene_morph_encsc(byte enc_chan);
 #endif
 
@@ -33,7 +33,7 @@ void encoder(byte numero) {
     // - quando il marker è attivo, NON eseguiamo logica encoder normale
     // - consumiamo l'impulso (63/65) riportando lastbutton a 64
     // ============================================================
-    #if Scene
+    #if (Scene == 1)
     if (typetable[numero + page] == 244) {
       scene_morph_encsc(numero); // funzione in D_scene.ino
       lastbutton[numero] = 64;
@@ -204,7 +204,7 @@ void encoder_pot_mode(byte numero) {
     // --- ANCHOR: PC_TO_CC_IN_POT_EMU ---
     byte t = typetable[numero + page]; // status (0x90..)
     byte group = (t - 144) / 16; // 0=NOTE,1=AT,2=CC,3=PC,...
-    #if Scene
+    #if (Scene == 1)
     if (group == 3) {
       // PC (0xC0..0xCF) usato come marcatore "CC-SCENE":
       // trasformo in CC (0xB0..0xBF) mantenendo lo stesso canale
@@ -218,7 +218,7 @@ void encoder_pot_mode(byte numero) {
     // - aggiorna il convoy (verità unica) e committa
     // - return per evitare doppio invio (convoy + button)
     // ============================================================
-    #if Scene
+    #if (Scene == 1)
     {
       byte si = convoy_find_subjectIndex(numero); // numero = memoryposition dell'encoder
       if (si != 255) {

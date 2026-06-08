@@ -174,7 +174,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
     restore_end(); // ?? non ricordo cosa faceve questa void - aggiunegre commento urgentemente
     
     
-#if Piezo_pads
+#if (Piezo_pads == 1)
   if (maxvalue[general_mempos] == 0 ){ piezo_pads();} 
 #endif
 
@@ -193,7 +193,12 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
    // if (dmxtable[general_mempos] >1)
    // {senseEncoder_2nd();}  // carica MSB LSB [1] // // gli input pin su cui viene letto il secondo encoder sono 33 e 41
 
- //valore = analogRead_1024(0); // dummy read generale
+ //valore = analogRead_1024(DART_ADC_PIN_FROM_PLEXER(0)); // dummy read generale
+/*
+  #if defined (ARDUINO_ARCH_SAMD)
+delay(5);
+#endif
+*/
 
  for(plexer = 0; plexer < 
   //5+boolean(maxvalue[general_mempos]) // se si attivano i pads (mettendo maxvalue = 0) l'analogico A5 non viene letto // OPZIONE 1
@@ -230,7 +235,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
 // nel punto in cui viene impostato modetable=11.
 
     
-    valore = analogRead_1024(plexer);
+    valore = analogRead_1024(DART_ADC_PIN_FROM_PLEXER(plexer));
     
     if (valore < upper_val   /// se premo un pulsante - valore scende
      && dmxtable[chan] < 3
@@ -293,7 +298,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
          #endif
      
      else if (modetable[chan] < 19 // || modetable[chan] == 27
-     )     valore = analogRead(plexer); // si usa analogread per i pots 
+     )     valore = analogRead(DART_ADC_PIN_FROM_PLEXER(plexer)); // si usa analogread per i pots 
 
    #if (encoders_ == 1)
       else if (modetable[chan] == 19)                                 // encoders 
@@ -313,38 +318,130 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
 */
    byte readmode = modetable_readmode[modetable[chan]];
 
+
+
 switch (readmode) {
-  case 0: // Pulsanti â digitalRead
+  case 0: // Pulsanti -  digitalRead
+
+ #if defined(ARDUINO_ARCH_SAMD)
+    pinMode(DART_ADC_PIN_FROM_PLEXER(plexer), INPUT_PULLUP);
+  // delay(1);
+  #if (Dummy_read_digi == 1) // la dummy read è praticamente necessaria su M0
+    valore = digitalRead(DART_ADC_PIN_FROM_PLEXER(plexer)) ? 1023 : 0;
+ delayMicroseconds(10);
+ #endif
+     valore = digitalRead(DART_ADC_PIN_FROM_PLEXER(plexer)) ? 1023 : 0;
+    
+     #endif
+  
     #if defined (__AVR_ATmega32U4__)
     //  valore = digitalRead(plexer + 18) * 1020;
+    #if (Dummy_read_digi == 1)
+       valore = digitalRead(plexer+18) << 10;
+    delayMicroseconds(10);
+    #endif
         valore = digitalRead(plexer+18) << 10;
     #elif defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
   //    valore = digitalRead(plexer + 14) * 1020;
+  #if (Dummy_read_digi == 1)
+    valore = digitalRead(plexer+14) << 10;
+      delayMicroseconds(10);
+    #endif
           valore = digitalRead(plexer+14) << 10;
     #endif
+    
     break;
 
   case 1: // Potenziometri / analogici â analogRead
+ {
+#if (Dummy_read == 1)
+
+  #if (pullups_active == 1) && (Dummy_pullups == 1)
+	    // AVR: pullup via digitalWrite(HIGH/LOW) su pin INPUT.
+	    // SAMD: pullup via pinMode(INPUT_PULLUP). Per "spegnere" la pullup → INPUT.
+	    #if defined(ARDUINO_ARCH_SAMD)
+	      pinMode(A0 + plexer, INPUT);
+	    #else
+	      digitalWrite(18 + plexer, LOW);   // disabilita pullup SOLO se Dummy_pullups=1
+	    #endif
+  #endif
+
+  valore = analogRead_1024(DART_ADC_PIN_FROM_PLEXER(plexer));
+  delayMicroseconds(10);
+  valore = analogRead_1024(DART_ADC_PIN_FROM_PLEXER(plexer));
+
+  #if (pullups_active == 1) && (Dummy_pullups == 1)
+	    #if defined(ARDUINO_ARCH_SAMD)
+	      pinMode(A0 + plexer, INPUT_PULLUP);
+	    #else
+	      digitalWrite(18 + plexer, HIGH);  // riabilita pullup SOLO se Dummy_pullups=1
+	    #endif
+  #endif
+
+#endif
+
  
-    #if (Dummy_read == 1)
-        #if (pullups_active == 1)
-        digitalWrite(18+plexer, LOW);
-        #endif
-        valore = analogRead_1024(plexer);
-        delayMicroseconds(5); 
-        valore = analogRead_1024(plexer);
-        #if (pullups_active == 1)
-        digitalWrite(18+plexer, HIGH);
-        #endif
- #endif
   #if (Dummy_read == 0)
-      valore = analogRead_1024(plexer);
+       valore = analogRead_1024(DART_ADC_PIN_FROM_PLEXER(plexer));
  #endif
+
+	  // -------------------------------------------------------------------------
+	  // CTRL-F: POT_EMA_APPLY
+	  // EMA ("condensatore digitale") in range 0..255.
+	  // Nota: fastanalogread ha risoluzione reale ~8 bit, quindi filtriamo su byte.
+	  // Poi riportiamo il risultato su scala 0..1023 (<<2) per compatibilita' con pots().
+	  // -------------------------------------------------------------------------
+	
+	  #if (POT_EMA_ENABLE == 1)
+	    // 1) comprimi 0..1023 -> 0..255
+      
+       
+	    byte x8 = (byte)(valore >> 2);
+
+	    // 2) recupera stato (1 byte per canale)
+	    byte y8 = pot_ema_8[chan];
+
+	    // 3) init ultra-economica: se y e' ancora 0 ma il pot non e' a 0,
+	    //    aggancia subito per evitare una rampa lenta da 0.
+    
+      
+	    if ((y8 == 0) && (x8 != 0)) {
+	      y8 = x8;
+	    }
+	    else {
+	      // y += (x-y) >> k  (diff signed)
+	      int16_t diff_ = (int16_t)x8 - (int16_t)y8;
+	      y8 = (byte)((int16_t)y8 + (diff_ >> POT_EMA_SHIFT));
+	    }
+
+	    pot_ema_8[chan] = y8;
+
+	    // 4) riespandi 0..255 -> 0..1023
+	    valore = ((int)y8) << 2;
+
+      /* ============================================================================
+   IMPORTANT (switch/case scope trap)  [DART NOTE]
+   In C/C++, a `case:` label does NOT create a new scope.
+   If you declare variables with initialization inside a case (e.g. `byte x8 = ...;`)
+   and you DON'T wrap the case body in `{ ... }`, you can trigger:
+     "jump to case label crosses initialization"
+   Arduino may still compile (permissive) but behavior can become undefined:
+   e.g. other cases (encoders) may stop running (silent failure).
+
+   RULE: every case that declares variables MUST be written as:
+     case N: { ... declarations ... break; }
+   (Keep this rule especially in AIN() / readmode switch.)
+   ========================================================================== */
+      
+	  #endif
+    
 
       
     break;
+    }
 
-  case 2: // Encoder (digitalRead x2)  [ENC_MAJORITY]
+  case 2: { // Encoder (digitalRead x2)  [ENC_MAJORITY]
+ 
     #if (encoders_ == 1)
 
       // 1) Decide quali pin leggere (dipende dalla MCU)
@@ -354,6 +451,11 @@ switch (readmode) {
       #elif defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
         byte pinMSB = (byte)(plexer + 14);
         byte pinLSB = (byte)(plexer + 15);
+      #else
+        // NON-AVR (es. SAMD / Metro M0): mapping pin encoder non definito qui.
+        // Per ora mettiamo un fallback "dummy" solo per compilare.
+        byte pinMSB = 0;
+        byte pinLSB = 0;
       #endif
 
       // 2) Lettura A/B: singola (storica) oppure majority burst (nuova)
@@ -413,6 +515,7 @@ switch (readmode) {
           // - ma aggiorniamo comunque lo "stato precedente" (maxvalue) per non creare salti strani appena finisce il lockout
           maxvalue[chan]   = (byte)((MSB[1] << 1) | LSB[1]);
           lastbutton[chan] = 64;
+      
           break;
         }
       #endif
@@ -427,22 +530,24 @@ switch (readmode) {
 
     #endif
     break;
+  }
 
   // ila CASE 3 Ã¨ vuoto, serve per saltare la lettura dove non serve
 
-  case 4:
+  case 4: {
         #if (pullups_active == 1)
         digitalWrite(18+plexer, LOW);
         #endif
      
       //  delayMicroseconds(5); 
-        valore = analogRead_1024(plexer);
+        valore = analogRead_1024(DART_ADC_PIN_FROM_PLEXER(plexer));
         
         #if (pullups_active == 1)
         digitalWrite(18+plexer, HIGH);
         #endif
   
   break;
+  }
   
 }
 
@@ -481,7 +586,8 @@ switch (readmode) {
 
   
   #if (top_spinner == 1)
-  else {
+  else 
+  {
    
    encoder(encoder_mempos[0]);         // esecuzione con out MIDI dello spinner principale                  
   }
@@ -549,12 +655,12 @@ switch (readmode) {
     case 18:  // distance sens.
       #if defined (__AVR_ATmega32U4__)
       digitalWrite(18 + plexer, LOW);
-      valore = analogRead_1024(plexer);
+      valore = analogRead_1024(DART_ADC_PIN_FROM_PLEXER(plexer));
       beam();
       digitalWrite(18 + plexer, HIGH);
       #elif defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
       digitalWrite(14 + plexer, LOW);
-      valore = analogRead_1024(plexer);
+      valore = analogRead_1024(DART_ADC_PIN_FROM_PLEXER(plexer));
       beam();
       digitalWrite(14 + plexer, HIGH);
       #endif
@@ -608,7 +714,7 @@ switch (readmode) {
       break;
 
     case 30:  // SHIFTER
-      shifter_modifier();
+      offset_modifier();
       break;
 
     case 31:  // USER 1
@@ -625,7 +731,17 @@ switch (readmode) {
       break;
 
     case 34:  // USER 4
+      // ------------------------------------------------------------
+      // CTRL-F: STAGED_BUTTON_READ_TEST_CALLSITE
+      // Sperimentazione lettura pulsanti a 2 stadi (solo diagnostica Serial).
+      // Non tocca push_buttons() standard: vive qui nello slot USER4.
+      // ------------------------------------------------------------
+      #if (STAGED_BUTTON_READ_TEST == 1)
+      push_buttons(0);
+// legacy effects clone
+      #else
       user_item4();
+      #endif
       break;
       
 #if (FAST_FEEDBACK == 1)
@@ -638,11 +754,10 @@ switch (readmode) {
       pots();
       break;
 
-   #if Scene
-    case 38:  // scene_control
-     // scene_control_pot();
-      break;
+  
 
+      
+ #if (Scene == 1)
     case 39:  // scene_record_button
       scene_record_button();
       break;
@@ -678,9 +793,9 @@ if (channel >4) scala_learn = -1; else scala_learn = 1;
         { // i valori di valuetable dentro il gruppo-plexer vanno resi tutti diversi
          { setPlexer(channel+scala_learn);
 
-          if (  analogRead_1024(plexer)> upper_val)  /// valori molto diversi
+          if (  analogRead_1024(DART_ADC_PIN_FROM_PLEXER(plexer))> upper_val)  /// valori molto diversi
       //   {     setPlexer(channel+(scala_learn*2)); // controlla ancora
-      //    if ( analogRead(plexer) > upper_val )         
+      //    if ( analogRead(DART_ADC_PIN_FROM_PLEXER(plexer)) > upper_val )         
       //    diversifica_valuetable (); 
       //    }
          

@@ -1,3 +1,49 @@
+/* 
+ * DART EEPROM wrapper
+ * - ENABLE_EEPROM = 1  -> EEPROM attiva (preset / scene persistenti)
+ * - ENABLE_EEPROM = 0  -> EEPROM disattiva (no upload/load preset, firmware in AUTODETECT)
+ *
+ * Nota migrazione (es. Adafruit Metro M0 / SAMD):
+ * quando ENABLE_EEPROM=0 questo header NON include nulla di AVR e fornisce uno stub
+ * "EEPROM" per far compilare tutto mentre migri lo sketch un pezzo alla volta.
+ */
+
+#pragma once
+
+#include "DART_config.h"
+
+// -----------------------------------------------------------------------------
+// EEPROM DISABILITATA -> stub ultra-leggero (read=0, write/update no-op)
+// -----------------------------------------------------------------------------
+#if (ENABLE_EEPROM == 0)
+
+#include <stdint.h>
+
+struct EEPROMClass {
+  uint8_t read(int) const { return 0; }
+  void    write(int, uint8_t) const {}
+  void    update(int, uint8_t) const {}
+
+  template<typename T>
+  T &get(int, T &t) const { return t; }
+
+  template<typename T>
+  const T &put(int, const T &t) const { return t; }
+
+  uint16_t length() const { return 0; }
+};
+
+static const EEPROMClass EEPROM;
+
+// -----------------------------------------------------------------------------
+// EEPROM ABILITATA
+// - su AVR: usiamo l'implementazione storica (quella che avevi già qui)
+// - su altre architetture: proviamo a usare la EEPROM del core (se presente)
+// -----------------------------------------------------------------------------
+#else  // (ENABLE_EEPROM == 1)
+
+#if defined(ARDUINO_ARCH_AVR)
+// ==================== AVR IMPLEMENTATION (storica) ====================
 /*
   EEPROM.h - EEPROM library
   Original Copyright (c) 2006 David A. Mellis.  All right reserved.
@@ -22,7 +68,9 @@
 #define EEPROM_h
 
 #include <inttypes.h>
+
 #include <avr/eeprom.h>
+
 #include <avr/io.h>
 
 /***
@@ -144,3 +192,62 @@ struct EEPROMClass{
 
 static EEPROMClass EEPROM;
 #endif
+
+#else
+// ==================== Non-AVR ====================
+// SAMD (Metro M0 Express): EEPROM emulata su flash (mirror RAM + commit)
+// Altre architetture: prova a usare la EEPROM del core (se presente), altrimenti stub.
+#if (ENABLE_EEPROM == 1)
+
+  #if defined(ARDUINO_ARCH_SAMD)
+
+    #include "_DART_EEPROM_SAMD21.h"
+
+    // Helper macros (nel troncone 1 non vengono usate dal DART, ma ci serviranno dopo)
+    #define DART_EEPROM_BEGIN()    do { EEPROM.begin(); } while (0)
+    #define DART_EEPROM_COMMIT()   do { EEPROM.commit(); } while (0)
+    #define DART_EEPROM_FORMAT(x)  do { EEPROM.format((uint8_t)(x)); } while (0)
+
+  #else
+
+    // Fallback: se il core espone EEPROM.h, usiamola.
+    #if defined(__has_include)
+      #if __has_include(<EEPROM.h>)
+        #include <EEPROM.h>
+      #else
+        #include <stdint.h>
+        struct EEPROMClass {
+          uint8_t read(int) const { return 0; }
+          void    write(int, uint8_t) const {}
+          void    update(int, uint8_t) const {}
+          template<typename T> T &get(int, T &t) const { return t; }
+          template<typename T> const T &put(int, const T &t) const { return t; }
+          uint16_t length() const { return 0; }
+        };
+        static EEPROMClass EEPROM;
+      #endif
+    #else
+      // Compilatori vecchi senza __has_include -> stub
+      #include <stdint.h>
+      struct EEPROMClass {
+        uint8_t read(int) const { return 0; }
+        void    write(int, uint8_t) const {}
+        void    update(int, uint8_t) const {}
+        template<typename T> T &get(int, T &t) const { return t; }
+        template<typename T> const T &put(int, const T &t) const { return t; }
+        uint16_t length() const { return 0; }
+      };
+      static EEPROMClass EEPROM;
+    #endif
+
+    #define DART_EEPROM_BEGIN()    do {} while (0)
+    #define DART_EEPROM_COMMIT()   do {} while (0)
+    #define DART_EEPROM_FORMAT(x)  do {} while (0)
+
+  #endif
+
+#endif
+
+#endif
+
+#endif // ENABLE_EEPROM

@@ -10,7 +10,46 @@
  
 // MODIFIERS 
 
+// ============================================================
+// CTRL-F: VELO_PAD_SQUEEZE_HELPER
+// maxvalue[] per MODE 27 (velocity pads):
+//   0       = velocity originale, nessuno schiacciamento
+//   1..126  = schiacciamento progressivo verso 127
+//   127     = toggle netto; ON forzato a 127, OFF resta 0
+//
+// Formula parsimoniosa: non aggiunge un offset fisso, ma riempie
+// progressivamente la distanza tra la velocity letta e il soffitto 127.
+// Cosi' una botta gia' forte cambia poco, una botta debole viene aiutata di piu'.
+// ============================================================
+byte velo_pad_squeeze(byte v) {
+  byte squeeze = maxvalue[chan];
+
+  if (v == 0 || squeeze == 0) return v;
+
+  // Toggle velocity-pad: il sensore serve solo per superare la soglia,
+  // ma il messaggio MIDI deve essere netto come un pulsante digitale.
+  if (squeeze == 127) return 127;
+
+  return v + (byte)(((uint16_t)(127 - v) * squeeze) / 126);
+}
+
 //---------------------------------------------------------------------------------------------------------------
+#if (STAGED_BUTTON_READ_TEST == 1)
+// -----------------------------------------------------------------
+// STAGED BUTTON SYSTEM ENABLED:
+// - keep the public API name 'push_buttons()' so the rest of the sketch
+//   compiles unchanged
+// - but route everything through staged LETTURA+EFFETTO
+// - the legacy implementation (big body) is NOT compiled (flash saved)
+// -----------------------------------------------------------------
+void push_buttons_lettura_stage(byte velo);
+void push_buttons_effetto_stage(byte velo);
+
+void push_buttons(byte velo) {
+  push_buttons_lettura_stage(velo);
+  push_buttons_effetto_stage(velo);
+}
+#else
 void push_buttons(byte velo) {
   
 
@@ -121,13 +160,13 @@ void push_buttons(byte velo) {
           if (velo == 0) {
             outnucleo(1, chan);
           } else {
-            #if Velo_pads_debug
+            #if (Velo_pads_debug == 1)
             debugPadVelocityFilm();   // <<< qui parte il "filmato" dopo il gate
             #endif
          
             //  int velopush =  constrain(analogRead_1024(plexer),60,255);  //Serial.println (velopush);//  delay(2);
             int velopush = constrain(analogRead_1024(plexer), 160, lower);
-            button(typetable[chan + page], valuetable[chan + page], map32(velopush, 160, lower, 127, 1), 1);
+            button(typetable[chan + page], valuetable[chan + page], velo_pad_squeeze((byte)map32(velopush, 160, lower, 127, 1)), 1);
             //  Serial.println(velopush);
           }
           // outnucleo (1,chan);
@@ -176,7 +215,7 @@ void push_buttons(byte velo) {
         // Serial.println("---- released");
         //  Serial.println(valore);
         {
-          if ((modetable[chan] >= 2 && modetable[chan] < 11) || (modetable[chan] == 27 && maxvalue[chan] > 0)) { // toggle per i velo pads
+          if ((modetable[chan] >= 2 && modetable[chan] < 11) || (modetable[chan] == 27 && maxvalue[chan] == 127)) { // toggle per i velo pads
             // se il pulsante = toggle o t-group o r-group
             if (modetable[chan] < 7 || modetable[chan] == 27) { // 7 8 9 10 sono RADIO group
               //                                                    
@@ -224,6 +263,333 @@ void push_buttons(byte velo) {
     //  lastbutton[chan] = valore / 4;
   }  // PUSH BUTTON SECTION END
 }
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// CTRL-F: STAGED_BUTTON_READ_TEST
+// Sperimentazione: separazione della lettura pulsanti (LETTURA) dall'effetto.
+// - NON tocca push_buttons() storica.
+// - Compilata solo se STAGED_BUTTON_READ_TEST == 1 (vedi DART_config.h)
+// - Usata SOLO nello slot MODE 34 (USER4) tramite ain_nucleo().
+//
+// Obiettivo: avere una logica di lettura riutilizzabile (pressed/released/down)
+// senza portarsi dietro MIDI/DMX/LED/toggle ecc.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#if (STAGED_BUTTON_READ_TEST == 1)
+
+// Flag validi SOLO per il canale corrente ("consultabilita' locale").
+static byte PB_DOWN_NOW     = 0;   // 1 = pulsante giu' (stato istantaneo, non latch)
+static byte PB_PRESSED_NOW  = 0;   // 1 = fronte di pressione (debounced) in questo giro
+static byte PB_RELEASED_NOW = 0;   // 1 = fronte di rilascio (debounced) in questo giro
+static byte PB_VELO_NOW     = 0;   // 1..127 (solo se velo==1), 0 = non valido
+// Accessor API (read-only):
+// These functions expose the staged button state to ANY part of the sketch
+// (including user functions), without exposing the internal variables.
+byte pb_pressed()  { return PB_PRESSED_NOW; }
+byte pb_released() { return PB_RELEASED_NOW; }
+byte pb_down()     { return PB_DOWN_NOW; }
+byte pb_velo()     { return PB_VELO_NOW; }
+
+
+// ============================================================
+// CTRL-F: PUSH_BUTTONS_LETTURA_STAGE
+// Stage 1 - LETTURA: decide solo pressed/released/down.
+// - Riusa lo stesso schema di debounce di push_buttons(): lastbutton[]
+// - NON manda MIDI/DMX/LED, NON tocca toggletable.
+// ============================================================
+void push_buttons_lettura_stage(byte velo) {
+
+  // reset flags (validi solo per questo chan)
+  PB_DOWN_NOW     = 0;
+  PB_PRESSED_NOW  = 0;
+  PB_RELEASED_NOW = 0;
+  PB_VELO_NOW     = 0;
+
+  // soglia "pressed" (stessa formula della push_buttons storica)
+  int lower = lower_val + (velo * (minvalue[chan] * 3));
+
+  // stato istantaneo (non debounced): utile per eventuali user-effects
+  if (valore < lower) {
+    PB_DOWN_NOW = 1;
+  }
+
+  // ------------------------------
+  // PRESS edge (debounced)
+  // ------------------------------
+  if (valore < lower) {
+    if (lastbutton[chan] == lastbutton_debounce) {
+      PB_PRESSED_NOW = 1;
+
+      // se e' un velo-pad, calcoliamo un valore indicativo (come nella push_buttons).
+      // qui NON inviamo nulla: e' solo un numero pronto per chi vuole usarlo.
+      if (velo == 1) {
+        // Safety guard: keep legacy behaviour, but avoid invalid ranges.
+        int lowerSafe = lower;
+        if (lowerSafe <= 160) lowerSafe = 161;
+        int velopush = constrain(analogRead_1024(plexer), 160, lowerSafe);
+        PB_VELO_NOW = velo_pad_squeeze((byte)map32(velopush, 160, lowerSafe, 127, 1));
+      }
+    }
+    // comportamento identico: se lastbutton > 0 torna a 0 quando il pulsante e' giu'
+    if (lastbutton[chan] > 0) {
+      lastbutton[chan] = 0;
+    }
+  }
+
+  // ------------------------------
+  // RELEASE edge (debounced)
+  // ------------------------------
+  if (valore > upper_val) {
+    if (lastbutton[chan] == 0) {
+      PB_RELEASED_NOW = 1;
+    }
+    // incrementa fino a debounce (identico alla storica)
+    if (lastbutton[chan] < lastbutton_debounce) {
+      lastbutton[chan]++;
+    }
+  }
+}
+
+
+// ============================================================
+// CTRL-F: PUSH_BUTTONS_EFFETTO_SERIAL
+// Stage 2 - EFFETTO minimo (solo diagnostica su Serial).
+// - Qui NON tocchiamo tabelle, LED, DMX, MIDI...
+// - Serve solo per testare la bontà della lettura.
+// ============================================================
+void push_buttons_effetto_serial(byte velo) {
+
+  // niente da dire? uscita rapida (risparmio CPU)
+  if (PB_PRESSED_NOW == 0 && PB_RELEASED_NOW == 0) return;
+
+  // NB: su Leonardo/32U4 Serial e' di solito disponibile; se non e' aperto,
+  // le print non fanno danni ma possono perdere tempo.
+  if (PB_PRESSED_NOW) {
+    Serial.print(F("[PB] PRESS  ch="));  Serial.print(chan);
+    Serial.print(F(" page="));          Serial.print(page);
+    Serial.print(F(" mode="));          Serial.print(modetable[chan]);
+    Serial.print(F(" val="));           Serial.print(valore);
+    if (velo == 1) {
+      Serial.print(F(" velo="));        Serial.print(PB_VELO_NOW);
+    }
+    Serial.println();
+  }
+
+  if (PB_RELEASED_NOW) {
+    Serial.print(F("[PB] RELEASE ch=")); Serial.print(chan);
+    Serial.print(F(" page="));           Serial.print(page);
+    Serial.print(F(" mode="));           Serial.print(modetable[chan]);
+    Serial.print(F(" val="));            Serial.print(valore);
+    Serial.println();
+  }
+}
+
+  // =========================================================
+  // STAGED PUSH BUTTON EFFECT (legacy behavior)
+  // Uses flags from push_buttons_lettura_stage():
+  //   PB_PRESSED_NOW / PB_RELEASED_NOW / PB_VELO_NOW
+  // =========================================================
+  void push_buttons_effetto_stage(byte velo) {
+    // nothing happened -> exit quickly
+    if (PB_PRESSED_NOW == 0 && PB_RELEASED_NOW == 0) return;
+
+    // ----------------------------
+    // PRESS effects
+    // ----------------------------
+    if (PB_PRESSED_NOW) {
+
+        /*
+        Serial.print(modetable[19]); Serial.println(" - modetable");
+        Serial.print(dmxtable[19]); Serial.println(" - dmxtable - modalità endless / pot");
+        Serial.print(qwertyvalue[19]); Serial.println(" - touchstop");
+        Serial.print(minvalue[19]-32); Serial.println(" - speed");
+        */
+
+        /*
+        ============================================================
+        CTRL-F: PAGESWITCH_DIAG_PRINT_ON_BUTTON  (DISABLED)
+        Diagnostica takeover/pageswitch (contatori + dump arm bank5)
+        usata solo per inchiodare il problema del takeover armato al boot.
+        Ora rimossa/commentata.
+        ============================================================
+
+        for (byte i = 0; i < max_modifiers; i++) {
+          Serial.println(bit_read(5, i + 0));
+        }
+
+        static byte ps_diag_printed = 0;
+        if (!ps_diag_printed) {
+          ps_diag_printed = 1;
+          Serial.print(F("[PS] calls="));    Serial.print(ps_calls);
+          Serial.print(F(" changes="));      Serial.print(ps_changes);
+          Serial.print(F(" arm="));          Serial.println(ps_arm);
+          Serial.print(F("[PS] first page="));      Serial.print(ps_first_page);
+          Serial.print(F(" first pagestate="));     Serial.print(ps_first_pagestate);
+          Serial.print(F(" first reason="));        Serial.println(ps_first_reason);
+          Serial.print(F("[PS] setup page="));       Serial.print(ps_setup_page);
+          Serial.print(F(" setup pagestate="));     Serial.println(ps_setup_pagestate);
+        }
+        */
+        if (modetable[chan] >= 3 && modetable[chan] != 27) {
+          offgroup(chan, 1);      // da 3 in poi ci sono i toggle groups e radio groups
+        }
+      
+        if (bit_read(4, page + chan) == 0) { // 4 = toggletable // something happens only if the button is off in the toggletable
+          #if (ENABLE_AUTODETECT == 1)
+          if (eeprom_preset_active == 0) {
+            dmxtable[chan]++;    // autodetect_dmx
+          }
+          #endif
+        
+          //  Serial.println(mouse_mempos);
+          #if defined (__AVR_ATmega32U4__)  
+          HOT_keys(chan, 1);    
+          #endif  
+          
+          #if (Scale == 1)
+          if (typetable[chan + page] < 160) {
+            scale_learn(valuetable[chan + page]);   // sotto 160 ci sono note on e off 
+          }
+          #endif
+             
+          #if (shifter_active == 1 && stratos == 0)    
+          ledControl(chan, 1); // void ledControl (byte chann, byte stat)   // stat significa status 1 = acceso 0 = spento
+          ledrestore(page); // perchè?? non è pesante?
+          #endif
+                
+          #if (Matrix_Pads == 1)
+          single_h(matrix_remap[chan], lightable[chan], 1, 1);  // pad in negativo (sprite invertito)
+          ledControl_matrix(chan, 1);
+          // avvia effetto a croce sulle matrici (vedi matrixbuttonledefx in D_mtrx.ino)
+          
+          #if (MATRIX_CROSS_FX == 1)
+          // CTRL-F: CROSS_TRIGGER_MASK_AAFF
+          // canali autorizzati a triggerare la croce (0..15)
+          const uint16_t CROSS_MASK = 0xAAFF;
+
+          // evita OOB su matrix_remap[] e filtra i canali
+          if (chan < 16 && (CROSS_MASK & (uint16_t)(1U << chan))) {
+            buttonefxd = matrix_remap[chan];
+            buttonefx  = 1;
+            cycletimer = 0;
+          }
+          #endif
+ 
+          #endif
+
+          #if (Matrix_Pads == 2)
+          single_h(matrix_remap[chan - 16], lightable[chan], 1, 1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo, send)
+          #endif
+    
+          if (modetable[chan] > 6) {
+            bit_write(4, chan + page, true);   // r-groups // ricordare che: 4 = togletable
+          } else if (modetable[chan] >= 2) {
+            bit_write(4, chan + page, !bit_read(4, page + chan));
+          }     
+
+          if (velo == 0) {
+            outnucleo(1, chan);
+          } else {
+            #if (Velo_pads_debug == 1)
+            debugPadVelocityFilm();   // <<< qui parte il "filmato" dopo il gate
+            #endif
+         
+                        // velocity: reuse staged reading (PB_VELO_NOW) to match legacy mapping
+            button(typetable[chan + page], valuetable[chan + page], PB_VELO_NOW, 1);
+//  Serial.println(velopush);
+          }
+          // outnucleo (1,chan);
+        } else { /// se il pulsante è acceso nella toggletable
+          if (modetable[chan] < 7 || modetable[chan] == 27) {
+            #if defined (__AVR_ATmega32U4__)  
+            HOT_keys(chan, 0);    
+            #endif  
+             
+            #if (shifter_active == 1 && stratos == 0)    
+            ledControl(chan, 0);
+            ledrestore(page);
+            #endif
+         
+            #if (Matrix_Pads == 1)
+            ledControl_matrix(chan, 0);
+            single_h(matrix_remap[chan], lightable[chan], 0, 1);
+            //   single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
+            #endif
+
+            #if (Matrix_Pads == 2)
+            single_h(matrix_remap[chan - 16], lightable[chan], 0, 1);
+            //   single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
+            #endif
+             
+            bit_write(4, chan + page, !bit_read(4, page + chan)); 
+            outnucleo(0, chan);
+          }
+        }
+
+        #if (shifter_active == 1)
+        cycletimer = 0;   
+        #endif
+        shifterwrite = 1;
+      
+    }
+
+    // ----------------------------
+    // RELEASE effects
+    // ----------------------------
+    if (PB_RELEASED_NOW) {
+
+        //  if (page == 0) 
+        // Serial.println("---- released");
+        //  Serial.println(valore);
+        {
+          if ((modetable[chan] >= 2 && modetable[chan] < 11) || (modetable[chan] == 27 && maxvalue[chan] == 127)) { // toggle per i velo pads
+            // se il pulsante = toggle o t-group o r-group
+            if (modetable[chan] < 7 || modetable[chan] == 27) { // 7 8 9 10 sono RADIO group
+              //                                                    
+            }   
+          } else {
+            // if ( modetable[chan] < 5 ) // se il pulsante NON e' in toggle o in uno dei gruppi toggle
+            {  
+              //  if (bit_read(4,page+chan) == 1) 
+              {  
+                #if defined (__AVR_ATmega32U4__)  
+                HOT_keys(chan, 0);
+                #endif
+            
+                #if (shifter_active == 1 && stratos == 0)
+                if (bit_read(4, page + chan) == 0) {
+                  ledControl(chan, 0);  
+                }
+                #endif
+
+                #if (Matrix_Pads == 1)
+                ledControl_matrix(chan, 0);
+                single_h(matrix_remap[chan], lightable[chan], 0, 1);
+                //   bit_write(1,(lightable[chan]-1)+page,0); 
+                // single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
+                #endif
+
+                #if (Matrix_Pads == 2)
+                single_h(matrix_remap[chan - 16], lightable[chan], 0, 1);
+                //   bit_write(1,(lightable[chan]-1)+page,0); 
+                // single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
+                #endif
+              }
+              bit_write(4, chan + page, 0);
+              outnucleo(0, chan);
+            }
+          }
+        }
+
+        shifterwrite = 1;
+      
+    }
+  }
+
+
+#endif // STAGED_BUTTON_READ_TEST
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -257,18 +623,33 @@ void pots() {
   // Se vuoi il scene-control sempre "page 0", qui basta sostituire con typetable[chan].
   // ============================================================
  
-  #if Scene
+  #if (Scene == 1)
   if (typetable[chan + page] == 244) {
     scene_control_pot(); // TEST_ASSASSINO
     return;
   }
   #endif
+  
+// CTRL-F: POT_DIFF_UNLOCK_WINDOW
+// fuori finestra: scarto alto (anti-disturbo)
+// dentro finestra: scarto basso (hi-precision)
+#if (ENABLE_POT_HIPREC_WINDOW == 1)
+const byte diff_unlock = 20;
+const byte diff_window = 4;
+#else
+ const byte diff_unlock = 5; // quasi niente scarto se non usiamo finestra precision
+#endif
 
-  byte diff = 11; // #mod_finestra
+#if (ENABLE_POT_HIPREC_WINDOW == 1)
+  byte diff = (qwertyvalue[chan] > 0) ? diff_window : diff_unlock;
+#else
+  byte diff = diff_unlock; // finestra OFF: sempre scarto grosso
+#endif
+
   // CTRL-F: POTS_LB_INDEX
   // page vale 0 o 60 (max_modifiers). Con /60 otteniamo 0 oppure 1.
   // Usiamo 64 come stride per NON pestare i primi 0..63.
-  #if ENABLE_POT_TAKEOVER
+  #if (ENABLE_POT_TAKEOVER == 1)
   byte lb = chan + (byte)((page / max_modifiers) * 64);
   #else
   byte lb = chan; // legacy: no split
@@ -287,7 +668,7 @@ void pots() {
  
 
 
-    #if ENABLE_POT_TAKEOVER
+    #if (ENABLE_POT_TAKEOVER == 1)
     if (bit_read(5, chan + page) == 1) { // ARMED su questa pagina
       if (pot_confronto <= POT_TAKEOVER_WINDOW) {
         // ============================================================
@@ -429,7 +810,7 @@ void pots() {
               noteOn(typetable[chan + (page)], valuetable[chan + (page)], potSend, 1);
               // Serial.println(encled);
               break; // cc
-            #if Scene
+            #if (Scene == 1)
             case 3: // PC (nel DART: usato come "CC-scene" per pot continui)
               // ============================================================
               // CTRL-F: CONVOY_POTS_CASE3
@@ -466,7 +847,7 @@ void pots() {
               encled[0] = abs(15 - ((valore) / 64)) * 16;
             }
             break; // PB
-            #if Scene
+            #if (Scene == 1)
             case 6: // SCENE CONTROL (marker TYPE=6 -> typetable raw 244)
               // ============================================================
               // CTRL-F: POTS_TYPE6_SCENE_MARKER
@@ -506,14 +887,14 @@ void pots() {
           #endif //(shifter_active == 1 && stratos == 0)
        
           #if (Matrix_Pads > 0) // nel caso del controller matrix - blinker e effetti led sono coesistenti
-          if (lightable[chan] > 0) {
+          if (lightable[chan] > 32) {
             led_enc_exe_matrix();
           }
           //  else
           #if (blinker == 1)
           {
-            if (lightable[chan] > 1) { // 0= no efetti - 1=effetti - 2=blinker+effeti
-              if ((potOut > 0 && modetable[chan] < 14) || (potOut != 64 && modetable[chan] > 13)) { // hypercurve o normal / centercurve
+            if (lightable[chan] > 1 && lightable[chan] < 33) { // 0= no efetti - 1=effetti - 2=blinker+effeti
+              if ((potOut > 1 && modetable[chan] < 14) || (potOut != 64 && modetable[chan] > 13)) { // hypercurve o normal / centercurve
                 bit_write(1, (lightable[chan] - 1) + page, 1);  
               } else {     
                 bit_write(1, (lightable[chan] - 1) + page, 0);
@@ -527,24 +908,44 @@ void pots() {
           #if (DMX_active == 1 && stratos == 0)
           // if (dmxtable[chan] == 100) 
           if (eeprom_preset_active == 1) {
-            DmxSimple.write(dmxtable[chan], potOut * 2);
+             
+             // DMX a 8-bit vero: usa il valore raw (0..1023) e lo porta a 0..255
+byte dmxOut = (byte)(valore >> 2);   // 1023 >> 2 = 255
+DmxSimple.write(dmxtable[chan], dmxOut);
+         //   DmxSimple.write(dmxtable[chan], potOut * 2);
+         
           }
           // Serial.println("a");
           #endif
 
-          qwertyvalue[chan] = 80; // #mod_finestra
+          // CTRL-F: WINDOW_REFRESH_ONLY_ON_BIG_MOVE
+// Ricarica la finestra SOLO su movimento "grosso".
+// Evita che un jitter > diff_window (3) tenga la finestra aperta per secondi.
+#if (ENABLE_POT_HIPREC_WINDOW == 1)
+if (pot_confronto > diff_unlock) {
+  qwertyvalue[chan] = 160; // #mod_finestra
+}  
+#endif
         }  // -------------- fine della condizione generale pot mosso
       }
  
       // {if (valuetable[chan + page] == 63) digitalWrite(8,HIGH);} // sperimentale - volevo vedere con un led la finestra temporale che si apre
     }
        
-    if (pot_confronto <= 7) {
-      if (qwertyvalue[chan] > 0 && modetable[chan] < 16) {
-        qwertyvalue[chan]--;
-      }
-      // else {if (valuetable[chan + page] == 63) digitalWrite(8,LOW);} // sperimentale - volevo vedere con un led la finestra temporale che si apre
-    }
+   // CTRL-F: POTS_WINDOW_CLOSE_USES_UNLOCK
+// La finestra NON deve rimanere aperta per colpa di micro-instabilità.
+// Quindi la chiusura usa il "metro grosso" (diff_unlock), non il 7 fisso.
+#if (ENABLE_POT_HIPREC_WINDOW == 1)
+
+if (qwertyvalue[chan] > 0 && modetable[chan] < 16) {
+ // if (pot_confronto <= diff_unlock) {     // <-- criterio di "fermo" grossolano
+     if (pot_confronto <= diff_window) {   // <-- criterio di "fermo" fine  // CTRL-F: POTS_WINDOW_CLOSE_SMART 
+                                           // Se la finestra è aperta e stiamo ancora "muovendo piano" (oltre diff_window), 
+                                           // NON la facciamo scendere: così i movimenti lentissimi restano precisi.
+    qwertyvalue[chan]--;
+  }
+}
+#endif
 
     #if (blinker == 1) 
     {
@@ -587,6 +988,9 @@ void pots() {
   }
 }
 
+
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void user_item1() {
@@ -609,19 +1013,52 @@ void user_item4() {
  
 void reset() {
   // info: funzione che riporta un encoder ad un determinato punto della sua escursione , se impostato in Pot-Emulation
-  
+
   // Serial.println("reset pressed");
   // delay(100);
-   
+
+#if (STAGED_BUTTON_READ_TEST == 1)
+
+  // Stage 1: lettura debounciata pulsante (API staged) per il chan corrente
+  push_buttons_lettura_stage(0);
+
+  // ----- PRESS (equivalente a: valore < lower_val && lastbutton[chan] == 1) -----
+  if (pb_pressed()) { ///// button pushed (debounced)
+    //  Serial.println(minvalue[chan]);
+
+    #if (stratos == 0)
+    button(typetable[remapper(minvalue[chan] - 1) + page],
+           valuetable[remapper(minvalue[chan] - 1) + page],
+           maxvalue[chan], 1);
+    lightable[remapper(minvalue[chan] - 1)] = maxvalue[chan] * 2;
+    #endif
+
+    #if (stratos == 1)
+    button(typetable[(minvalue[chan]) + page],
+           valuetable[(minvalue[chan]) + page],
+           maxvalue[chan], 1);
+    lightable[minvalue[chan]] = maxvalue[chan] * 2;
+    #endif
+  }
+
+  // ----- RELEASE (equivalente a: valore > upper_val && lastbutton[chan] == 0) -----
+  if (pb_released()) { ///// button released (debounced)
+    // Serial.println("reset pressed");
+  }
+
+#else
+
+  // ---- LEGACY (identica alla tua versione) ----
+
   if (valore < lower_val && lastbutton[chan] == 1) { ///// button pushed
     //  Serial.println(minvalue[chan]);
     lastbutton[chan] = 0;
-        
-    #if (stratos == 0)    
+
+    #if (stratos == 0)
     button(typetable[remapper(minvalue[chan] - 1) + page], valuetable[remapper(minvalue[chan] - 1) + page], maxvalue[chan], 1);
     lightable[remapper(minvalue[chan] - 1)] = maxvalue[chan] * 2;
-    #endif 
-  
+    #endif
+
     #if (stratos == 1)
     button(typetable[(minvalue[chan]) + page], valuetable[(minvalue[chan]) + page], maxvalue[chan], 1);
     lightable[minvalue[chan]] = maxvalue[chan] * 2;
@@ -632,30 +1069,84 @@ void reset() {
     lastbutton[chan] = 1;
     // Serial.println("reset pressed");
   }
+
+#endif
 }
+
+
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void shifter_modifier() {
+void offset_modifier() {
   // funzione simile al pageswitch , tutti i messaggi midi vengono temporaneamente traslati di canale - in tal modo è possibile controllare più parametri
-  
-  if (valore < lower_val && lastbutton[chan] > 0) { ///// button pushed
-    lastbutton[chan] = 0;
+
+#if (STAGED_BUTTON_READ_TEST == 1)
+
+  // Stage 1: lettura debounciata pulsante (API staged) per il chan corrente
+  push_buttons_lettura_stage(0);
+
+  // ----- PRESS (equivalente a: valore < lower_val && lastbutton[chan] > 0) -----
+  if (pb_pressed()) { ///// button pushed (debounced)
+    // lastbutton[chan] viene gestito internamente dallo stage, quindi non lo tocchiamo qui.
     //   Serial.println("tunz on");
     if (lightable[chan] > 0) {
-      #if (stratos == 0)  
+      #if (stratos == 0)
       // valuetable[ remapper(lightable[chan]-1)+page] ++;
       typetable[remapper(lightable[chan] - 1) + page] = typetable[remapper(lightable[chan] - 1) + page] + dmxtable[chan];
       // Serial.println("tunz");
       #endif
-     
+
       #if (stratos == 1)
       // valuetable[ (lightable[chan])+page] ++;
       typetable[(lightable[chan]) + page] = typetable[(lightable[chan]) + page] + dmxtable[chan];
       // Serial.println("tunz");
       #endif
     } else {
-      shifter_modifier_ = dmxtable[chan];
+      offset_modifier_ = dmxtable[chan];
+    }
+  }
+
+  // ----- RELEASE (equivalente a: valore > upper_val && lastbutton[chan] == 0) -----
+  if (pb_released()) { ///// button released (debounced)
+    // lastbutton[chan] viene gestito internamente dallo stage, quindi non lo tocchiamo qui.
+    //   Serial.println("tunz off");
+    if (lightable[chan] > 0) {
+      #if (stratos == 0)
+      // valuetable[ remapper(lightable[chan]-1)+page] --;
+      typetable[remapper(lightable[chan] - 1) + page] = typetable[remapper(lightable[chan] - 1) + page] - dmxtable[chan];
+      #endif
+
+      #if (stratos == 1)
+      // valuetable[ (lightable[chan])+page] --;
+      typetable[(lightable[chan]) + page] = typetable[(lightable[chan]) + page] - dmxtable[chan];
+      #endif
+    } else {
+      offset_modifier_ = 0;
+    }
+  }
+
+#else
+
+  // ---- LEGACY (identica alla tua versione) ----
+
+  if (valore < lower_val && lastbutton[chan] > 0) { ///// button pushed
+    lastbutton[chan] = 0;
+    //   Serial.println("tunz on");
+    if (lightable[chan] > 0) {
+      #if (stratos == 0)
+      // valuetable[ remapper(lightable[chan]-1)+page] ++;
+      typetable[remapper(lightable[chan] - 1) + page] = typetable[remapper(lightable[chan] - 1) + page] + dmxtable[chan];
+      // Serial.println("tunz");
+      #endif
+
+      #if (stratos == 1)
+      // valuetable[ (lightable[chan])+page] ++;
+      typetable[(lightable[chan]) + page] = typetable[(lightable[chan]) + page] + dmxtable[chan];
+      // Serial.println("tunz");
+      #endif
+    } else {
+      offset_modifier_ = dmxtable[chan];
     }
   }
 
@@ -663,19 +1154,21 @@ void shifter_modifier() {
     lastbutton[chan] = 1;
     //   Serial.println("tunz off");
     if (lightable[chan] > 0) {
-      #if (stratos == 0)  
+      #if (stratos == 0)
       // valuetable[ remapper(lightable[chan]-1)+page] --;
       typetable[remapper(lightable[chan] - 1) + page] = typetable[remapper(lightable[chan] - 1) + page] - dmxtable[chan];
       #endif
-            
+
       #if (stratos == 1)
       // valuetable[ (lightable[chan])+page] --;
       typetable[(lightable[chan]) + page] = typetable[(lightable[chan]) + page] - dmxtable[chan];
       #endif
     } else {
-      shifter_modifier_ = 0;
+      offset_modifier_ = 0;
     }
   }
+
+#endif
 }
 
 

@@ -8,7 +8,13 @@
  * (at your option) any later version. See the LICENSE file for details.
  */
 
-void load_preset_base() { // carica le variabili che devono restare in memoria indipendentemnte per le due pagine, per gestire il feedback. 
+void load_preset_base() {
+#if (ENABLE_EEPROM == 0)
+  // EEPROM disabilitata: niente preset da caricare.
+  // Lasciamo le tabelle come sono (verranno inizializzate da aux_preset()).
+  return;
+#endif
+ // carica le variabili che devono restare in memoria indipendentemnte per le due pagine, per gestire il feedback. 
   for (int i = 0; i < max_modifiers; i++) {
     typetable[i] = EEPROM.read(i); // note cc pc at + channel
     valuetable[i] = EEPROM.read(i + 64); // 0-127 che nota è
@@ -20,6 +26,14 @@ void load_preset_base() { // carica le variabili che devono restare in memoria i
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void load_preset(boolean numero) {
+#if (ENABLE_EEPROM == 0)
+  // EEPROM disabilitata: niente lettura preset, niente scene persistenti.
+  // Forziamo AUTODETECT: eeprom_preset_active=0 + preset base.
+  eeprom_preset_active = 0;
+  aux_preset();
+  return;
+#endif
+
   // numero is the page to load - 0 1 
   // carica le variabili dalla EEPROM alla memoria esecutiva, 
   /// secondo la pagina in cui ci si trova.
@@ -131,7 +145,7 @@ void load_preset(boolean numero) {
   // SCENE: ricostruzione lista pot-soggetto dopo load preset
   // La facciamo una sola volta, quando viene caricata la pagina 0
   // ------------------------------------------------------------
-  #if Scene
+  #if (Scene == 1)
   if (numero == 0) {
     scene_build_subject_list();
     scene_eeprom_load();
@@ -204,14 +218,28 @@ void setup_mempos(byte i) { // richiamato da load_preset
 void aux_preset() { // preset di base caricato all'avvio soltanto se il preset sulla eeprom non valido. 
   for (byte i = 0; i < max_modifiers; i++) {
     modetable[i] = 1;
+
+    // ==== [AUX_PRESET_UNIQUE_NOTES_SAMD] CTRL-F: AUX_PRESET_UNIQUE_NOTES_SAMD ====
+    // Allineamento con lo sketch di test M0: ogni item ha un data1 diverso, cosi'
+    // nel monitor MIDI si capisce subito quale memory position sta trasmettendo.
+    // Scriviamo esplicitamente sia PAGE 1 sia PAGE 2, evitando dipendenze dal
+    // valore runtime di 'page' durante l'avvio.
+    #if defined(ARDUINO_ARCH_SAMD)
+    valuetable[i] = 36 + i;
+    valuetable[i + max_modifiers] = 36 + i;
+    typetable[i] = 144;
+    typetable[i + max_modifiers] = 144;
+    #else
     valuetable[i + page] = 60 + (i / 8) * 8; // di default, tutte le note emesse sono uguali. in questo modo, se non si montano multiplexers, ogni in triggera otto note, che essendo tutte uguali verranno filtrate dal midiout in una solo nota.
     valuetable[i] = 60 + (i / 8) * 8;
+    typetable[i] = 144;
+    typetable[i + page] = 144;
+    #endif
+
     minvalue[i] = 0;
     maxvalue[i] = 127;
     dmxtable[i] = 0;
     qwertyvalue[i] = 0;
-    typetable[i] = 144;
-    typetable[i + page] = 144;
 
     #if (ENABLE_AUTODETECT == 1)
     if (eeprom_preset_active == 0) {

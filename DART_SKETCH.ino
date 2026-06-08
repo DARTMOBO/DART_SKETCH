@@ -16,6 +16,26 @@
 
 
 #include "DART_config.h"   // central compile-time settings (currently DMX_active)
+// =========================================================
+// STAGED BUTTON READ API (debounced button reading)
+// - Makes push_buttons_lettura_stage() + accessors visible to ALL tabs.
+// - When STAGED_BUTTON_READ_TEST is OFF, stubs compile away to keep compatibility.
+// =========================================================
+#if (STAGED_BUTTON_READ_TEST == 1)
+  void push_buttons_lettura_stage(byte velo);
+  byte pb_pressed();
+  byte pb_released();
+  byte pb_down();
+  byte pb_velo();
+#else
+  // Stubs: allow code to compile even when staged system is disabled.
+  // They return "no event" and do nothing.
+  inline void push_buttons_lettura_stage(byte velo) { (void)velo; }
+  inline byte pb_pressed()  { return 0; }
+  inline byte pb_released() { return 0; }
+  inline byte pb_down()     { return 0; }
+  inline byte pb_velo()     { return 0; }
+#endif
 
  
 //---------------------------------------------
@@ -50,7 +70,6 @@ static inline uint8_t map7_0_1023_to_0_127(uint16_t x)
 #include <Mouse.h>
  #endif // (hid_mouse == 1)
 
-#define ENABLE_BOOSTAX  // ← ATTIVO // commentare per disattivare // sezione mouse 
 
 //---------------------------------------------------------------
 
@@ -60,18 +79,38 @@ static inline uint8_t map7_0_1023_to_0_127(uint16_t x)
 #endif // (hid_keys == 1)
 midiEventPacket_t rx;
 #endif // defined (__AVR_ATmega32U4__)
+#if defined(ARDUINO_ARCH_SAMD) && !defined(__AVR_ATmega32U4__)
+#include "_DART_MIDI_SAMD.h"
+#endif
+
 
 #if (Touch_sensors_enable == 1)
-// pin 9 e 7 sono gli input - 8 è l'emettitore
-#include "_DART_Touch_Sensor.h"
-#if (stratos == 1 )
-CapacitiveSensor   cs_4_2[1] = {CapacitiveSensor(9,8)}; // stratos
-#endif // (stratos == 1)
-#if (stratos == 0 )
-CapacitiveSensor   cs_4_2[2]  = {CapacitiveSensor(8,7), CapacitiveSensor(8,9)};
-#endif // (stratos == 0)
- 
+
+// ===== TOUCH_SAMD_AVR_SPLIT =====
+// AVR: usa la libreria storica CapacitiveSensor
+// SAMD: NON includere la libreria touch classica; useremo una lettura raw dedicata in E_touch.ino
+
+#if defined(__AVR_ATmega32U4__)
+  // pin 9 e 7 sono gli input - 8 è l'emettitore
+  #include "_DART_Touch_Sensor.h"
+
+  #if (stratos == 1 )
+  CapacitiveSensor cs_4_2[1] = {CapacitiveSensor(9,8)}; // stratos
+  #endif
+
+  #if (stratos == 0 )
+  CapacitiveSensor cs_4_2[2] = {CapacitiveSensor(8,7), CapacitiveSensor(8,9)};
+  #endif
+#endif
+
+//#if defined(ARDUINO_ARCH_SAMD) && !defined(__AVR_ATmega32U4__)
+  // Stato raw minimale per il touch 1 su SAMD
+  //byte touchStateT1 = 0;
+//#endif
+
 #endif // (Touch_sensors_enable == 1)
+
+
 
 
 #if (DMX_active == 1 && stratos == 0)
@@ -96,7 +135,7 @@ CapacitiveSensor   cs_4_2[2]  = {CapacitiveSensor(8,7), CapacitiveSensor(8,9)};
   
 #define DART_USE_HW_SPI 1
 
-#if DART_USE_HW_SPI
+#if (DART_USE_HW_SPI == 1)
   #include "_DART_LedControl.h"
   typedef DartLedControl DartLedLib;
 #else // !DART_USE_HW_SPI
@@ -115,7 +154,7 @@ CapacitiveSensor   cs_4_2[2]  = {CapacitiveSensor(8,7), CapacitiveSensor(8,9)};
 byte out_filter; // usato in void noteon come filtro antiflicker per gli encoders di scarsa qualità 
 #endif // (MIDI_OUT_CLEANER == 1)
 //#endif
-byte shifter_modifier_; // usato in midiout per shiftare i segnali su altro canale ottenendo un effetto simile a PAGE 
+byte offset_modifier_; // usato in midiout per shiftare i segnali su altro canale ottenendo un effetto simile a PAGE 
 
   byte do_; // attualmente usato come counter per flash lights in modalità matrix durante caricamento preset
 ///////////////////////////////////////////////////////////////////////
@@ -159,6 +198,7 @@ const int minbeam = 290;
  
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
  const PROGMEM  byte qwertymod[33] = { // da 0 a 24 ci sono i modificatori - da 25 a 32 controlli mouse
@@ -264,7 +304,7 @@ byte page_mempos;
  byte general_mempos = 0;
 /////////////////////////////////////////////////////////////////////
 // CTRL-F: PAGE_BOOT_SELECT
-#if ENABLE_POT_TAKEOVER
+#if (ENABLE_POT_TAKEOVER == 1)
 byte page = 0; // takeover: boot in Page1
 //byte takeover_init = 1;
 #else // !ENABLE_POT_TAKEOVER
@@ -401,7 +441,7 @@ byte max_units = 12;
 #define MAX_CLK_PIN 15   // ICSP SCK
 #define MAX_CS_PIN  12   // CS comune a tutte le matrici
 
-#if DART_USE_HW_SPI
+#if (DART_USE_HW_SPI == 1)
   // SPI hardware: la libreria ignora DIN/CLK e usa direttamente MOSI/SCK hardware.
   // Qui passi SOLO il CS e il numero di dispositivi.
   DartLedLib lc = DartLedLib(MAX_CS_PIN, max_units);
@@ -440,7 +480,7 @@ volatile byte LSB[2] ;
 byte encoder_block[2]= {64,64} ; // serve per bloccare l'attivita'  dell'encoder quando viene toccato ma tenuto fermo - per registrare una scala.
 ////////////////////////////////////////////////////////////////////////////////  
 // CTRL-F: LASTBUTTON_SIZE_SWITCH
-#if ENABLE_POT_TAKEOVER
+#if (ENABLE_POT_TAKEOVER == 1)
 volatile byte lastbutton[128] ; // split: 0..63 legacy + 64..127 Page2 pots
 #else // !ENABLE_POT_TAKEOVER
 volatile byte lastbutton[64] ; // legacy size
@@ -524,10 +564,20 @@ Channel Pressure  208 + Channel 0-127 Pressure  Not used
  byte  qwertyvalue[max_modifiers];
  byte  dmxtable[max_modifiers];
 
+	// -----------------------------------------------------------------------------
+	// CTRL-F: POT_EMA_ARRAY
+	// EMA ("condensatore digitale") per i POT in range 0..255.
+	// - Per ora usiamo un array dedicato (60 byte).
+	// - In futuro vedremo se e' possibile riusare una tabella esistente.
+	// -----------------------------------------------------------------------------
+	#if (POT_EMA_ENABLE == 1)
+	byte pot_ema_8[max_modifiers];
+	#endif
+
  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
  
 // CTRL-F: BITSTATUS_SIZE_SWITCH
-#if ENABLE_POT_TAKEOVER
+#if (ENABLE_POT_TAKEOVER == 1)
 volatile byte bit_status[5][max_modifiers/4];
 #else // !ENABLE_POT_TAKEOVER
 volatile byte bit_status[4][max_modifiers/4];
@@ -542,7 +592,9 @@ volatile byte bit_status[4][max_modifiers/4];
  byte feedop2 (byte input) { // used in midi feedback bit operations
  return input/8; }
 
- byte bit_write(byte array_, byte posizione, byte stato)
+ // NOTE (SAMD / strict compilers): questa funzione non deve "ritornare" nulla.
+ // Su alcune toolchain (es. Metro M0 / GCC con -Werror) un return mancante diventa errore.
+ void bit_write(byte array_, byte posizione, byte stato)
  {  bitWrite(bit_status[array_-1][feedop2(posizione)],posizione-(feedop2(posizione)*8),stato); }
 
   byte bit_read( byte array_,byte posizione)
@@ -572,7 +624,7 @@ volatile byte ps_setup_pagestate = 255;
 // CTRL-F: POTPAGE_INIT_MASK
 // bit0=Page1 init OK, bit1=Page2 init done (targets copied once)
 // CTRL-F: POTPAGEINITMASK_GUARD
-#if ENABLE_POT_TAKEOVER
+#if (ENABLE_POT_TAKEOVER == 1)
 byte potPageInitMask = 1; // bit0 Page1 ok, bit1 Page2 init pending
 #endif // ENABLE_POT_TAKEOVER
 

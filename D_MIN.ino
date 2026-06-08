@@ -92,11 +92,25 @@ static inline void fast_feedback_apply(byte ch, byte vel)
 void midifeedback() {
   {
     // read the incoming byte:
-    if (incomingByte == 241) {  // this message opens the editor upload mode
+    if (incomingByte == 241) {  
+      #if (ENABLE_EEPROM == 0)
+      // EEPROM disabilitata: ignoriamo il toggle upload preset (241)
+      // Così openeditor resta sempre 0 e il controller lavora in AUTODETECT.
+      return;
+      #endif
+// this message opens the editor upload mode
       openeditor = !openeditor; // apri o chiudi la ricezione del preset
       if (openeditor == 1) { // se entri in modalità ricezione porta a zero il counter
         editorcounter = 0;
       } else {    
+        // ============================================================
+        // CTRL-F: EEPROM_EMU_COMMIT_ON_UPLOAD_CLOSE
+        // Fine upload preset (241 di chiusura): su SAMD scriviamo la mirror RAM su flash UNA SOLA VOLTA.
+        // Su AVR la EEPROM è reale: nessuna commit necessaria.
+        // ============================================================
+        #if (ENABLE_EEPROM == 1) && defined(ARDUINO_ARCH_SAMD)
+          EEPROM.commit();
+        #endif
         reset_mempos();       
         load_preset_base();
         // load_preset(0);
@@ -173,7 +187,10 @@ void midifeedback() {
         if (type < 208) { // fino a tutti i control-change la triade midi viene mandata alla procedura  eeprom_write()
                           // arrivati qui abbiamo ricevuto un messaggio midi completo e vado a caricare i dati sulla eeprom 
                           // se arriva un 224 invece...
-          eeprom_write(); // procedura che contiene le istruzioni per mettere in memoria il dato ricevuto. // 
+          #if (ENABLE_EEPROM == 1)
+          eeprom_write(); // scrittura su EEPROM (upload preset)
+          #endif
+
         } else {  // basterà mandare un segnale pitch-bend // il contenuto dei due databyte forma il byte verticale per completare la matrice. // 224
           matrix_vert1 = note;
           matrix_vert2 = velocity;
@@ -469,6 +486,11 @@ void reset_mempos() {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void eeprom_write() {
+#if (ENABLE_EEPROM == 0)
+  // EEPROM disabilitata: upload preset non supportato.
+  return;
+#endif
+
   {  
     if (type < 160) { 
       editorcounter = 0;

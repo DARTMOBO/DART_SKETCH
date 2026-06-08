@@ -40,6 +40,13 @@ void setup() {
     #endif // (DMX_active == 1 && stratos == 0)
   }
 
+  
+  { // USB-MIDI init (SAMD / Metro M0)
+    #if defined(ARDUINO_ARCH_SAMD)
+      DART_MIDI_Init_SAMD();
+    #endif
+  }
+
   { // setup 4051 chips
     #if (stratos == 0)
     for (byte bit = 4; bit < 7; bit++) {
@@ -52,7 +59,7 @@ void setup() {
 
 
 
-   #if ENABLE_POT_TAKEOVER
+   #if (ENABLE_POT_TAKEOVER == 1)
   for (byte bit = 0; bit < 128; bit++) {
     lastbutton[bit] = 1; // ?? 
   }
@@ -70,30 +77,52 @@ void setup() {
   { // encoder e midi-DIN inputs - su dartmobo
     #if (stratos == 0) 
     pinMode(2, INPUT); // ------------ encoder input settings
-    pinMode(3, INPUT); 
-    // pinMode(12, OUTPUT); 
-    digitalWrite(2, HIGH); // turn pullup resistor on // encoder
-    digitalWrite(3, HIGH); // turn pullup resistor on // encoder
+    pinMode(3, INPUT);
+    // pinMode(12, OUTPUT);
+
+    #if defined(ARDUINO_ARCH_SAMD)
+      // SAMD: la pullup si abilita con INPUT_PULLUP
+      pinMode(2, INPUT_PULLUP);
+      pinMode(3, INPUT_PULLUP);
+    #else
+      // AVR: pullup storica via digitalWrite(HIGH) su pin in INPUT
+      digitalWrite(2, HIGH); // turn pullup resistor on // encoder
+      digitalWrite(3, HIGH); // turn pullup resistor on // encoder
+    #endif
     
     pinMode(0, INPUT); // ------------ midi over DIN settings
-    digitalWrite(0, HIGH);
+    #if defined(ARDUINO_ARCH_SAMD)
+      pinMode(0, INPUT_PULLUP);
+    #else
+      digitalWrite(0, HIGH);
+    #endif
     #endif // (stratos == 0)
   }
 
   { // gestione pullups
     #if (pullups_active == 1)
-      #if defined (__AVR_ATmega32U4__) // gestione pullups
+#if defined (__AVR_ATmega32U4__) || defined(ARDUINO_ARCH_SAMD) // gestione pullups
       { 
         #if (stratos == 0) // dartmobo pullups  
         { 
-          digitalWrite(18, HIGH); // analog in 0
-          digitalWrite(19, HIGH); // analog in 1
-          digitalWrite(20, HIGH); // analog in 2
-          digitalWrite(21, HIGH); // analog in 3
-          digitalWrite(22, HIGH); // analog in 4
-          digitalWrite(23, HIGH); // analog in 5
+          #if defined(ARDUINO_ARCH_SAMD)
+            // SAMD (Metro M0): abilita pullup sui 6 pin ADC reali usati dai 4051
+            for (byte i = 0; i < 6; i++) {
+              pinMode(DART_ADC_PIN_FROM_PLEXER(i), INPUT_PULLUP);
+            }
+          #else
+            // AVR (Leonardo): pullup storica sui canali A0..A5 (numeri 18..23)
+            digitalWrite(18, HIGH); // analog in 0
+            digitalWrite(19, HIGH); // analog in 1
+            digitalWrite(20, HIGH); // analog in 2
+            digitalWrite(21, HIGH); // analog in 3
+            digitalWrite(22, HIGH); // analog in 4
+            digitalWrite(23, HIGH); // analog in 5
+          #endif
         }
         #endif // (stratos == 0)
+
+        
         #if (stratos == 1) // stratos pullups 
         {
           pinMode(0, INPUT);
@@ -109,13 +138,19 @@ void setup() {
           pinMode(7, INPUT);
           digitalWrite(7, HIGH); 
           
+     
           digitalWrite(18, HIGH);
           digitalWrite(19, HIGH);
+         
 
+       
           pinMode(20, INPUT);
           digitalWrite(20, HIGH); // enc 2 // in analogici
+         
+       
           pinMode(21, INPUT);
           digitalWrite(21, HIGH);  
+         
           pinMode(2, INPUT);
           digitalWrite(2, HIGH); // enc 1
           pinMode(3, INPUT);
@@ -128,14 +163,17 @@ void setup() {
         #endif // (stratos == 1)
       }
       #endif // defined (__AVR_ATmega32U4__)
+      
       #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) // gestione pullups
       {
         digitalWrite(14, HIGH);
         digitalWrite(15, HIGH);
         digitalWrite(16, HIGH);
         digitalWrite(17, HIGH);
+    
         digitalWrite(18, HIGH);
         digitalWrite(19, HIGH);
+       
       }
       #endif // defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
     #endif // (pullups_active == 1)
@@ -152,6 +190,15 @@ void setup() {
     #endif // defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
   }
  
+  // ============================================================
+  // CTRL-F: EEPROM_EMU_BEGIN_SAMD
+  // EEPROM emulata (SAMD): carica la mirror RAM dalla flash PRIMA di leggere il preset.
+  // Su AVR non esiste EEPROM.begin(), quindi chiamata SOLO su SAMD.
+  // ============================================================
+  #if (ENABLE_EEPROM == 1) && defined(ARDUINO_ARCH_SAMD)
+    EEPROM.begin();
+  #endif
+
   load_preset_base();
   load_preset(0);
 
@@ -235,7 +282,7 @@ for (byte i = 0; i < max_modifiers; i++) {
 }
 #endif
 /*
-    #if ENABLE_POT_TAKEOVER
+    #if (ENABLE_POT_TAKEOVER == 1)
   for (byte bit = 0; bit < 128; bit++) {
     lastbutton[bit] = 128; // ?? 
   }
@@ -279,6 +326,13 @@ for (byte i = 0; i < max_modifiers; i++) {
       #if defined (__AVR_ATmega32U4__) 
       digitalWrite(23, LOW);
       #endif // defined (__AVR_ATmega32U4__)
+
+      #if defined(ARDUINO_ARCH_SAMD)
+      // Su SAMD la pullup si gestisce via pinMode().
+      // Qui disattiviamo la pullup sul 6o input analogico (equivalente ad A5).
+      pinMode(A5, INPUT);
+      #endif // defined(ARDUINO_ARCH_SAMD)
+
       #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
       digitalWrite(19, LOW);
       #endif // defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
@@ -313,8 +367,16 @@ for (byte i = 0; i < max_modifiers; i++) {
   note = 255; // out of range (0-127) value
  
   if (dmxtable[general_mempos] > 0) {
+
+#if defined(ARDUINO_ARCH_SAMD)
+    attachInterrupt(digitalPinToInterrupt(2), lettura_enc_principale, CHANGE);
+attachInterrupt(digitalPinToInterrupt(3), lettura_enc_principale, CHANGE);
+#else 
+
     attachInterrupt(0, lettura_enc_principale, CHANGE); 
     attachInterrupt(1, lettura_enc_principale, CHANGE);
+    #endif
+    
   }
 
   #if (Fast_analogread == 1)
@@ -331,6 +393,14 @@ for (byte i = 0; i < max_modifiers; i++) {
   */
 }
 
+// =========================================================================
+// AVR-only fast ADC
+// Su MCU non-AVR (es. SAMD / Metro M0) questi registri NON esistono.
+// Qui mettiamo un fallback che compila e usa analogRead() standard.
+// =========================================================================
+
+#if defined(__AVR__)
+
 // "Antidoto" alla fastADC_init: rimette l'ADC come si aspetta analogRead()
 void standardADC_init() {
   // Riferimento AVcc, risultato right-adjust (ADLAR = 0)
@@ -341,8 +411,6 @@ void standardADC_init() {
 
   // Free-running e trigger speciali disattivati
   ADCSRB = 0;
-  // DIDR0 lo puoi lasciare com'è; se vuoi "come Arduino puro":
-  // DIDR0 = 0x00;
 }
 
 // Chiamala in setup()
@@ -351,11 +419,7 @@ void fastADC_init() {
   ADMUX = _BV(REFS0) | _BV(ADLAR);
 
   // Prescaler = 32 → ADPS2=1, ADPS1=0, ADPS0=1
-  // ADC abilitato (ADEN=1)
   ADCSRA = _BV(ADEN) | _BV(ADPS2) | _BV(ADPS0);
-
-  // (opzionale ma consigliato) disabilita digital su ADC0..7 per meno rumore
-  // DIDR0 = 0xFF;
 }
 
 uint8_t analogReadFast8(uint8_t analogPin) {
@@ -390,6 +454,18 @@ uint8_t analogReadFast8(uint8_t analogPin) {
   // 6) Leggi il risultato 8-bit (0..255) dal registro alto
   return ADCH;
 }
+
+#else // !__AVR__
+
+// Fallback non-AVR: niente registri ADC. Manteniamo la firma per non rompere il codice.
+void standardADC_init() {}
+void fastADC_init() {}
+uint8_t analogReadFast8(uint8_t analogPin) {
+  // analogRead su SAMD è 10 bit (0..1023) di default: comprimiamo a 8 bit.
+  return (uint8_t)(analogRead(analogPin) >> 2);
+}
+
+#endif // defined(__AVR__)
 
 #if (Fast_analogread == 1)
 // Lettura veloce "compatibile 10 bit":

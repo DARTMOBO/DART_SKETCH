@@ -8,14 +8,13 @@
  * (at your option) any later version. See the LICENSE file for details.
  */
 
-#define ENABLE_BOOSTAX // Disattiva commentando questa riga
 
 // ------------------------------------------------------------
 // helper unico per X e Y (più corto, evita abs(), meno confronto)
 // moveAxis: 0 = X, 1 = Y
 // ------------------------------------------------------------
 static void mouse_axis_step(int8_t d, int16_t* accum,
-#ifdef ENABLE_BOOSTAX
+#if (ENABLE_BOOSTAX == 1)
                             uint16_t* boost_counter,
 #endif
                             int8_t baseSpeed,
@@ -23,7 +22,7 @@ static void mouse_axis_step(int8_t d, int16_t* accum,
   // deadzone: abs(d) <= 2  --> confronto equivalente senza abs()
   if (d >= -2 && d <= 2) {
     *accum = 0;
-    #ifdef ENABLE_BOOSTAX
+    #if (ENABLE_BOOSTAX == 1)
     *boost_counter = 0;
     #endif
     return;
@@ -31,7 +30,7 @@ static void mouse_axis_step(int8_t d, int16_t* accum,
 
   int8_t boost = 0;
 
-  #ifdef ENABLE_BOOSTAX
+  #if (ENABLE_BOOSTAX == 1)
   // Costanti identiche alla tua taratura
   const uint16_t boost_delay_max = 200;
   const uint8_t boost_step_delay = 12;
@@ -134,7 +133,7 @@ void mouse_control() {
     static int16_t accum_x = 0;
     static int16_t accum_y = 0;
 
-    #ifdef ENABLE_BOOSTAX
+    #if (ENABLE_BOOSTAX == 1)
     static uint16_t boost_counter_x = 0;
     static uint16_t boost_counter_y = 0;
     #endif
@@ -169,7 +168,7 @@ void mouse_control() {
         // blocco attivo: azzera accumulatori per evitare "scatti" alla ripresa
         accum_x = 0;
         accum_y = 0;
-        #ifdef ENABLE_BOOSTAX
+        #if (ENABLE_BOOSTAX == 1)
         boost_counter_x = 0;
         boost_counter_y = 0;
         #endif
@@ -178,7 +177,7 @@ void mouse_control() {
       #endif
       
       mouse_axis_step(d, &accum_x,
-        #ifdef ENABLE_BOOSTAX
+        #if (ENABLE_BOOSTAX == 1)
         &boost_counter_x,
         #endif
         baseSpeed, 0);
@@ -202,7 +201,7 @@ void mouse_control() {
           // blocco attivo: azzera accumulatori per evitare "scatti" alla ripresa
           accum_x = 0;
           accum_y = 0;
-          #ifdef ENABLE_BOOSTAX
+          #if (ENABLE_BOOSTAX == 1)
           boost_counter_x = 0;
           boost_counter_y = 0;
           #endif
@@ -212,7 +211,7 @@ void mouse_control() {
       #endif
 
       mouse_axis_step(d, &accum_y,
-        #ifdef ENABLE_BOOSTAX
+        #if (ENABLE_BOOSTAX == 1)
         &boost_counter_y,
         #endif
         baseSpeed, 1);
