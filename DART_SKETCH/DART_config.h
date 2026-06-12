@@ -1,7 +1,7 @@
 #ifndef DART_CONFIG_H
 #define DART_CONFIG_H
 
-
+#define DART_PROFILE 1
 // Global compile-time configuration for DART firmware
 //
 // === PROFILES (user level) ===
