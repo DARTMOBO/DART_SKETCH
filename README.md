@@ -1,7 +1,9 @@
 
 
 <p align="center">
+<a href="https://dartmobo.com/shop/">
   <img src="readme_imgs/korova_editor.jpg">
+  </a>
 </p>
 
 DART Sketch is a universal **MIDI controller firmware** designed to provide useful MIDI activity immediately after upload, then gradually reveal deeper customization tools as the user gains confidence.
