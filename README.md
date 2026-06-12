@@ -1,5 +1,5 @@
-![[readme_imgs/korova_editor.jpg]]
 
+![](readme_imgs/korova_editor.jpg)
 DART Sketch is a universal **MIDI controller firmware** designed to provide useful MIDI activity immediately after upload, then gradually reveal deeper customization tools as the user gains confidence.
 
 It will work for all the units presented on DARTMOBO.COM website, and for any DIY controller based on our framework, automatically adapting to the chosen **Arduino** board: Uno and Leonardoand M0 Metro Express are supported at the moment (other platforms are planned for future releases).
