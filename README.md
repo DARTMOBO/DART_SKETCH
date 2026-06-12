@@ -18,8 +18,10 @@ On Arduino Leonardo boards, **USB MIDI support** is available immediately afte
 As your project grows, the controller can be customized in greater detail through the **[DART Editor](https://dartmobo.com/editor_redirect/)**, without the need to modify the source code.
 
 
-![](readme_imgs/dart_editor_github.jpg)
 
+<p align="center">
+  <img src="readme_imgs/dart_editor_github.jpg">
+</p>
 
 **PROFILES**
 
@@ -28,7 +30,9 @@ The DART_CONFIG.ino tab of the sketch gives  the possibility to enable/disable 
 Profiles are predefined firmware configurations you can choose, that enable or disable groups of features at compile time.
 
 
-![](readme_imgs/dart_sketch_profiles.jpg)
+<p align="center">
+  <img src="readme_imgs/dart_sketch_profiles.jpg">
+</p>
 
 STANDARD is the default setup. This is the profile selected when downloading the sketch and it is fully compatible with all DIY examples and tutorials presented on the DART website. you don’t have to touch any code line here!
 
@@ -44,8 +48,9 @@ Think of DART as a large facility with many specialized departments. A CUSTOM PR
 These sections are activated by DEFINES.  
 Some DEFINES work like simple switches, enabling or disabling a feature. Others behave more like selectors, choosing how a section should operate, while a few act as global tuning controls for memory usage, timing, filtering or array size.
 
-
-![](readme_imgs/dart_profiles2.jpg)
+<p align="center">
+  <img src="readme_imgs/dart_profiles2.jpg">
+</p>
 
 A simple DIY controller may only need a few rooms lit. A professional controller may require additional departments such as touch processing, scene management, mouse control or advanced hardware support. By powering only the sections that are actually needed, DART keeps memory usage under control while preserving a single shared codebase.
 
@@ -65,7 +70,11 @@ However, there are always situations where you want something slightly different
 **EDITOR SIDE**
 
 
-![](readme_imgs/dart_editor_user_item.jpg)
+
+
+<p align="center">
+  <img src="readme_imgs/dart_editor_user_item.jpg">
+</p>
 
 In the Settings_box of the Dart_editor,   **USER1–USER4** modes allow an item to be processed by your own custom code instead of one of the standard DART behaviors.
 
@@ -91,13 +100,17 @@ All custom variables store values from **0 to 127** and are accessed using the
 For those who wish to explore the code, the diagram below provides a simplified overview of the main procedures (voids) that make up the DART Sketch, grouped into four functional areas. A complete and detailed reference can be found directly in the source code, inside **d_guides.ino**, which contains explanations and notes for all major functions.
 
 
-![](readme_imgs/dart_4_core_sections_real_voids_v5.svg)
+<p align="center">
+  <img src="readme_imgs/dart_4_core_sections_real_voids_v5.svg">
+</p>
 
  DART Sketch was designed and refined around the **[DARTmobo architecture](https://dartmobo.com/dartmobo/dartmobo-diy/)**: a scan-based system built on **74HC4051 multiplexers** and driven by the main input routine, **AIN()**.
 
 
 
-![](readme_imgs/dartmobo-stilizzata 1.jpg)
+<p align="center">
+  <img src="readme_imgs/dartmobo-stilizzata 1.jpg">
+</p>
  
  The firmware can be easily adapted to smaller projects without multiplexers, and it’s ready for that. Expanding the system beyond the current 56 inputs is certainly possible, but would require a substantial redesign of the internal memory management structure.
  
