@@ -3,6 +3,7 @@
 DART Sketch is a universal **MIDI controller firmware** designed to provide useful MIDI activity immediately after upload, then gradually reveal deeper customization tools as the user gains confidence.
 
 It will work for all the units presented on DARTMOBO.COM website, and for any DIY controller based on our framework, automatically adapting to the chosen **Arduino** board: Uno and Leonardoand M0 Metro Express are supported at the moment (other platforms are planned for future releases).
+It will work for all the units presented on DARTMOBO.COM website, and for any DIY controller based on our framework, automatically adapting to the chosen **Arduino** board: Uno and Leonardoand M0 Metro Express are supported at the moment (other platforms are planned for future releases).
 
 Thanks to the [**AUTODETECT**](https://dartmobo.com/autodetect/) system, buttons and knobs can begin producing useful MIDI activity almost immediately after the firmware is uploaded, allowing you to focus on building rather than debugging.
 
@@ -25,7 +26,7 @@ Profiles are predefined firmware configurations you can choose, that enable or d
 
 ![](readme_imgs/dart_sketch_profiles.jpg)
 
-STANDARD is the default setup. This is the profile selected when downloading the sketch and it is fully compatible with all DIY examples and tutorials presented on the DART website. you don’t have to touch any code line here ![😉](https://s.w.org/images/core/emoji/17.0.2/svg/1f609.svg)
+STANDARD is the default setup. This is the profile selected when downloading the sketch and it is fully compatible with all DIY examples and tutorials presented on the DART website. you don’t have to touch any code line here!
 
 CUSTOM is intended for experimentation and development. It is the recommended profile for users who want to explore the firmware, enable or disable specific modules, test new ideas or build custom hardware configurations.
 
