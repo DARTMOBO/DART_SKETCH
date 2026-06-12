@@ -24,7 +24,7 @@ Shifter::Shifter(byte SER_Pin, byte RCLK_Pin, byte SRCLK_Pin, byte Number_of_Reg
 void Shifter::write(){
 	//Set and display registers
 	//Only call AFTER all values are set how you would like (slow otherwise)
- // if (valuetable[general_mempos] == 0)
+ // if (data_VA[general_mempos] == 0)
 {
   digitalWrite(_RCLK_Pin, LOW);
   

@@ -19,7 +19,7 @@ if (cycletimer < 250) {
   }
 
   #if (blinker == 1)  
-  typetable[general_mempos]++; // effetto led lampeggiante per indicare lo status di un pot
+  data_TY[general_mempos]++; // effetto led lampeggiante per indicare lo status di un pot
   #endif
 
   #if (MIDI_IN_block == 0)
@@ -77,7 +77,7 @@ if (cycletimer < 250) {
     touch_sensors(0);
     
     #if (stratos == 0)
-    if (dmxtable[general_mempos] > 1) { // attiva il secondo touch solo se è attivo il secondo spinner
+    if (data_DM[general_mempos] > 1) { // attiva il secondo touch solo se è attivo il secondo spinner
       touch_sensors(1);
     }
     #endif
@@ -92,7 +92,7 @@ if (cycletimer < 250) {
     #endif
 
     #if (shifter_active == 1 && stratos == 0)
-    if (qwertyvalue[general_mempos] > 2) {
+    if (data_QW[general_mempos] > 2) {
       buttonledefx();  
     }
     #endif
@@ -110,10 +110,10 @@ if (cycletimer < 250) {
     #endif
 
     // shifter.setAll(LOW);     
-    // if (valuetable[general_mempos] == 0) shifter.write();
+    // if (data_VA[general_mempos] == 0) shifter.write();
     
     #if (shifter_active == 1 && stratos == 0)
-    if (shifterwrite == 1 && valuetable[general_mempos] == 0) {
+    if (shifterwrite == 1 && data_VA[general_mempos] == 0) {
       shifter.write();
       shifterwrite = 0;
     }

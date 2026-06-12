@@ -138,19 +138,19 @@ void mouse_control() {
     static uint16_t boost_counter_y = 0;
     #endif
 
-    int8_t raw_speed = dmxtable[mouse_mempos];
+    int8_t raw_speed = data_DM[mouse_mempos];
     if (raw_speed == 0) {
       return;
     }
     
     int8_t baseSpeed = raw_speed - 32;
 
-    // inversioni via lightable[mouse_mempos]
+    // inversioni via data_LT[mouse_mempos]
     // bit0 = invert Y, bit1 = invert X
-    byte inv = lightable[mouse_mempos] & 0x03;
+    byte inv = data_LT[mouse_mempos] & 0x03;
 
     // ---- ASSE X ----
-    if (chan == minvalue[mouse_mempos]) {
+    if (chan == data_MI[mouse_mempos]) {
       valore = analogRead_1024(plexer);
 
       // prima: mousex = 111 + ((valore + 1) / 32); d = mousex - 127;
@@ -184,7 +184,7 @@ void mouse_control() {
     }
 
     // ---- ASSE Y ----
-    else if (chan == maxvalue[mouse_mempos]) {
+    else if (chan == data_MA[mouse_mempos]) {
       valore = analogRead_1024(plexer);
 
       int8_t d = (int8_t)(((valore + 1) >> 5) - 16);

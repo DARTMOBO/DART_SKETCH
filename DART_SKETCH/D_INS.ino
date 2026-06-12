@@ -24,7 +24,7 @@ extern uint32_t enc_maj_window_until_us;
 // - Lockout: dopo un passo valido, ignora per X microsecondi (anti doppi/contrari)
 // NOTE: Questa implementazione lavora con il modello esistente:
 //   - MSB[1] / LSB[1] contengono lo stato quadratura corrente
-//   - updateEncoder(chan) calcola lastbutton[chan] (+/-) e aggiorna maxvalue[chan]
+//   - updateEncoder(chan) calcola data_LB[chan] (+/-) e aggiorna data_MA[chan]
 // ============================================================================
 
 #if (encoders_ == 1) && (ENABLE_ENC_LOCKOUT == 1)
@@ -159,7 +159,7 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
    
   
 #if (top_spinner == 1) 
-     if (lastbutton[encoder_mempos[0]] == 64 || dmxtable[general_mempos] == 0)  //  [encoder_mempos[0] Ã¨ l0'idirizzo di memoria per lo spinner principale, quello che dave avere maggiore risoluzione e prioritÃ  di esecuzione su tutto.
+     if (data_LB[spinner_mempos[0]] == 64 || data_DM[general_mempos] == 0)  //  [spinner_mempos[0] Ã¨ l0'idirizzo di memoria per lo spinner principale, quello che dave avere maggiore risoluzione e prioritÃ  di esecuzione su tutto.
     
     
       // 64 = no encoder action - the MAIN spinner has priority over any other action.
@@ -175,22 +175,22 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
     
     
 #if (Piezo_pads == 1)
-  if (maxvalue[general_mempos] == 0 ){ piezo_pads();} 
+  if (data_MA[general_mempos] == 0 ){ piezo_pads();} 
 #endif
 
 
-  //  if (dmxtable[general_mempos] >1)
+  //  if (data_DM[general_mempos] >1)
   //  {senseEncoder_2nd();}  // carica MSB LSB [1] // // gli input pin su cui viene letto il secondo encoder sono 33 e 41
 
 
 
  ///////////////////////////////////////////////////////////////////   
  
-  if (valuetable[general_mempos] !=1 ) // nomobo setup
+  if (data_VA[general_mempos] !=1 ) // nomobo setup
  setPlexer(channel); // all 4051's are set on the channel to be read // qui vengono effettivamente guidati i 4051 della dartmobo, per essere settati di volta in volta sul canale successivo . channel, ricordiamo , va da 1 a 8
   //delay(1); prova per vedere se si stabilizzano le letture dopo il cambio di canale-  a volte vedo dei rinculi a V
   //delayMicroseconds(400);
-   // if (dmxtable[general_mempos] >1)
+   // if (data_DM[general_mempos] >1)
    // {senseEncoder_2nd();}  // carica MSB LSB [1] // // gli input pin su cui viene letto il secondo encoder sono 33 e 41
 
  //valore = analogRead_1024(DART_ADC_PIN_FROM_PLEXER(0)); // dummy read generale
@@ -201,7 +201,7 @@ delay(5);
 */
 
  for(plexer = 0; plexer < 
-  //5+boolean(maxvalue[general_mempos]) // se si attivano i pads (mettendo maxvalue = 0) l'analogico A5 non viene letto // OPZIONE 1
+  //5+boolean(data_MA[general_mempos]) // se si attivano i pads (mettendo data_MA = 0) l'analogico A5 non viene letto // OPZIONE 1
   6 // OPZIONE 2
   ; plexer++) //  plexer 0,1,2,3,4 - the 5th plexer is read at higher speed (pads and 2nd encoder)
   
@@ -219,26 +219,26 @@ delay(5);
 
 // CTRL-F: AUTODETECT_DOC_SIMPLE
 // AUTODETECT (attivo solo quando NON esiste un preset valido)
-// In questa modalitÃ  il firmware parte da aux_preset(): tutti gli input sono "button" (modetable=1).
+// In questa modalitÃ  il firmware parte da aux_preset(): tutti gli input sono "button" (data_MODE=1).
 // Qui dentro, AIN() osserva i valori analogici e fa due cose:
 //
 // 1) Se vede "attivitÃ " (valore sotto una soglia), chiama detect_plexer():
-//    - serve a diversificare valuetable[] nel gruppo di 8 canali, evitando note duplicate.
+//    - serve a diversificare data_VA[] nel gruppo di 8 canali, evitando note duplicate.
 //
 // 2) Se il valore Ã¨ in una fascia "intermedia", promuove l'input a POT:
-//    - modetable[chan] = 11  (POT)
-//    - typetable[chan] = 176 (CC)
+//    - data_MODE[chan] = 11  (POT)
+//    - data_TY[chan] = 176 (CC)
 //
 // Nota LED (anti "blinker party"):
 // Quando un canale passa a POT, possono attivarsi gli effetti LED tipici dei pot.
-// Per evitare lampeggi confusionali durante AUTODETECT, si puÃ² forzare lightable[chan]=0
-// nel punto in cui viene impostato modetable=11.
+// Per evitare lampeggi confusionali durante AUTODETECT, si puÃ² forzare data_LT[chan]=0
+// nel punto in cui viene impostato data_MODE=11.
 
     
     valore = analogRead_1024(DART_ADC_PIN_FROM_PLEXER(plexer));
     
     if (valore < upper_val   /// se premo un pulsante - valore scende
-     && dmxtable[chan] < 3
+     && data_DM[chan] < 3
     )  
    {  
     detect_plexer(); 
@@ -246,14 +246,14 @@ delay(5);
    if (valore > 448 && valore < 576   ) // se si ha un valore intermedio
   {
     {
-    modetable[chan] = 11;
-    typetable[chan]= 176; 
-    lightable[chan] = 0;
+    data_MODE[chan] = 11;
+    data_TY[chan]= 176; 
+    data_LT[chan] = 0;
     }
    //  test1();
     }    
   }
- qwertyvalue[chan] = valore /32;                                // registra la lettura per un futuro confronto in un range 0-255 // spiegare meglio questo meccanismo - spiegazione non chiara. 
+ data_QW[chan] = valore /32;                                // registra la lettura per un futuro confronto in un range 0-255 // spiegare meglio questo meccanismo - spiegazione non chiara. 
   }
 ////////////////////////////////////////////////////////////////////////////////////////////////// fine autodetect
   
@@ -262,13 +262,13 @@ delay(5);
   {
 
      #if (Side_spinner == 1)
-   if (channel == 5 && dmxtable[general_mempos] >1) 
+   if (channel == 5 && data_DM[general_mempos] >1) 
    Side_spinner_read();
   
  #endif
 
 // ===========================
-// MODALITÃ DI INPUT (modetable[chan])
+// MODALITÃ DI INPUT (data_MODE[chan])
 // ===========================
 //  0â10   â Pulsanti digitali (lettura rapida con digitalRead)
 //           Usati per trigger veloci o pulsanti on/off semplici.
@@ -282,11 +282,11 @@ delay(5);
 // 29â30   â Funzioni speciali (es. reset hardware, toggle di sistema).
 //           Usati raramente, attivati da preset o in condizioni particolari.
 //
-// NOTE: Altri valori potrebbero essere validi se gestiti altrove (es. modetable > 30)
+// NOTE: Altri valori potrebbero essere validi se gestiti altrove (es. data_MODE > 30)
 // ===========================
                 
        /*                
-     if (modetable[chan] < 11 || modetable[chan] == 29 || modetable[chan] == 30 || modetable[chan] == 27) // per tutti i pulsanti si usa digitalread, che legge in modo piÃ¹ rapido
+     if (data_MODE[chan] < 11 || data_MODE[chan] == 29 || data_MODE[chan] == 30 || data_MODE[chan] == 27) // per tutti i pulsanti si usa digitalread, che legge in modo piÃ¹ rapido
          #if defined (__AVR_ATmega32U4__)
        //  valore = digitalRead(plexer+18)*1020; // valore = digitalRead(pin) << 10;
             valore = digitalRead(plexer+18) << 10;
@@ -297,11 +297,11 @@ delay(5);
         valore = digitalRead(plexer+14) << 10;
          #endif
      
-     else if (modetable[chan] < 19 // || modetable[chan] == 27
+     else if (data_MODE[chan] < 19 // || data_MODE[chan] == 27
      )     valore = analogRead(DART_ADC_PIN_FROM_PLEXER(plexer)); // si usa analogread per i pots 
 
    #if (encoders_ == 1)
-      else if (modetable[chan] == 19)                                 // encoders 
+      else if (data_MODE[chan] == 19)                                 // encoders 
       {
       #if defined (__AVR_ATmega32U4__)
       MSB[1]=   digitalRead(plexer+18); //
@@ -316,7 +316,7 @@ delay(5);
       }
    #endif
 */
-   byte readmode = modetable_readmode[modetable[chan]];
+   byte readmode = data_MODE_readmode[data_MODE[chan]];
 
 
 
@@ -470,8 +470,8 @@ switch (readmode) {
 
         bool maj_window_open = false;
 
-        // Se cambia lo stato rispetto all'ultimo stabile (maxvalue), apri subito la finestra.
-        if (s_raw != maxvalue[chan]) {
+        // Se cambia lo stato rispetto all'ultimo stabile (data_MA), apri subito la finestra.
+        if (s_raw != data_MA[chan]) {
           uint32_t now_w = micros();
           enc_maj_window_until_us = now_w + (uint32_t)ENC_MAJ_WINDOW_US;
           maj_window_open = true;
@@ -511,10 +511,10 @@ switch (readmode) {
 
         if ((uint32_t)(now - enc_lock_last_us[chan]) < (uint32_t)ENC_LOCKOUT_US) {
           // Dentro la finestra di lockout:
-          // - NON generiamo passi (lastbutton resta fermo)
-          // - ma aggiorniamo comunque lo "stato precedente" (maxvalue) per non creare salti strani appena finisce il lockout
-          maxvalue[chan]   = (byte)((MSB[1] << 1) | LSB[1]);
-          lastbutton[chan] = 64;
+          // - NON generiamo passi (data_LB resta fermo)
+          // - ma aggiorniamo comunque lo "stato precedente" (data_MA) per non creare salti strani appena finisce il lockout
+          data_MA[chan]   = (byte)((MSB[1] << 1) | LSB[1]);
+          data_LB[chan] = 64;
       
           break;
         }
@@ -525,7 +525,7 @@ switch (readmode) {
 
       // 5) Aggiorna lockout solo se c'e' stato un vero passo (+/-)
       #if (ENABLE_ENC_LOCKOUT == 1)
-        if (lastbutton[chan] != 64) enc_lock_last_us[chan] = now;
+        if (data_LB[chan] != 64) enc_lock_last_us[chan] = now;
       #endif
 
     #endif
@@ -589,7 +589,7 @@ switch (readmode) {
   else 
   {
    
-   encoder(encoder_mempos[0]);         // esecuzione con out MIDI dello spinner principale                  
+   encoder(spinner_mempos[0]);         // esecuzione con out MIDI dello spinner principale                  
   }
   #endif
   
@@ -611,7 +611,7 @@ switch (readmode) {
   #endif
   #endif
   
-  uint8_t mode = modetable[chan];
+  uint8_t mode = data_MODE[chan];
 
   switch (mode) {
 
@@ -634,15 +634,15 @@ switch (readmode) {
 
     case 17:  // page switch
       #if (Page_switch == 1)
-      if (qwertyvalue[page_mempos] == 1) {
+      if (data_QW[page_mempos] == 1) {
         if (valore < 512) {
-          if (lastbutton[page_mempos] == lastbutton_debounce) {
+          if (data_LB[page_mempos] == data_LB_debounce) {
             pagestate = !pagestate;
           }
-          lastbutton[page_mempos] = 0;
+          data_LB[page_mempos] = 0;
         } else {
-          if (lastbutton[page_mempos] < lastbutton_debounce) {
-            lastbutton[page_mempos]++;
+          if (data_LB[page_mempos] < data_LB_debounce) {
+            data_LB[page_mempos]++;
           }
         }
       } else { // page active = 0 - lever
@@ -652,6 +652,7 @@ switch (readmode) {
       break;
 
 #if (Distance_sensor == 1)
+
     case 18:  // distance sens.
       #if defined (__AVR_ATmega32U4__)
       digitalWrite(18 + plexer, LOW);
@@ -674,31 +675,31 @@ switch (readmode) {
       break;
 
     case 20:  // PIEZO-PADS
-      // (non implementato qui)
+      // (non implementato qui) - parte direttamente da ain()
       break;
 
     case 21:  // SPINNER 1
-      // (non implementato qui)
+      // (non implementato qui) - parte direttamente da ain()
       break;
 
     case 22:  // SPINNER 2
-      // (non implementato qui)
+      // (non implementato qui) - parte direttamente da ain()
       break;
 
     case 23:  // touch 1
-      // (non implementato qui)
+      // (non implementato qui) - parte direttamente da loop()
       break;
 
     case 24:  // touch 2
-      // (non implementato qui)
+      // (non implementato qui) - parte direttamente da loop()
       break;
 
     case 25:  // MOUSE
-      // handled at top via mouse_mempos
+      // handled at top of ain_nucleo() via mouse_mempos 
       break;
 
     case 26:  // GENERAL
-      // (non implementato qui)
+      // (non implementato qui) - item slegato da effetto midi diretto
       break;
 
     case 27:  // VELO-PADS
@@ -731,17 +732,9 @@ switch (readmode) {
       break;
 
     case 34:  // USER 4
-      // ------------------------------------------------------------
-      // CTRL-F: STAGED_BUTTON_READ_TEST_CALLSITE
-      // Sperimentazione lettura pulsanti a 2 stadi (solo diagnostica Serial).
-      // Non tocca push_buttons() standard: vive qui nello slot USER4.
-      // ------------------------------------------------------------
-      #if (STAGED_BUTTON_READ_TEST == 1)
-      push_buttons(0);
-// legacy effects clone
-      #else
+     
       user_item4();
-      #endif
+      
       break;
       
 #if (FAST_FEEDBACK == 1)
@@ -785,21 +778,21 @@ if (channel >4) scala_learn = -1; else scala_learn = 1;
 // solo nel caso in cui channel > 4 devo andare a leggere un input " in avanti" altrimenti rischierei di leggere 
 // l'input di un'altro plexer
 
-      if (valuetable[chan] == valuetable[chan+scala_learn]) // solo se non e' ancora stata effettuata la diversificazione
+      if (data_VA[chan] == data_VA[chan+scala_learn]) // solo se non e' ancora stata effettuata la diversificazione
    
      { //----------------------
-      if ((valore/128) <20 && qwertyvalue[chan+scala_learn]>30) 
+      if ((valore/128) <20 && data_QW[chan+scala_learn]>30) 
       // se il valore attuale e' diverso da un valore precedente all'interno dello stesso gruppo-plexer
-        { // i valori di valuetable dentro il gruppo-plexer vanno resi tutti diversi
+        { // i valori di data_VA dentro il gruppo-plexer vanno resi tutti diversi
          { setPlexer(channel+scala_learn);
 
           if (  analogRead_1024(DART_ADC_PIN_FROM_PLEXER(plexer))> upper_val)  /// valori molto diversi
       //   {     setPlexer(channel+(scala_learn*2)); // controlla ancora
       //    if ( analogRead(DART_ADC_PIN_FROM_PLEXER(plexer)) > upper_val )         
-      //    diversifica_valuetable (); 
+      //    diversifica_data_VA (); 
       //    }
          
-          diversifica_valuetable (); 
+          diversifica_data_VA (); 
           
           setPlexer(channel);  // torna al plexer normale
           }              }
@@ -809,10 +802,10 @@ if (channel >4) scala_learn = -1; else scala_learn = 1;
 
  ////////////////////////////////////////////////////////////////////////////////////////////////////
      
-void diversifica_valuetable ()
+void diversifica_data_VA ()
 {
    for (byte i = 0; i <8; i++)
-          { valuetable[i+(plexer*8)] = i+(plexer*8)   +60
+          { data_VA[i+(plexer*8)] = i+(plexer*8)   +60
           ;
             }
 }
@@ -852,7 +845,7 @@ void aindbg_valueOnly(int valore_ora)
  
 #if (Side_spinner == 1)
 void Side_spinner_read() { // ===== SIDE_SPINNER_LOCKOUT =====
-  { // gestione del SIDE SPINNER // dmxtable[general_mempos] >1 significa che un side spinner è stato "istituito" via editor, nel mio preset.
+  { // gestione del SIDE SPINNER // data_DM[general_mempos] >1 significa che un side spinner è stato "istituito" via editor, nel mio preset.
 
     // -------------------------------------------------------------------------
     // SIDE SPINNER: filtro leggero e reversibile
@@ -860,7 +853,7 @@ void Side_spinner_read() { // ===== SIDE_SPINNER_LOCKOUT =====
     // - MAJORITY (opzionale): usa le funzioni majority GENERALI (stessi define globali)
     //
     // Regola d'oro: se chiamiamo encoder(chan_enc) qui dentro, armiamo il lockout
-    // SUBITO dopo updateEncoder(), perché encoder() spesso "consuma" lastbutton[].
+    // SUBITO dopo updateEncoder(), perché encoder() spesso "consuma" data_LB[].
     // -------------------------------------------------------------------------
 
     // 1) Pin mapping (compatibilita' 32u4 vs UNO/328P)
@@ -872,7 +865,7 @@ void Side_spinner_read() { // ===== SIDE_SPINNER_LOCKOUT =====
       const byte pin_lsb = 19;
     #endif
 
-    const byte chan_enc = encoder_mempos[1];
+    const byte chan_enc = spinner_mempos[1];
 
     // 2) Lettura singola "raw" (serve sempre: viene usata anche durante il lockout)
     byte msb_raw = (byte)digitalRead(pin_msb);
@@ -881,14 +874,14 @@ void Side_spinner_read() { // ===== SIDE_SPINNER_LOCKOUT =====
 
     // 3) LOCKOUT (time-gate) — usa timing generico da config (ENC_LOCKOUT_US)
     //    Se siamo dentro la finestra di lockout, non generiamo step.
-    //    IMPORTANTISSIMO: aggiorniamo comunque la fase (maxvalue[]) per evitare salti alla ripresa.
+    //    IMPORTANTISSIMO: aggiorniamo comunque la fase (data_MA[]) per evitare salti alla ripresa.
     #if (ENABLE_ENC_LOCKOUT == 1)
       uint32_t now = micros();
       if ((uint32_t)(now - enc_lock_last_us[chan_enc]) < (uint32_t)ENC_LOCKOUT_US) {
         MSB[1] = msb_raw;
         LSB[1] = lsb_raw;
-        maxvalue[chan_enc]   = encoded_raw; // stato precedente per updateEncoder()
-        lastbutton[chan_enc] = 64;          // nessuno step
+        data_MA[chan_enc]   = encoded_raw; // stato precedente per updateEncoder()
+        data_LB[chan_enc] = 64;          // nessuno step
         return;
       }
     #endif
@@ -899,7 +892,7 @@ void Side_spinner_read() { // ===== SIDE_SPINNER_LOCKOUT =====
 
       bool maj_window_open = false;
 
-      if (encoded_raw != maxvalue[chan_enc]) {
+      if (encoded_raw != data_MA[chan_enc]) {
         uint32_t now_w = micros();
         enc_maj_window_until_us = now_w + (uint32_t)ENC_MAJ_WINDOW_US;
         maj_window_open = true;
@@ -939,9 +932,9 @@ void Side_spinner_read() { // ===== SIDE_SPINNER_LOCKOUT =====
     updateEncoder(chan_enc);
 
     // 6) Armiamo il lockout SOLO se updateEncoder() ha prodotto uno step valido.
-    //    (Se lastbutton resta 64, vuol dire: nessun movimento reale.)
+    //    (Se data_LB resta 64, vuol dire: nessun movimento reale.)
     #if (ENABLE_ENC_LOCKOUT == 1)
-      if (lastbutton[chan_enc] != 64) {
+      if (data_LB[chan_enc] != 64) {
         enc_lock_last_us[chan_enc] = now;
       }
     #endif

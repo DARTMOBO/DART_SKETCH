@@ -61,11 +61,11 @@ void setup() {
 
    #if (ENABLE_POT_TAKEOVER == 1)
   for (byte bit = 0; bit < 128; bit++) {
-    lastbutton[bit] = 1; // ?? 
+    data_LB[bit] = 1; // ?? 
   }
   #else // !ENABLE_POT_TAKEOVER
   for (byte bit = 0; bit < 64; bit++) {
-    lastbutton[bit] = 1; // ?? 
+    data_LB[bit] = 1; // ?? 
     }
 #endif // ENABLE_POT_TAKEOVER
 
@@ -209,14 +209,14 @@ void setup() {
                                                         // che a sua volta è richiamata da load_preset
       setPlexer((page_mempos) - ((page_mempos / 8) * 8)); 
     
-     // lastbutton[page_mempos] = map32(analogRead_1024((page_mempos / 8)), 0, 1024, 0, 2); // read page switch state. // se valore alto (valore alto è normale, se non viene portato in basso dal cortocircuito di un pulsante)   
+     // data_LB[page_mempos] = map32(analogRead_1024((page_mempos / 8)), 0, 1024, 0, 2); // read page switch state. // se valore alto (valore alto è normale, se non viene portato in basso dal cortocircuito di un pulsante)   
     
      // In setup usiamo analogRead classico per evitare dipendenze da fastADC_init.
-     lastbutton[page_mempos] = map32(analogRead((page_mempos / 8)), 0, 1024, 0, 2);         // read page switch state. // se valore alto (valore alto è normale, se non viene portato in basso dal cortocircuito di un pulsante) 
+     data_LB[page_mempos] = map32(analogRead((page_mempos / 8)), 0, 1024, 0, 2);         // read page switch state. // se valore alto (valore alto è normale, se non viene portato in basso dal cortocircuito di un pulsante) 
 
 
 
-      if (lastbutton[page_mempos] > 0) {
+      if (data_LB[page_mempos] > 0) {
         page = 0; // pagestate=0; 
         pagestate = 0;
         load_preset(0); // ledrestore(); // levetta a destra caricamento preset eeprom pagina 1
@@ -277,14 +277,14 @@ for (byte i = 0; i < max_modifiers; i++) {
   bit_write(5, i + 0, 0);              // Page1 NOT ARMED
   bit_write(5, i + max_modifiers, 0);  // Page2 NOT ARMED
   // opzionale "rassicurante":
-  // lastbutton[i] = 128;
-  // lastbutton[i + 64] = 128;  // SOLO se il tuo lb usa stride 64 (come in pots)
+  // data_LB[i] = 128;
+  // data_LB[i + 64] = 128;  // SOLO se il tuo lb usa stride 64 (come in pots)
 }
 #endif
 /*
     #if (ENABLE_POT_TAKEOVER == 1)
   for (byte bit = 0; bit < 128; bit++) {
-    lastbutton[bit] = 128; // ?? 
+    data_LB[bit] = 128; // ?? 
   }
     #endif // ENABLE_POT_TAKEOVER
 */
@@ -304,9 +304,9 @@ for (byte i = 0; i < max_modifiers; i++) {
     // valore = analogRead(18);
     
     if (eeprom_preset_active == 1 && page_mempos > 0) { 
-      lastbutton[page_mempos] = map32(analogRead_1024(18), 0, 1024, 0, 2);
+      data_LB[page_mempos] = map32(analogRead_1024(18), 0, 1024, 0, 2);
 
-      if (lastbutton[page_mempos] == 1) {
+      if (data_LB[page_mempos] == 1) {
         page = 0; // pagestate=0; 
         load_preset(0); // ledrestore(); // levetta a destra caricamento preset eeprom pagina 1
         update_scala(1);  
@@ -321,7 +321,7 @@ for (byte i = 0; i < max_modifiers; i++) {
   }
   #endif // (stratos == 1)
 
-  if (maxvalue[general_mempos] == 0) { // se i pads sono attivi bisogna togliere la pullup
+  if (data_MA[general_mempos] == 0) { // se i pads sono attivi bisogna togliere la pullup
     #if (stratos == 0)
       #if defined (__AVR_ATmega32U4__) 
       digitalWrite(23, LOW);
@@ -340,7 +340,7 @@ for (byte i = 0; i < max_modifiers; i++) {
   }  
 
 #if (stratos == 0)
-  if (valuetable[general_mempos] != 0) { // 0 = nomobo
+  if (data_VA[general_mempos] != 0) { // 0 = nomobo
     digitalWrite(12, LOW);
     digitalWrite(11, LOW);
     digitalWrite(10, LOW);
@@ -366,7 +366,7 @@ for (byte i = 0; i < max_modifiers; i++) {
   openeditor = 0;
   note = 255; // out of range (0-127) value
  
-  if (dmxtable[general_mempos] > 0) {
+  if (data_DM[general_mempos] > 0) {
 
 #if defined(ARDUINO_ARCH_SAMD)
     attachInterrupt(digitalPinToInterrupt(2), lettura_enc_principale, CHANGE);

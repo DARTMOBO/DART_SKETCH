@@ -13,30 +13,30 @@ void scene_morph_encsc(byte enc_chan);
 
 void encoder(byte numero) {
   // NUMERO corrisponde alla chan/memoryposition
-  // lastbutton[] contiene la lettura dell encoder 64 = fermo, 63 = -, 65 = + 
-  // modetable[] mi dice se si tratta di encoder spinner (mode 21 e 22 su editor) o di encoder generico (mode 19 su editor)
-  // dmxtable[general_mempos] vedi se gli spinner sono attivati e quali 0-nessuno 1-top 2-top+side 3 top+side+generico
-  // dmxtable[numero] // la dmxtable definisce la modalita - 0 e 1 endless - 2 pot - 3 scale
-  // qwertyvalue[numero] settaggio del touch stop
-  // minvalue: speed e inversione - il valore va da 0 a 64 // 32 sarebe lo zero.
-  // maxvalue: usato per trasferimento scale
-  // lightable[numero] // usato come contatore per la modalità 63-65 che oltre allo scatto avanti/indietro fornisce anche la velocità
-  // typetable[] oltre a specificare se si tratta di note o cc - può fare accedere l'encoder alla modalità qwerty 
-  // dmxtable[mouse_mempos] emulazione mouse attiva
-  // valuetable[mouse_mempos+page] // scelta dell encoder che emula mousewheel
+  // data_LB[] contiene la lettura dell encoder 64 = fermo, 63 = -, 65 = + 
+  // data_MODE[] mi dice se si tratta di encoder spinner (mode 21 e 22 su editor) o di encoder generico (mode 19 su editor)
+  // data_DM[general_mempos] vedi se gli spinner sono attivati e quali 0-nessuno 1-top 2-top+side 3 top+side+generico
+  // data_DM[numero] // la data_DM definisce la modalita - 0 e 1 endless - 2 pot - 3 scale
+  // data_QW[numero] settaggio del touch stop
+  // data_MI: speed e inversione - il valore va da 0 a 64 // 32 sarebe lo zero.
+  // data_MA: usato per trasferimento scale
+  // data_LT[numero] // usato come contatore per la modalità 63-65 che oltre allo scatto avanti/indietro fornisce anche la velocità
+  // data_TY[] oltre a specificare se si tratta di note o cc - può fare accedere l'encoder alla modalità qwerty 
+  // data_DM[mouse_mempos] emulazione mouse attiva
+  // data_VA[mouse_mempos+page] // scelta dell encoder che emula mousewheel
 
-  if (lastbutton[numero] != 64) { 
+  if (data_LB[numero] != 64) { 
     // ============================================================
     // CTRL-F: ENCSC_TYPE244_MARKER
     // NUOVA REGOLA: ENCSC/SCENE-MORPH via TYPE marker (pseudomidi 244)
-    // - page-aware: typetable[] contiene PAGE1 e PAGE2, quindi usiamo +page
+    // - page-aware: data_TY[] contiene PAGE1 e PAGE2, quindi usiamo +page
     // - quando il marker è attivo, NON eseguiamo logica encoder normale
-    // - consumiamo l'impulso (63/65) riportando lastbutton a 64
+    // - consumiamo l'impulso (63/65) riportando data_LB a 64
     // ============================================================
     #if (Scene == 1)
-    if (typetable[numero + page] == 244) {
+    if (data_TY[numero + page] == 244) {
       scene_morph_encsc(numero); // funzione in D_scene.ino
-      lastbutton[numero] = 64;
+      data_LB[numero] = 64;
       return;
     }
     #endif
@@ -44,15 +44,15 @@ void encoder(byte numero) {
     byte tocco;  
     cycletimer = 0;
 
-    if (modetable[numero] > 20) { // spinner (21/22)
-      numero2h = boolean(modetable[numero] - 21);   
-      tocco = lastbutton[touch_mempos[numero2h]]; // touch associato allo spinner 1/2
+    if (data_MODE[numero] > 20) { // spinner (21/22)
+      numero2h = boolean(data_MODE[numero] - 21);   
+      tocco = data_LB[touch_mempos[numero2h]]; // touch associato allo spinner 1/2
 
-      encoder_block[numero2h] = constrain(encoder_block[numero2h] + (lastbutton[numero] - 64), 20, 235);
+      encoder_block[numero2h] = constrain(encoder_block[numero2h] + (data_LB[numero] - 64), 20, 235);
 
-      if (V_touch_regulator[numero2h] == 1 && lightable[touch_mempos[numero2h]] == 1) { 
-        midiOut(typetable[touch_mempos[numero2h] + page] + 1,
-                valuetable[touch_mempos[numero2h] + page],
+      if (V_touch_regulator[numero2h] == 1 && data_LT[touch_mempos[numero2h]] == 1) { 
+        midiSendRaw(data_TY[touch_mempos[numero2h] + page] + 1,
+                data_VA[touch_mempos[numero2h] + page],
                 127); // invio del virtual touch 
 
         #if (shifter_active == 1 && stratos == 0)
@@ -71,75 +71,75 @@ void encoder(byte numero) {
     }
 
     //-------------------------------------------------------------------------------------------------------------------------------
-    if (dmxtable[general_mempos] >= numero2h) {
-      if (dmxtable[numero] > 1) { // 2 pot - 3 scale
+    if (data_DM[general_mempos] >= numero2h) {
+      if (data_DM[numero] > 1) { // 2 pot - 3 scale
         // Touch-stop SOLO per spinner (tocco = stato touch). Per generici tocco=0 => sempre "touch non premuto".
-        if (qwertyvalue[numero] == 0) { 
+        if (data_QW[numero] == 0) { 
           encoder_pot_mode(numero); 
         } else {
           if (tocco == 0) {
-            encoder_pot_mode(numero); // prima era lastbutton[touch_mempos[numero2h]]==0
+            encoder_pot_mode(numero); // prima era data_LB[touch_mempos[numero2h]]==0
           }
         }
-      } else { // dmxtable 0/1 endless
+      } else { // data_DM 0/1 endless
         // CTRL-F: ENCODER_SIGNED_SPEED_REFACTOR
-        const int8_t speed = (int8_t)minvalue[numero] - 32; // range -32..+32
+        const int8_t speed = (int8_t)data_MI[numero] - 32; // range -32..+32
         const bool inverted = (speed < 0);
 
-        if (dmxtable[numero] == 0) { // endless 63/65 (accelerato)
-          if (typetable[numero + page] <= 191) {
+        if (data_DM[numero] == 0) { // endless 63/65 (accelerato)
+          if (data_TY[numero + page] <= 191) {
             // CTRL-F: FIX_INV_ACCEL_63_65
             // Niente map32() qui: l'inversione è gestita da dir + speedAbs (evita doppia inversione).
             const int8_t dir = inverted ? -1 : 1;
             const uint8_t speedAbs = (uint8_t)(inverted ? -speed : speed);
-            const uint8_t lbAccel = lastbutton[numero];
+            const uint8_t lbAccel = data_LB[numero];
 
             #if (stratos == 0)
-            if (lightable[numero] == 16)
+            if (data_LT[numero] == 16)
             #endif
             #if (stratos == 1)
-            if (lightable[numero] == 250)
+            if (data_LT[numero] == 250)
             #endif
             {
-              button(typetable[numero + page] + boolean(qwertyvalue[numero]) * tocco,
-                     valuetable[numero + page],
+              midiSendTyped(data_TY[numero + page] + boolean(data_QW[numero]) * tocco,
+                     data_VA[numero + page],
                      constrain(
                        (int)lbAccel + ((int)(lbAccel - 64) * (int)speedAbs * (int)dir),
                        0, 127),
                      0);
 
-              lightable[numero] = 0;
-              encled[0] = encled[0] + (-(lastbutton[numero] - 64)) * (int)speed;
-              lastbutton[numero] = 64;
+              data_LT[numero] = 0;
+              encled[0] = encled[0] + (-(data_LB[numero] - 64)) * (int)speed;
+              data_LB[numero] = 64;
             } else {
-              lightable[numero]++;
+              data_LT[numero]++;
             }
           } else {
             qwerty_encoderr(numero);
-            lastbutton[numero] = 64;
+            data_LB[numero] = 64;
           }
-        } else { // dmxtable == 1 (endless 0..127)
-          if ((qwertyvalue[numero] ^ tocco) != 3) {
+        } else { // data_DM == 1 (endless 0..127)
+          if ((data_QW[numero] ^ tocco) != 3) {
             // CTRL-F: FIX_INV_ENDLESS_DMX1
             const int8_t dir = inverted ? -1 : 1;
 
-            button(typetable[numero + (page)] + boolean(qwertyvalue[numero]) * tocco,
-                   valuetable[numero + (page)],
-                   constrain((-(lastbutton[numero] - 64) * dir) * 127, 0, 127),
+            midiSendTyped(data_TY[numero + (page)] + boolean(data_QW[numero]) * tocco,
+                   data_VA[numero + (page)],
+                   constrain((-(data_LB[numero] - 64) * dir) * 127, 0, 127),
                    2);
 
-            encled[0] = encled[0] + (-(lastbutton[numero] - 64)) * (int)speed;
+            encled[0] = encled[0] + (-(data_LB[numero] - 64)) * (int)speed;
           }
         }
 
         #if (shifter_active == 1 && stratos == 0)
-        if ((qwertyvalue[numero] ^ tocco) != 3) {
+        if ((data_QW[numero] ^ tocco) != 3) {
           led_enc_exe();
         }
         #endif
 
         #if (Matrix_Pads > 0)
-        if ((qwertyvalue[numero] ^ tocco) != 3) {
+        if ((data_QW[numero] ^ tocco) != 3) {
           led_enc_exe_matrix();
         }
         #endif
@@ -149,29 +149,29 @@ void encoder(byte numero) {
       #if defined (__AVR_ATmega32U4__)  
       { // attivazione mousewheel
         #if (stratos == 1)
-        if (valuetable[mouse_mempos + page] == numero)
+        if (data_VA[mouse_mempos + page] == numero)
         #endif
 
         #if (stratos == 0)
-        if (remapper(valuetable[mouse_mempos + page] - 1) == numero)
+        if (remapper(data_VA[mouse_mempos + page] - 1) == numero)
         #endif
         {
           #if (hid_mouse == 1)
           if (mouse_wheel_speed_counter == 0) {
-            Mouse.move(0, 0, (-(lastbutton[numero] - 64)) * (constrain(minvalue[numero] - 32, -1, 1)));
+            Mouse.move(0, 0, (-(data_LB[numero] - 64)) * (constrain(data_MI[numero] - 32, -1, 1)));
           }
           #endif
 
           mouse_wheel_speed_counter++;
-          if (mouse_wheel_speed_counter == map32(abs(minvalue[numero] - 32), 0, 32, 32, 1)) {
+          if (mouse_wheel_speed_counter == map32(abs(data_MI[numero] - 32), 0, 32, 32, 1)) {
             mouse_wheel_speed_counter = 0;
           }
         }
       }
       #endif
 
-      if (dmxtable[numero] > 0) { // in modalità relativa con accelerazione (63-65) non devo resettare lastbutton...
-        lastbutton[numero] = 64;
+      if (data_DM[numero] > 0) { // in modalità relativa con accelerazione (63-65) non devo resettare data_LB...
+        data_LB[numero] = 64;
       }
     }
   }
@@ -181,12 +181,12 @@ void encoder(byte numero) {
 
 void encoder_pot_mode(byte numero) {
   int valuepot;
-  encoder_pot_calcolo(numero, minvalue[numero]); // canale e velocità/speed
+  encoder_pot_calcolo(numero, data_MI[numero]); // canale e velocità/speed
 
-  if (modetable[numero] > 19) {
+  if (data_MODE[numero] > 19) {
     valuepot = encodervaluepot[numero2h];
   } else { // spin1 / spin2
-    valuepot = lightable[numero] * 4; // encoder generico
+    valuepot = data_LT[numero] * 4; // encoder generico
   }
 
   // ------------------------------------------------
@@ -196,13 +196,13 @@ void encoder_pot_mode(byte numero) {
   // OUT 0..127 (unificato)
   byte out = (byte)constrain(valuepot / 8, 0, 127);
 
-  if (typetable[numero + page] > 223) { // pitch bend
-    noteOn(typetable[numero + page],
+  if (data_TY[numero + page] > 223) { // pitch bend
+    midiSendFiltered(data_TY[numero + page],
            (valuepot - ((valuepot / 8) * 8)) * 16,
            valuepot / 8, 1);
-  } else if (typetable[numero + page] > 159) { // CC/PC/AT (sotto 160 sono NOTE)
+  } else if (data_TY[numero + page] > 159) { // CC/PC/AT (sotto 160 sono NOTE)
     // --- ANCHOR: PC_TO_CC_IN_POT_EMU ---
-    byte t = typetable[numero + page]; // status (0x90..)
+    byte t = data_TY[numero + page]; // status (0x90..)
     byte group = (t - 144) / 16; // 0=NOTE,1=AT,2=CC,3=PC,...
     #if (Scene == 1)
     if (group == 3) {
@@ -229,9 +229,9 @@ void encoder_pot_mode(byte numero) {
     }
     #endif
     // comportamento normale (non subject): invio diretto
-    button(t, valuetable[numero + page], out, 1);
+    midiSendTyped(t, data_VA[numero + page], out, 1);
   } else { // NOTE => modalità SCALE (solo spinner)
-    if (modetable[numero] > 19) {
+    if (data_MODE[numero] > 19) {
       at = encodervaluepot[numero2h] / 8;
 
       if (encodervaluepot_buffer[numero2h] != at) {
@@ -245,12 +245,12 @@ void encoder_pot_mode(byte numero) {
               encoder_block[numero2h] = 220;
 
               if (bitRead(scala_learn, (at) - ((at / 12) * 12)) == 1) {
-                button(typetable[numero + page], encodervaluepot_buffer[numero2h], 0, 0);
-                button(typetable[numero + page], at, 127, 1);
+                midiSendTyped(data_TY[numero + page], encodervaluepot_buffer[numero2h], 0, 0);
+                midiSendTyped(data_TY[numero + page], at, 127, 1);
                 encodervaluepot_buffer[numero2h] = at;
               } else {
                 while (bitRead(scala_learn, (at) - ((at / 12) * 12)) == 0) {
-                  encoder_pot_calcolo(numero, constrain(minvalue[numero], 31, 33));
+                  encoder_pot_calcolo(numero, constrain(data_MI[numero], 31, 33));
                   at = encodervaluepot[numero2h] / 8;
 
                   if (at <= 0 || at >= 127) {
@@ -260,8 +260,8 @@ void encoder_pot_mode(byte numero) {
                 }
 
                 {
-                  button(typetable[numero + page], encodervaluepot_buffer[numero2h], 0, 0);
-                  button(typetable[numero + page], at, 127, 1);
+                  midiSendTyped(data_TY[numero + page], encodervaluepot_buffer[numero2h], 0, 0);
+                  midiSendTyped(data_TY[numero + page], at, 127, 1);
                   encodervaluepot_buffer[numero2h] = at;
                 }
               }
@@ -292,20 +292,20 @@ void encoder_pot_mode(byte numero) {
 
 void encoder_pot_calcolo(byte chan_, byte moltiplicatore) {
   // serve per calcolare la posizione del pot virtuale - encoder in modalità pot
-  // la posizione del pot viene memorizzata su encodervaluepot[] per gli spinner e su lightable[] per gli encoders generici
+  // la posizione del pot viene memorizzata su encodervaluepot[] per gli spinner e su data_LT[] per gli encoders generici
   
   moltiplicatore = 64 - moltiplicatore; // commentare questa riga per invertire l'avanzamento del pot emulato
   
-  if (modetable[chan_] > 19) { // se si tratta di uno spinner - useremo encodervaluepot[] per tenere in memoria la posizione del POT VIRTUALE
+  if (data_MODE[chan_] > 19) { // se si tratta di uno spinner - useremo encodervaluepot[] per tenere in memoria la posizione del POT VIRTUALE
                                // 19 sarebbe l'identificativo per l'encoder 
                                // 21 e 22 per gli spinner
     if (mouse_wheel_speed_counter == 0) { 
       /////////////------------- /////////////-------------/////////////-------------/////////////-------------/////////////-------------
-      if (dmxtable[chan_] == 2) {
+      if (data_DM[chan_] == 2) {
         // contiene il valore-posizione attuale dello spinner 1 o 2       
         encodervaluepot[numero2h] = constrain(
           encodervaluepot[numero2h] - 
-          (-(lastbutton[chan_] - 64)) * // -1 o 1
+          (-(data_LB[chan_] - 64)) * // -1 o 1
           (moltiplicatore - 32), // moltiplicatore sarebbe mivalue[numero] che va da 0 a 64
           0, 1023
         );
@@ -317,7 +317,7 @@ void encoder_pot_calcolo(byte chan_, byte moltiplicatore) {
         // spegazione: si aggiunge il valore speed, positio o negativo a seconda del verso.
       } else {
         // modalità virtualpot RAMP - senza limiti superiore e inferiore.      
-        encodervaluepot[numero2h] = encodervaluepot[numero2h] - (-(lastbutton[chan_] - 64)) * (moltiplicatore - 32);
+        encodervaluepot[numero2h] = encodervaluepot[numero2h] - (-(data_LB[chan_] - 64)) * (moltiplicatore - 32);
         if (encodervaluepot[numero2h] < 0) {
           encodervaluepot[numero2h] = 1023;
         } else if (encodervaluepot[numero2h] > 1023) {
@@ -327,33 +327,33 @@ void encoder_pot_calcolo(byte chan_, byte moltiplicatore) {
       /////////////-------------/////////////-------------/////////////-------------/////////////-------------/////////////-------------
     }
 
-    if (typetable[chan_ + page] > 159) { // se type non è un NOTE
+    if (data_TY[chan_ + page] > 159) { // se type non è un NOTE
       mouse_wheel_speed_counter = 0; // se sono CC o altro mouse_wheel_speed_counter rimane sempre zero - nessun rallentamento.
     } else {
       mouse_wheel_speed_counter++;
-      // if (mouse_wheel_speed_counter > (minvalue[chan_]-32)) {mouse_wheel_speed_counter =0;} // in questo modo si ha un rallentamento della mousewheel aumnetando 
+      // if (mouse_wheel_speed_counter > (data_MI[chan_]-32)) {mouse_wheel_speed_counter =0;} // in questo modo si ha un rallentamento della mousewheel aumnetando 
       // zero = veloce
       // 32 = rallentato 
-      // minvalue qui usata come speed / rallentatore.
-      // if (mouse_wheel_speed_counter > constrain(abs(minvalue[chan_]-32),1,32)) {mouse_wheel_speed_counter =0;}
-      // if (mouse_wheel_speed_counter > abs(minvalue[chan_]-32)) {mouse_wheel_speed_counter =0;}
-      if (mouse_wheel_speed_counter > map32(abs(minvalue[chan_] - 32), 0, 32, 32, 0)) {
+      // data_MI qui usata come speed / rallentatore.
+      // if (mouse_wheel_speed_counter > constrain(abs(data_MI[chan_]-32),1,32)) {mouse_wheel_speed_counter =0;}
+      // if (mouse_wheel_speed_counter > abs(data_MI[chan_]-32)) {mouse_wheel_speed_counter =0;}
+      if (mouse_wheel_speed_counter > map32(abs(data_MI[chan_] - 32), 0, 32, 32, 0)) {
         mouse_wheel_speed_counter = 0;
       }
     }
-  } else { // se si tratta di encoder generico - useremo lightable[] per tenere in memoria la posizione del POT VIRTUALE
-    if (dmxtable[chan_] == 2) {
-      // lightable contiene il valore-posizione attuale dell'encoder generico
-      lightable[chan_] = constrain( 
-        lightable[chan_] - 
-        (-(lastbutton[chan_] - 64)) *
+  } else { // se si tratta di encoder generico - useremo data_LT[] per tenere in memoria la posizione del POT VIRTUALE
+    if (data_DM[chan_] == 2) {
+      // data_LT contiene il valore-posizione attuale dell'encoder generico
+      data_LT[chan_] = constrain( 
+        data_LT[chan_] - 
+        (-(data_LB[chan_] - 64)) *
         (moltiplicatore - 32),
         0, 255
       );
     } else {
-      // RAMP - lightable contiene il valore-posizione attuale dell'encoder generico 
+      // RAMP - data_LT contiene il valore-posizione attuale dell'encoder generico 
       // - qui in modalità illimitata - quando si va oltre 255 si torna a zero.
-      lightable[chan_] = lightable[chan_] - (lastbutton[chan_] - 64) * (-(moltiplicatore - 32));
+      data_LT[chan_] = data_LT[chan_] - (data_LB[chan_] - 64) * (-(moltiplicatore - 32));
     }
   }
 }
@@ -375,7 +375,7 @@ extern uint32_t enc_lock_last_us[60];   // dichiarato in D_INS.ino (array global
 #endif
 
 void lettura_enc_principale() { // legge l'encoder principale (TOP SPINNER) via interrupt
-  const byte chan_enc = encoder_mempos[0];
+  const byte chan_enc = spinner_mempos[0];
 
   // Lettura immediata dei 2 bit (A/B).
   // NB: qui manteniamo la polarità originale del top spinner (nessun '!').
@@ -387,13 +387,13 @@ void lettura_enc_principale() { // legge l'encoder principale (TOP SPINNER) via 
   // ---------------- LOCKOUT (time-gate) ----------------
   // Se arrivano interrupt troppo ravvicinati (bounce meccanico / raffiche ottico),
   // ignoriamo la generazione di step per un attimo.
-  // IMPORTANTISSIMO: aggiorniamo comunque maxvalue[chan_enc] (fase quadrature) per non creare salti alla ripresa.
+  // IMPORTANTISSIMO: aggiorniamo comunque data_MA[chan_enc] (fase quadrature) per non creare salti alla ripresa.
   uint32_t now = micros();
   if ((uint32_t)(now - enc_lock_last_us[chan_enc]) < (uint32_t)ENC_TOP_LOCKOUT_US) {
     MSB[0] = msb;
     LSB[0] = lsb;
-    maxvalue[chan_enc] = encoded;   // 'previous state' usato da updateEncoder()
-    lastbutton[chan_enc] = 64;      // nessuno step
+    data_MA[chan_enc] = encoded;   // 'previous state' usato da updateEncoder()
+    data_LB[chan_enc] = 64;      // nessuno step
     return;
   }
 #endif
@@ -405,8 +405,8 @@ void lettura_enc_principale() { // legge l'encoder principale (TOP SPINNER) via 
 
 #if (ENABLE_ENC_LOCKOUT == 1)
   // Armiamo il lockout SOLO se updateEncoder() ha prodotto uno step valido.
-  // (Se lastbutton resta 64, vuol dire: nessun movimento reale.)
-  if (lastbutton[chan_enc] != 64) {
+  // (Se data_LB resta 64, vuol dire: nessun movimento reale.)
+  if (data_LB[chan_enc] != 64) {
     enc_lock_last_us[chan_enc] = now;
   }
 #endif
@@ -415,24 +415,24 @@ void lettura_enc_principale() { // legge l'encoder principale (TOP SPINNER) via 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void qwerty_encoderr(byte numero) {
-  if (qwertyvalue[numero] == 0 && lastbutton[numero] != 64) {
-    // valuetable[chan + (page)] // encoder usato per emettere messaggi qwerty
+  if (data_QW[numero] == 0 && data_LB[numero] != 64) {
+    // data_VA[chan + (page)] // encoder usato per emettere messaggi qwerty
     
     #if (hid_keys == 1)
-    Keyboard.press(constrain((lastbutton[numero] - 63) + valuetable[numero + page], 41, 126)); 
-    // Serial.println(lastbutton[numero]);
+    Keyboard.press(constrain((data_LB[numero] - 63) + data_VA[numero + page], 41, 126)); 
+    // Serial.println(data_LB[numero]);
     // delay(10); 
     // 41-126 PER EVITARE di triggerare tasti modificatori
-    Keyboard.release(constrain((lastbutton[numero] - 63) + valuetable[numero + page], 41, 126));
+    Keyboard.release(constrain((data_LB[numero] - 63) + data_VA[numero + page], 41, 126));
     #endif
   }
   
-  qwertyvalue[numero]++;
-  // int qwerty_encoder = minvalue[numero];
+  data_QW[numero]++;
+  // int qwerty_encoder = data_MI[numero];
   // qwerty_encoder = abs(qwerty_encoder -32);
-  // if (qwertyvalue[numero] > qwerty_encoder ) qwertyvalue[numero]= 0;
-  if (qwertyvalue[numero] > abs(minvalue[numero] - 32)) {
-    qwertyvalue[numero] = 0; 
+  // if (data_QW[numero] > qwerty_encoder ) data_QW[numero]= 0;
+  if (data_QW[numero] > abs(data_MI[numero] - 32)) {
+    data_QW[numero] = 0; 
   }
   
   // attualmente si può usare speed per diminuide la velocitò di emisione dei caratteri qwerty
@@ -443,21 +443,21 @@ void qwerty_encoderr(byte numero) {
  
 void updateEncoder(byte numero) {
   boolean numero2_ = 1;
-  if (numero == encoder_mempos[0]) {
+  if (numero == spinner_mempos[0]) {
     numero2_ = 0;
   }
   
   byte encoded = (MSB[numero2_] << 1) | LSB[numero2_]; // converting the 2 pin value to single number
-  byte sum = (maxvalue[numero] << 2) | encoded; // adding it to the previous encoded value
+  byte sum = (data_MA[numero] << 2) | encoded; // adding it to the previous encoded value
 
   if (sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) { 
-    lastbutton[numero]++;
+    data_LB[numero]++;
   }
   
   if (sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) { 
-    lastbutton[numero]--; 
+    data_LB[numero]--; 
   }
   
-  maxvalue[numero] = encoded; // store this value for next time
+  data_MA[numero] = encoded; // store this value for next time
 }
 //-----------

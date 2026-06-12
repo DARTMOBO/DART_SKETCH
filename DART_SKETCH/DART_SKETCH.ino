@@ -1,8 +1,17 @@
-///////////////////////////
-// DART_SKETCH   v1.88   // 
-// Massimiliano Marchese //
-// www.dartmobo.com      //
-///////////////////////////
+
+
+  ///////////////////////////
+  // DART_SKETCH   v1.88   // 
+  // Massimiliano Marchese //
+  // www.dartmobo.com      //
+  ///////////////////////////
+
+
+
+
+
+
+
 
  /* 
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -15,7 +24,27 @@
  */
 
 
-#include "DART_config.h"   // central compile-time settings (currently DMX_active)
+#include "DART_config.h"   // central compile-time settings
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // =========================================================
 // STAGED BUTTON READ API (debounced button reading)
 // - Makes push_buttons_lettura_stage() + accessors visible to ALL tabs.
@@ -293,13 +322,13 @@ byte mousey;
 //int mousexacceleration; // 
 byte mouse_wheel_speed_counter;
 /////////////////////////////////////////////////////////////
-volatile byte encoder_mempos[2];             // da editor si sceglie quale sara'  la memoryposition dell'encoder 
+volatile byte spinner_mempos[2];             // da editor si sceglie quale sara'  la memoryposition dell'encoder 
                                              
 volatile byte touch_mempos[2];
 byte V_touch_regulator[2] = {1,1};
 byte mouse_mempos ;
 byte PADS_mempos;
-byte distance_mempos;
+byte distance_sensor_mempos;
 byte page_mempos;
  byte general_mempos = 0;
 /////////////////////////////////////////////////////////////////////
@@ -479,21 +508,22 @@ volatile byte MSB[2] ;
 volatile byte LSB[2] ;
 byte encoder_block[2]= {64,64} ; // serve per bloccare l'attivita'  dell'encoder quando viene toccato ma tenuto fermo - per registrare una scala.
 ////////////////////////////////////////////////////////////////////////////////  
-// CTRL-F: LASTBUTTON_SIZE_SWITCH
+// CTRL-F: data_LB_SIZE_SWITCH
 #if (ENABLE_POT_TAKEOVER == 1)
-volatile byte lastbutton[128] ; // split: 0..63 legacy + 64..127 Page2 pots
+volatile byte data_LB[128] ; // split: 0..63 legacy + 64..127 Page2 pots // ex lastbutton
+
 #else // !ENABLE_POT_TAKEOVER
-volatile byte lastbutton[64] ; // legacy size
+volatile byte data_LB[64] ; // legacy size
 #endif // ENABLE_POT_TAKEOVER
 #if ( stratos == 0)
-byte lastbutton_debounce = 5;
+byte data_LB_debounce = 5;
 #endif // (stratos == 0)
 
 #if ( stratos == 1)
-byte lastbutton_debounce = 40;
+byte data_LB_debounce = 40;
 #endif // (stratos == 1)
 
-const byte modetable_readmode[41] = {
+const byte data_MODE_readmode[41] = {
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //  0–10: pulsanti → digitalRead
   1, 1, 1, 1, 1,                   // 11–15: potenziometri → analogRead
   0,                                  // 16 seq
@@ -526,8 +556,8 @@ const byte modetable_readmode[41] = {
 };
 
 
-volatile byte lightable[65] // ho provato a scendere a 64 - ma si creavano stranissimi problemi di conflitto memoria con buttonled_efx - messaggi midi disordinati etc etc
-               //la vecchia lightable era fissa.
+volatile byte data_LT[65] // ex lightable // ho provato a scendere a 64 - ma si creavano stranissimi problemi di conflitto memoria con buttonled_efx - messaggi midi disordinati etc etc
+               //la vecchia data_LT era fissa.
 
  = { //40,
 1,40,3,40,2,40,0,40,
@@ -538,15 +568,11 @@ volatile byte lightable[65] // ho provato a scendere a 64 - ma si creavano stran
 21,40,23,40,22,40,20,40,
 };
 
-
-
-
-
- byte  valuetable[max_modifiers*2] ; // dove  max_modifiers = 60 
- byte  typetable[max_modifiers*2] ;
+ byte  data_VA[max_modifiers*2] ; // dove  max_modifiers = 60  // ex valuetable
+ byte  data_TY[max_modifiers*2] ; // ex typetable
 
 /*
-qualche nota per ricordare a qule cifra typetable corrispondono i vari messaggi midi
+qualche nota per ricordare a qule cifra data_TY (type) corrispondono i vari messaggi midi
 questi sono i valori effettivi usati per mandare fuori midi con serial out
 soltanto nel trasferimento dei preset da editor a Dart di utilizzano delle conversioni per rimanere nel range 0-127
 
@@ -558,11 +584,11 @@ Program Change    192 + Channel 0-127 Program Not used
 Channel Pressure  208 + Channel 0-127 Pressure  Not used
 */
  
- byte  minvalue[max_modifiers] ;
- byte  maxvalue[max_modifiers] ;
- byte  modetable[max_modifiers] ; // 
- byte  qwertyvalue[max_modifiers];
- byte  dmxtable[max_modifiers];
+ byte  data_MI[max_modifiers] ; // ex minvalue
+ byte  data_MA[max_modifiers] ; // ex maxvalue
+ byte  data_MODE[max_modifiers] ; //  ex modetable
+ byte  data_QW[max_modifiers];  //  EX qwertyvalue
+ byte  data_DM[max_modifiers]; // ex dmxtable
 
 	// -----------------------------------------------------------------------------
 	// CTRL-F: POT_EMA_ARRAY

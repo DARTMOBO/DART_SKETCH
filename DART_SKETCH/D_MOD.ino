@@ -12,7 +12,7 @@
 
 // ============================================================
 // CTRL-F: VELO_PAD_SQUEEZE_HELPER
-// maxvalue[] per MODE 27 (velocity pads):
+// data_MA[] per MODE 27 (velocity pads):
 //   0       = velocity originale, nessuno schiacciamento
 //   1..126  = schiacciamento progressivo verso 127
 //   127     = toggle netto; ON forzato a 127, OFF resta 0
@@ -22,7 +22,7 @@
 // Cosi' una botta gia' forte cambia poco, una botta debole viene aiutata di piu'.
 // ============================================================
 byte velo_pad_squeeze(byte v) {
-  byte squeeze = maxvalue[chan];
+  byte squeeze = data_MA[chan];
 
   if (v == 0 || squeeze == 0) return v;
 
@@ -55,8 +55,8 @@ void push_buttons(byte velo) {
 
 // gestione pulsanti
   // la variabile "velo" ha valore 0 o 1 - se impstata su 1 attiva la lettura della velocity
-  // lastbutton[] gestisce il debouncing del pulsante 
-  //          - si fa riferimento a lastbutton_debounce che è una variabile fissa 
+  // data_LB[] gestisce il debouncing del pulsante 
+  //          - si fa riferimento a data_LB_debounce che è una variabile fissa 
   //            con valore diverso secondo il circuito del controller (normale o stratos - 10 o 40)
   //            in partica serve come temporizzatore per evitare messaggi ripetuti in caso di pulsanti scadenti che non fanno bene contatto
   //
@@ -65,14 +65,14 @@ void push_buttons(byte velo) {
 
   {
     // if (valore < lower_val - (velo *min)    )                         ///// button pushed        // con questa formula più è alto min , meno il pad diventa sensibile
-    int lower = lower_val + (velo * (minvalue[chan] * 3));
+    int lower = lower_val + (velo * (data_MI[chan] * 3));
     if (valore < lower) {
-      if (lastbutton[chan] == lastbutton_debounce) {
+      if (data_LB[chan] == data_LB_debounce) {
         /*
-        Serial.print(modetable[19]); Serial.println(" - modetable");
-        Serial.print(dmxtable[19]); Serial.println(" - dmxtable - modalità endless / pot");
-        Serial.print(qwertyvalue[19]); Serial.println(" - touchstop");
-        Serial.print(minvalue[19]-32); Serial.println(" - speed");
+        Serial.print(data_MODE[19]); Serial.println(" - data_MODE");
+        Serial.print(data_DM[19]); Serial.println(" - data_DM - modalità endless / pot");
+        Serial.print(data_QW[19]); Serial.println(" - touchstop");
+        Serial.print(data_MI[19]-32); Serial.println(" - speed");
         */
 
         /*
@@ -100,14 +100,14 @@ void push_buttons(byte velo) {
           Serial.print(F(" setup pagestate="));     Serial.println(ps_setup_pagestate);
         }
         */
-        if (modetable[chan] >= 3 && modetable[chan] != 27) {
+        if (data_MODE[chan] >= 3 && data_MODE[chan] != 27) {
           offgroup(chan, 1);      // da 3 in poi ci sono i toggle groups e radio groups
         }
       
         if (bit_read(4, page + chan) == 0) { // 4 = toggletable // something happens only if the button is off in the toggletable
           #if (ENABLE_AUTODETECT == 1)
           if (eeprom_preset_active == 0) {
-            dmxtable[chan]++;    // autodetect_dmx
+            data_DM[chan]++;    // autodetect_dmx
           }
           #endif
         
@@ -117,8 +117,8 @@ void push_buttons(byte velo) {
           #endif  
           
           #if (Scale == 1)
-          if (typetable[chan + page] < 160) {
-            scale_learn(valuetable[chan + page]);   // sotto 160 ci sono note on e off 
+          if (data_TY[chan + page] < 160) {
+            scale_learn(data_VA[chan + page]);   // sotto 160 ci sono note on e off 
           }
           #endif
              
@@ -128,7 +128,7 @@ void push_buttons(byte velo) {
           #endif
                 
           #if (Matrix_Pads == 1)
-          single_h(matrix_remap[chan], lightable[chan], 1, 1);  // pad in negativo (sprite invertito)
+          single_h(matrix_remap[chan], data_LT[chan], 1, 1);  // pad in negativo (sprite invertito)
           ledControl_matrix(chan, 1);
           // avvia effetto a croce sulle matrici (vedi matrixbuttonledefx in D_mtrx.ino)
           
@@ -148,12 +148,12 @@ void push_buttons(byte velo) {
           #endif
 
           #if (Matrix_Pads == 2)
-          single_h(matrix_remap[chan - 16], lightable[chan], 1, 1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo, send)
+          single_h(matrix_remap[chan - 16], data_LT[chan], 1, 1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo, send)
           #endif
     
-          if (modetable[chan] > 6) {
+          if (data_MODE[chan] > 6) {
             bit_write(4, chan + page, true);   // r-groups // ricordare che: 4 = togletable
-          } else if (modetable[chan] >= 2) {
+          } else if (data_MODE[chan] >= 2) {
             bit_write(4, chan + page, !bit_read(4, page + chan));
           }     
 
@@ -166,12 +166,12 @@ void push_buttons(byte velo) {
          
             //  int velopush =  constrain(analogRead_1024(plexer),60,255);  //Serial.println (velopush);//  delay(2);
             int velopush = constrain(analogRead_1024(plexer), 160, lower);
-            button(typetable[chan + page], valuetable[chan + page], velo_pad_squeeze((byte)map32(velopush, 160, lower, 127, 1)), 1);
+            button(data_TY[chan + page], data_VA[chan + page], velo_pad_squeeze((byte)map32(velopush, 160, lower, 127, 1)), 1);
             //  Serial.println(velopush);
           }
           // outnucleo (1,chan);
         } else { /// se il pulsante è acceso nella toggletable
-          if (modetable[chan] < 7 || modetable[chan] == 27) {
+          if (data_MODE[chan] < 7 || data_MODE[chan] == 27) {
             #if defined (__AVR_ATmega32U4__)  
             HOT_keys(chan, 0);    
             #endif  
@@ -183,13 +183,13 @@ void push_buttons(byte velo) {
          
             #if (Matrix_Pads == 1)
             ledControl_matrix(chan, 0);
-            single_h(matrix_remap[chan], lightable[chan], 0, 1);
-            //   single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
+            single_h(matrix_remap[chan], data_LT[chan], 0, 1);
+            //   single_h(pgm_read_byte(matrix_remap + chan-16),data_DM[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
             #endif
 
             #if (Matrix_Pads == 2)
-            single_h(matrix_remap[chan - 16], lightable[chan], 0, 1);
-            //   single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
+            single_h(matrix_remap[chan - 16], data_LT[chan], 0, 1);
+            //   single_h(pgm_read_byte(matrix_remap + chan-16),data_DM[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
             #endif
              
             bit_write(4, chan + page, !bit_read(4, page + chan)); 
@@ -202,26 +202,26 @@ void push_buttons(byte velo) {
         #endif
         shifterwrite = 1;
       }
-      if (lastbutton[chan] > 0) {
-        lastbutton[chan] = 0;
+      if (data_LB[chan] > 0) {
+        data_LB[chan] = 0;
       }
     }
 
     // --------------------------------------------------------------------------
-    if (valore > upper_val //&& lastbutton[chan] == 0
+    if (valore > upper_val //&& data_LB[chan] == 0
     ) { ///// button released
-      if (lastbutton[chan] == 0) {
+      if (data_LB[chan] == 0) {
         //  if (page == 0) 
         // Serial.println("---- released");
         //  Serial.println(valore);
         {
-          if ((modetable[chan] >= 2 && modetable[chan] < 11) || (modetable[chan] == 27 && maxvalue[chan] == 127)) { // toggle per i velo pads
+          if ((data_MODE[chan] >= 2 && data_MODE[chan] < 11) || (data_MODE[chan] == 27 && data_MA[chan] == 127)) { // toggle per i velo pads
             // se il pulsante = toggle o t-group o r-group
-            if (modetable[chan] < 7 || modetable[chan] == 27) { // 7 8 9 10 sono RADIO group
+            if (data_MODE[chan] < 7 || data_MODE[chan] == 27) { // 7 8 9 10 sono RADIO group
               //                                                    
             }   
           } else {
-            // if ( modetable[chan] < 5 ) // se il pulsante NON e' in toggle o in uno dei gruppi toggle
+            // if ( data_MODE[chan] < 5 ) // se il pulsante NON e' in toggle o in uno dei gruppi toggle
             {  
               //  if (bit_read(4,page+chan) == 1) 
               {  
@@ -237,15 +237,15 @@ void push_buttons(byte velo) {
 
                 #if (Matrix_Pads == 1)
                 ledControl_matrix(chan, 0);
-                single_h(matrix_remap[chan], lightable[chan], 0, 1);
-                //   bit_write(1,(lightable[chan]-1)+page,0); 
-                // single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
+                single_h(matrix_remap[chan], data_LT[chan], 0, 1);
+                //   bit_write(1,(data_LT[chan]-1)+page,0); 
+                // single_h(pgm_read_byte(matrix_remap + chan-16),data_DM[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
                 #endif
 
                 #if (Matrix_Pads == 2)
-                single_h(matrix_remap[chan - 16], lightable[chan], 0, 1);
-                //   bit_write(1,(lightable[chan]-1)+page,0); 
-                // single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
+                single_h(matrix_remap[chan - 16], data_LT[chan], 0, 1);
+                //   bit_write(1,(data_LT[chan]-1)+page,0); 
+                // single_h(pgm_read_byte(matrix_remap + chan-16),data_DM[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
                 #endif
               }
               bit_write(4, chan + page, 0);
@@ -256,11 +256,11 @@ void push_buttons(byte velo) {
 
         shifterwrite = 1;
       }
-      if (lastbutton[chan] < lastbutton_debounce) {
-        lastbutton[chan]++;
+      if (data_LB[chan] < data_LB_debounce) {
+        data_LB[chan]++;
       }
     }
-    //  lastbutton[chan] = valore / 4;
+    //  data_LB[chan] = valore / 4;
   }  // PUSH BUTTON SECTION END
 }
 #endif
@@ -296,7 +296,7 @@ byte pb_velo()     { return PB_VELO_NOW; }
 // ============================================================
 // CTRL-F: PUSH_BUTTONS_LETTURA_STAGE
 // Stage 1 - LETTURA: decide solo pressed/released/down.
-// - Riusa lo stesso schema di debounce di push_buttons(): lastbutton[]
+// - Riusa lo stesso schema di debounce di push_buttons(): data_LB[]
 // - NON manda MIDI/DMX/LED, NON tocca toggletable.
 // ============================================================
 void push_buttons_lettura_stage(byte velo) {
@@ -308,7 +308,7 @@ void push_buttons_lettura_stage(byte velo) {
   PB_VELO_NOW     = 0;
 
   // soglia "pressed" (stessa formula della push_buttons storica)
-  int lower = lower_val + (velo * (minvalue[chan] * 3));
+  int lower = lower_val + (velo * (data_MI[chan] * 3));
 
   // stato istantaneo (non debounced): utile per eventuali user-effects
   if (valore < lower) {
@@ -319,7 +319,7 @@ void push_buttons_lettura_stage(byte velo) {
   // PRESS edge (debounced)
   // ------------------------------
   if (valore < lower) {
-    if (lastbutton[chan] == lastbutton_debounce) {
+    if (data_LB[chan] == data_LB_debounce) {
       PB_PRESSED_NOW = 1;
 
       // se e' un velo-pad, calcoliamo un valore indicativo (come nella push_buttons).
@@ -332,9 +332,9 @@ void push_buttons_lettura_stage(byte velo) {
         PB_VELO_NOW = velo_pad_squeeze((byte)map32(velopush, 160, lowerSafe, 127, 1));
       }
     }
-    // comportamento identico: se lastbutton > 0 torna a 0 quando il pulsante e' giu'
-    if (lastbutton[chan] > 0) {
-      lastbutton[chan] = 0;
+    // comportamento identico: se data_LB > 0 torna a 0 quando il pulsante e' giu'
+    if (data_LB[chan] > 0) {
+      data_LB[chan] = 0;
     }
   }
 
@@ -342,12 +342,12 @@ void push_buttons_lettura_stage(byte velo) {
   // RELEASE edge (debounced)
   // ------------------------------
   if (valore > upper_val) {
-    if (lastbutton[chan] == 0) {
+    if (data_LB[chan] == 0) {
       PB_RELEASED_NOW = 1;
     }
     // incrementa fino a debounce (identico alla storica)
-    if (lastbutton[chan] < lastbutton_debounce) {
-      lastbutton[chan]++;
+    if (data_LB[chan] < data_LB_debounce) {
+      data_LB[chan]++;
     }
   }
 }
@@ -369,7 +369,7 @@ void push_buttons_effetto_serial(byte velo) {
   if (PB_PRESSED_NOW) {
     Serial.print(F("[PB] PRESS  ch="));  Serial.print(chan);
     Serial.print(F(" page="));          Serial.print(page);
-    Serial.print(F(" mode="));          Serial.print(modetable[chan]);
+    Serial.print(F(" mode="));          Serial.print(data_MODE[chan]);
     Serial.print(F(" val="));           Serial.print(valore);
     if (velo == 1) {
       Serial.print(F(" velo="));        Serial.print(PB_VELO_NOW);
@@ -380,7 +380,7 @@ void push_buttons_effetto_serial(byte velo) {
   if (PB_RELEASED_NOW) {
     Serial.print(F("[PB] RELEASE ch=")); Serial.print(chan);
     Serial.print(F(" page="));           Serial.print(page);
-    Serial.print(F(" mode="));           Serial.print(modetable[chan]);
+    Serial.print(F(" mode="));           Serial.print(data_MODE[chan]);
     Serial.print(F(" val="));            Serial.print(valore);
     Serial.println();
   }
@@ -401,10 +401,10 @@ void push_buttons_effetto_serial(byte velo) {
     if (PB_PRESSED_NOW) {
 
         /*
-        Serial.print(modetable[19]); Serial.println(" - modetable");
-        Serial.print(dmxtable[19]); Serial.println(" - dmxtable - modalità endless / pot");
-        Serial.print(qwertyvalue[19]); Serial.println(" - touchstop");
-        Serial.print(minvalue[19]-32); Serial.println(" - speed");
+        Serial.print(data_MODE[19]); Serial.println(" - data_MODE");
+        Serial.print(data_DM[19]); Serial.println(" - data_DM - modalità endless / pot");
+        Serial.print(data_QW[19]); Serial.println(" - touchstop");
+        Serial.print(data_MI[19]-32); Serial.println(" - speed");
         */
 
         /*
@@ -432,14 +432,14 @@ void push_buttons_effetto_serial(byte velo) {
           Serial.print(F(" setup pagestate="));     Serial.println(ps_setup_pagestate);
         }
         */
-        if (modetable[chan] >= 3 && modetable[chan] != 27) {
+        if (data_MODE[chan] >= 3 && data_MODE[chan] != 27) {
           offgroup(chan, 1);      // da 3 in poi ci sono i toggle groups e radio groups
         }
       
         if (bit_read(4, page + chan) == 0) { // 4 = toggletable // something happens only if the button is off in the toggletable
           #if (ENABLE_AUTODETECT == 1)
           if (eeprom_preset_active == 0) {
-            dmxtable[chan]++;    // autodetect_dmx
+            data_DM[chan]++;    // autodetect_dmx
           }
           #endif
         
@@ -449,8 +449,8 @@ void push_buttons_effetto_serial(byte velo) {
           #endif  
           
           #if (Scale == 1)
-          if (typetable[chan + page] < 160) {
-            scale_learn(valuetable[chan + page]);   // sotto 160 ci sono note on e off 
+          if (data_TY[chan + page] < 160) {
+            scale_learn(data_VA[chan + page]);   // sotto 160 ci sono note on e off 
           }
           #endif
              
@@ -460,7 +460,7 @@ void push_buttons_effetto_serial(byte velo) {
           #endif
                 
           #if (Matrix_Pads == 1)
-          single_h(matrix_remap[chan], lightable[chan], 1, 1);  // pad in negativo (sprite invertito)
+          single_h(matrix_remap[chan], data_LT[chan], 1, 1);  // pad in negativo (sprite invertito)
           ledControl_matrix(chan, 1);
           // avvia effetto a croce sulle matrici (vedi matrixbuttonledefx in D_mtrx.ino)
           
@@ -480,12 +480,12 @@ void push_buttons_effetto_serial(byte velo) {
           #endif
 
           #if (Matrix_Pads == 2)
-          single_h(matrix_remap[chan - 16], lightable[chan], 1, 1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo, send)
+          single_h(matrix_remap[chan - 16], data_LT[chan], 1, 1);  // visualizzazione simbolino // (quale pad , quale simbolo, positivo o negativo, send)
           #endif
     
-          if (modetable[chan] > 6) {
+          if (data_MODE[chan] > 6) {
             bit_write(4, chan + page, true);   // r-groups // ricordare che: 4 = togletable
-          } else if (modetable[chan] >= 2) {
+          } else if (data_MODE[chan] >= 2) {
             bit_write(4, chan + page, !bit_read(4, page + chan));
           }     
 
@@ -497,12 +497,12 @@ void push_buttons_effetto_serial(byte velo) {
             #endif
          
                         // velocity: reuse staged reading (PB_VELO_NOW) to match legacy mapping
-            button(typetable[chan + page], valuetable[chan + page], PB_VELO_NOW, 1);
+            midiSendTyped(data_TY[chan + page], data_VA[chan + page], PB_VELO_NOW, 1);
 //  Serial.println(velopush);
           }
           // outnucleo (1,chan);
         } else { /// se il pulsante è acceso nella toggletable
-          if (modetable[chan] < 7 || modetable[chan] == 27) {
+          if (data_MODE[chan] < 7 || data_MODE[chan] == 27) {
             #if defined (__AVR_ATmega32U4__)  
             HOT_keys(chan, 0);    
             #endif  
@@ -514,13 +514,13 @@ void push_buttons_effetto_serial(byte velo) {
          
             #if (Matrix_Pads == 1)
             ledControl_matrix(chan, 0);
-            single_h(matrix_remap[chan], lightable[chan], 0, 1);
-            //   single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
+            single_h(matrix_remap[chan], data_LT[chan], 0, 1);
+            //   single_h(pgm_read_byte(matrix_remap + chan-16),data_DM[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
             #endif
 
             #if (Matrix_Pads == 2)
-            single_h(matrix_remap[chan - 16], lightable[chan], 0, 1);
-            //   single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
+            single_h(matrix_remap[chan - 16], data_LT[chan], 0, 1);
+            //   single_h(pgm_read_byte(matrix_remap + chan-16),data_DM[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
             #endif
              
             bit_write(4, chan + page, !bit_read(4, page + chan)); 
@@ -544,13 +544,13 @@ void push_buttons_effetto_serial(byte velo) {
         // Serial.println("---- released");
         //  Serial.println(valore);
         {
-          if ((modetable[chan] >= 2 && modetable[chan] < 11) || (modetable[chan] == 27 && maxvalue[chan] == 127)) { // toggle per i velo pads
+          if ((data_MODE[chan] >= 2 && data_MODE[chan] < 11) || (data_MODE[chan] == 27 && data_MA[chan] == 127)) { // toggle per i velo pads
             // se il pulsante = toggle o t-group o r-group
-            if (modetable[chan] < 7 || modetable[chan] == 27) { // 7 8 9 10 sono RADIO group
+            if (data_MODE[chan] < 7 || data_MODE[chan] == 27) { // 7 8 9 10 sono RADIO group
               //                                                    
             }   
           } else {
-            // if ( modetable[chan] < 5 ) // se il pulsante NON e' in toggle o in uno dei gruppi toggle
+            // if ( data_MODE[chan] < 5 ) // se il pulsante NON e' in toggle o in uno dei gruppi toggle
             {  
               //  if (bit_read(4,page+chan) == 1) 
               {  
@@ -566,15 +566,15 @@ void push_buttons_effetto_serial(byte velo) {
 
                 #if (Matrix_Pads == 1)
                 ledControl_matrix(chan, 0);
-                single_h(matrix_remap[chan], lightable[chan], 0, 1);
-                //   bit_write(1,(lightable[chan]-1)+page,0); 
-                // single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
+                single_h(matrix_remap[chan], data_LT[chan], 0, 1);
+                //   bit_write(1,(data_LT[chan]-1)+page,0); 
+                // single_h(pgm_read_byte(matrix_remap + chan-16),data_DM[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
                 #endif
 
                 #if (Matrix_Pads == 2)
-                single_h(matrix_remap[chan - 16], lightable[chan], 0, 1);
-                //   bit_write(1,(lightable[chan]-1)+page,0); 
-                // single_h(pgm_read_byte(matrix_remap + chan-16),dmxtable[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
+                single_h(matrix_remap[chan - 16], data_LT[chan], 0, 1);
+                //   bit_write(1,(data_LT[chan]-1)+page,0); 
+                // single_h(pgm_read_byte(matrix_remap + chan-16),data_DM[chan],0); //  utilizzo una lookup table memorizzata su flash con PROGMEM
                 #endif
               }
               bit_write(4, chan + page, 0);
@@ -602,8 +602,8 @@ void convoy_commit();
 // ============================================================
 
 // CTRL-F: POT_TAKEOVER_WINDOW
-// Finestra di aggancio in unità "raw" di pot_confronto (= abs(lastbutton*4 - valore))
-// 12 = circa 3 step (perché lastbutton lavora a scaglioni da 4)
+// Finestra di aggancio in unità "raw" di pot_confronto (= abs(data_LB*4 - valore))
+// 12 = circa 3 step (perché data_LB lavora a scaglioni da 4)
 #define POT_TAKEOVER_WINDOW 24
 
 void pots() {
@@ -620,11 +620,11 @@ void pots() {
   //   sulla lettura fisica del pot.
   //
   // NB: uso chan+page per coerenza con il resto del codice (type page-dependent).
-  // Se vuoi il scene-control sempre "page 0", qui basta sostituire con typetable[chan].
+  // Se vuoi il scene-control sempre "page 0", qui basta sostituire con data_TY[chan].
   // ============================================================
  
   #if (Scene == 1)
-  if (typetable[chan + page] == 244) {
+  if (data_TY[chan + page] == 244) {
     scene_control_pot(); // TEST_ASSASSINO
     return;
   }
@@ -641,7 +641,7 @@ const byte diff_window = 4;
 #endif
 
 #if (ENABLE_POT_HIPREC_WINDOW == 1)
-  byte diff = (qwertyvalue[chan] > 0) ? diff_window : diff_unlock;
+  byte diff = (data_QW[chan] > 0) ? diff_window : diff_unlock;
 #else
   byte diff = diff_unlock; // finestra OFF: sempre scarto grosso
 #endif
@@ -656,11 +656,11 @@ const byte diff_window = 4;
   #endif
 
   /*
-  if (qwertyvalue[chan] > 0 // && modetable[chan] < 16
+  if (data_QW[chan] > 0 // && data_MODE[chan] < 16
   ) diff = 3; // #mod_finestra
   */
   {
-    int pot_confronto = abs((lastbutton[lb] * 4) - valore);
+    int pot_confronto = abs((data_LB[lb] * 4) - valore);
 
     // CTRL-F: POTS_TAKEOVER_GATE
     byte allowWrite = 1; // 1=può scrivere, 0=quarantena takeover
@@ -681,11 +681,11 @@ const byte diff_window = 4;
         //
         // Quindi:
         // - disarmiamo (caught)
-        // - sincronizziamo lastbutton[lb] alla posizione fisica corrente
+        // - sincronizziamo data_LB[lb] alla posizione fisica corrente
         // - blocchiamo l'invio per QUESTO giro (allowWrite=0)
         // ============================================================
         bit_write(5, chan + page, 0);  // CAUGHT: sblocca
-        lastbutton[lb] = valore / 4;   // sync base to physical now
+        data_LB[lb] = valore / 4;   // sync base to physical now
         allowWrite = 0;                // non inviare nello stesso ciclo del catch
       } else {
         allowWrite = 0;                // ancora ARMED: non deve scrivere né inviare
@@ -697,52 +697,52 @@ const byte diff_window = 4;
       // if ( pot_confronto > diff   ) // scaglioni da 4 - qundi 4 8 12 16 etc etc // #mod_finestra
       // the potentiometer has been moved
       {
-        if (modetable[chan] == 37) { // il MODE relativo al qwerty pot sarà a parte ed esclusivo
-          if (qwertyvalue[chan] > 0 && eeprom_preset_active != 0) { // pot working in qwerty mode - solo se non siamo in autodetect e qwerty ha un valore
+        if (data_MODE[chan] == 37) { // il MODE relativo al qwerty pot sarà a parte ed esclusivo
+          if (data_QW[chan] > 0 && eeprom_preset_active != 0) { // pot working in qwerty mode - solo se non siamo in autodetect e qwerty ha un valore
             if (valore > upper_val) { // -------------------------------------------------------
-              if (lastbutton[lb] * 4 < upper_val) { 
-                qwerty_out(1, qwertyvalue[chan], 0); 
+              if (data_LB[lb] * 4 < upper_val) { 
+                qwerty_out(1, data_QW[chan], 0); 
                 //  Serial.println("alto ");
               }
             } else if (valore < 124) {
-              if (lastbutton[lb] * 4 > 124) { // if (maxvalue[chan] == 127) 
-                qwerty_out(1, minvalue[chan], 0);
+              if (data_LB[lb] * 4 > 124) { // if (data_MA[chan] == 127) 
+                qwerty_out(1, data_MI[chan], 0);
                 // Serial.println("basso ");
               }
             } else { //------------------------------------------------------------------------
-              if (lastbutton[lb] * 4 > upper_val) {
-                qwerty_out(0, qwertyvalue[chan], 0); 
+              if (data_LB[lb] * 4 > upper_val) {
+                qwerty_out(0, data_QW[chan], 0); 
                 //    Serial.println ("!alto ");
-              } else if (lastbutton[lb] * 4 < 124) { // if (maxvalue[chan] == 127)  
-                qwerty_out(0, minvalue[chan], 0); 
+              } else if (data_LB[lb] * 4 < 124) { // if (data_MA[chan] == 127)  
+                qwerty_out(0, data_MI[chan], 0); 
                 //   Serial.println ("!basso ");
               }
             }
             
-            lastbutton[lb] = valore / 4;
+            data_LB[lb] = valore / 4;
             //  delay(100);
             //   Serial.print ("valore: ");  Serial.println (valore);
           }
         } else { // pot working in MIDI mode ---------------------------------------------------------------------------------------
-          lastbutton[lb] = valore / 4;
+          data_LB[lb] = valore / 4;
 
           ///  ----------------------------------------------------------
-          if (modetable[chan] == 11) {
-            if ((typetable[chan + (page)]) < 224) {
-              valore = map32(valore, 63, 960, minvalue[chan], maxvalue[chan]);
+          if (data_MODE[chan] == 11) {
+            if ((data_TY[chan + (page)]) < 224) {
+              valore = map32(valore, 63, 960, data_MI[chan], data_MA[chan]);
             } // pot normale 
             // NOTA: il constrain da 0 a 127 viene fatto in seguito sulla variabile potout
-          } else if (modetable[chan] == 12) { // CTRL-F: HYPERCURVE_INPUT_CLAMP_FIX
-            valore = map32(constrain(valore, 63, 256), 63, 256, minvalue[chan], maxvalue[chan]); // hypercurve 1 (clamp input)
+          } else if (data_MODE[chan] == 12) { // CTRL-F: HYPERCURVE_INPUT_CLAMP_FIX
+            valore = map32(constrain(valore, 63, 256), 63, 256, data_MI[chan], data_MA[chan]); // hypercurve 1 (clamp input)
             #if (shifter_active == 1 && stratos == 0)
             shifter.setAll(LOW); // non ricordo a che serve questo spegnimento
             #endif
-          } else if (modetable[chan] == 13) {
-            valore = map32(constrain(valore, 768, 960), 768, 960, minvalue[chan], maxvalue[chan]); // hypercurve 2 (clamp input)
+          } else if (data_MODE[chan] == 13) {
+            valore = map32(constrain(valore, 768, 960), 768, 960, data_MI[chan], data_MA[chan]); // hypercurve 2 (clamp input)
             #if (shifter_active == 1 && stratos == 0) 
             shifter.setAll(LOW); 
             #endif
-          } else if (modetable[chan] == 14) { // hypercurve center
+          } else if (data_MODE[chan] == 14) { // hypercurve center
             if (valore < 448) {
               valore = map32(valore, 63, 448, 0, 64);
             } else if (valore > 576) {
@@ -750,7 +750,7 @@ const byte diff_window = 4;
             } else {
               valore = 64;
             }
-          } else if (modetable[chan] == 15) { // hypercurve center 2 
+          } else if (data_MODE[chan] == 15) { // hypercurve center 2 
             if (valore < 340) {
               valore = map32(valore, 63, 340, 0, 64);
             } else if (valore > 684) {
@@ -767,9 +767,9 @@ const byte diff_window = 4;
           // CTRL-F: POTS_USER_RANGE_CENTER_OUT
           byte potSend = potOut;  // default: invio normale (0..127)
 
-         if (modetable[chan] > 13) { // solo centercurve 14/15
-  int a = minvalue[chan];
-  int b = maxvalue[chan];
+         if (data_MODE[chan] > 13) { // solo centercurve 14/15
+  int a = data_MI[chan];
+  int b = data_MA[chan];
   int lo = (a < b) ? a : b;
   int hi = (a < b) ? b : a;
 
@@ -799,15 +799,15 @@ const byte diff_window = 4;
           #endif // (Matrix_Pads > 0)    
   
           ///  ----------------------------------------------------------
-          switch ((typetable[chan + (page)] - 144) / 16) { ////////// qui viene inviato il segnale midi definitivo
+          switch ((data_TY[chan + (page)] - 144) / 16) { ////////// qui viene inviato il segnale midi definitivo
             case 0:
-              noteOn(typetable[chan + (page)] + 32, valuetable[chan + (page)], potSend, 1);
-              break; // if (chan < 8) noteOn(176, chan,  valore/8, 0) ; break;// note
+              midiSendFiltered(data_TY[chan + (page)] + 32, data_VA[chan + (page)], potSend, 1);
+              break; // if (chan < 8) midiSendFiltered(176, chan,  valore/8, 0) ; break;// note
             case 1:
-              noteOn(typetable[chan + (page)], valuetable[chan + (page)], potSend, 1);
+              midiSendFiltered(data_TY[chan + (page)], data_VA[chan + (page)], potSend, 1);
               break; // poly AT
             case 2:
-              noteOn(typetable[chan + (page)], valuetable[chan + (page)], potSend, 1);
+              midiSendFiltered(data_TY[chan + (page)], data_VA[chan + (page)], potSend, 1);
               // Serial.println(encled);
               break; // cc
             #if (Scene == 1)
@@ -831,24 +831,24 @@ const byte diff_window = 4;
               }
 
               // Fallback: comportamento originale (PC->CC)
-              noteOn(typetable[chan + page] - 16,
-                     valuetable[chan + page],
+              midiSendFiltered(data_TY[chan + page] - 16,
+                     data_VA[chan + page],
                      potOut,
                      1);
               break;
             #endif
             case 4:
-              noteOn(typetable[chan + (page)], potSend, 0, 1);
+              midiSendFiltered(data_TY[chan + (page)], potSend, 0, 1);
               break; // channel AT
             case 5: {
               valore = constrain(map32(valore, 24, 1000, 0, 1024), 0, 1023); // PB - pitch bend e la preparazione encled per l'effetto visivo
               // valore = constrain(map32(valore,24,1000, 0,1024),0,1023);
-              noteOn(typetable[chan + (page)], (valore - ((valore / 8) * 8)) * 16, valore / 8, 1);
+              midiSendFiltered(data_TY[chan + (page)], (valore - ((valore / 8) * 8)) * 16, valore / 8, 1);
               encled[0] = abs(15 - ((valore) / 64)) * 16;
             }
             break; // PB
             #if (Scene == 1)
-            case 6: // SCENE CONTROL (marker TYPE=6 -> typetable raw 244)
+            case 6: // SCENE CONTROL (marker TYPE=6 -> data_TY raw 244)
               // ============================================================
               // CTRL-F: POTS_TYPE6_SCENE_MARKER
               // Questo case è attivo quando in EEPROM abbiamo scritto 244 (0xF4 undefined).
@@ -864,21 +864,21 @@ const byte diff_window = 4;
           cycletimer = 0; // effetti led
         
           #if (shifter_active == 1 && stratos == 0)
-          if (lightable[chan] > 32) {
+          if (data_LT[chan] > 32) {
             led_enc_exe();
           }
       
           #if (blinker == 1)
           else {
-            if (lightable[chan] > 0) { // 0= no efetti - 1=effetti - 2=blinker
+            if (data_LT[chan] > 0) { // 0= no efetti - 1=effetti - 2=blinker
               // CTRL-F: BLINKER_OFF_IS_RANGE_MIN
               // Blinker "stile Traktor": per POT/HYPER (mode 11/12/13) è acceso quando il valore NON è sul minimo del range scelto.
-              // Nota: il minimo del range è min(minvalue, maxvalue). Questo funziona anche se l'utente inverte (min > max).
-              byte blinkOff = (byte)((minvalue[chan] < maxvalue[chan]) ? minvalue[chan] : maxvalue[chan]);
-              if (((potOut != blinkOff) && (modetable[chan] < 14)) || ((potOut != 64) && (modetable[chan] > 13))) { // hypercurve o normal / centercurve
-                bit_write(1, (lightable[chan] - 1) + page, 1);  
+              // Nota: il minimo del range è min(data_MI, data_MA). Questo funziona anche se l'utente inverte (min > max).
+              byte blinkOff = (byte)((data_MI[chan] < data_MA[chan]) ? data_MI[chan] : data_MA[chan]);
+              if (((potOut != blinkOff) && (data_MODE[chan] < 14)) || ((potOut != 64) && (data_MODE[chan] > 13))) { // hypercurve o normal / centercurve
+                bit_write(1, (data_LT[chan] - 1) + page, 1);  
               } else {     
-                bit_write(1, (lightable[chan] - 1) + page, 0);
+                bit_write(1, (data_LT[chan] - 1) + page, 0);
               }
             }
           }
@@ -887,17 +887,17 @@ const byte diff_window = 4;
           #endif //(shifter_active == 1 && stratos == 0)
        
           #if (Matrix_Pads > 0) // nel caso del controller matrix - blinker e effetti led sono coesistenti
-          if (lightable[chan] > 32) {
+          if (data_LT[chan] > 32) {
             led_enc_exe_matrix();
           }
           //  else
           #if (blinker == 1)
           {
-            if (lightable[chan] > 1 && lightable[chan] < 33) { // 0= no efetti - 1=effetti - 2=blinker+effeti
-              if ((potOut > 1 && modetable[chan] < 14) || (potOut != 64 && modetable[chan] > 13)) { // hypercurve o normal / centercurve
-                bit_write(1, (lightable[chan] - 1) + page, 1);  
+            if (data_LT[chan] > 1 && data_LT[chan] < 33) { // 0= no efetti - 1=effetti - 2=blinker+effeti
+              if ((potOut > 1 && data_MODE[chan] < 14) || (potOut != 64 && data_MODE[chan] > 13)) { // hypercurve o normal / centercurve
+                bit_write(1, (data_LT[chan] - 1) + page, 1);  
               } else {     
-                bit_write(1, (lightable[chan] - 1) + page, 0);
+                bit_write(1, (data_LT[chan] - 1) + page, 0);
                 digitalWrite(8, LOW);
               }
             }
@@ -906,13 +906,13 @@ const byte diff_window = 4;
           #endif // (Matrix_Pads > 0)
 
           #if (DMX_active == 1 && stratos == 0)
-          // if (dmxtable[chan] == 100) 
+          // if (data_DM[chan] == 100) 
           if (eeprom_preset_active == 1) {
              
              // DMX a 8-bit vero: usa il valore raw (0..1023) e lo porta a 0..255
 byte dmxOut = (byte)(valore >> 2);   // 1023 >> 2 = 255
-DmxSimple.write(dmxtable[chan], dmxOut);
-         //   DmxSimple.write(dmxtable[chan], potOut * 2);
+DmxSimple.write(data_DM[chan], dmxOut);
+         //   DmxSimple.write(data_DM[chan], potOut * 2);
          
           }
           // Serial.println("a");
@@ -923,13 +923,13 @@ DmxSimple.write(dmxtable[chan], dmxOut);
 // Evita che un jitter > diff_window (3) tenga la finestra aperta per secondi.
 #if (ENABLE_POT_HIPREC_WINDOW == 1)
 if (pot_confronto > diff_unlock) {
-  qwertyvalue[chan] = 160; // #mod_finestra
+  data_QW[chan] = 160; // #mod_finestra
 }  
 #endif
         }  // -------------- fine della condizione generale pot mosso
       }
  
-      // {if (valuetable[chan + page] == 63) digitalWrite(8,HIGH);} // sperimentale - volevo vedere con un led la finestra temporale che si apre
+      // {if (data_VA[chan + page] == 63) digitalWrite(8,HIGH);} // sperimentale - volevo vedere con un led la finestra temporale che si apre
     }
        
    // CTRL-F: POTS_WINDOW_CLOSE_USES_UNLOCK
@@ -937,12 +937,12 @@ if (pot_confronto > diff_unlock) {
 // Quindi la chiusura usa il "metro grosso" (diff_unlock), non il 7 fisso.
 #if (ENABLE_POT_HIPREC_WINDOW == 1)
 
-if (qwertyvalue[chan] > 0 && modetable[chan] < 16) {
+if (data_QW[chan] > 0 && data_MODE[chan] < 16) {
  // if (pot_confronto <= diff_unlock) {     // <-- criterio di "fermo" grossolano
      if (pot_confronto <= diff_window) {   // <-- criterio di "fermo" fine  // CTRL-F: POTS_WINDOW_CLOSE_SMART 
                                            // Se la finestra è aperta e stiamo ancora "muovendo piano" (oltre diff_window), 
                                            // NON la facciamo scendere: così i movimenti lentissimi restano precisi.
-    qwertyvalue[chan]--;
+    data_QW[chan]--;
   }
 }
 #endif
@@ -950,37 +950,37 @@ if (qwertyvalue[chan] > 0 && modetable[chan] < 16) {
     #if (blinker == 1) 
     {
       #if (shifter_active == 1 && stratos == 0)
-      if (bit_read(1, (lightable[chan] - 1) + page) == 1) { // led = acceso nel banco di memoria 
-        if (typetable[general_mempos] == 0) {
-          shifter.setPin((lightable[chan] - 1), 0);
+      if (bit_read(1, (data_LT[chan] - 1) + page) == 1) { // led = acceso nel banco di memoria 
+        if (data_TY[general_mempos] == 0) {
+          shifter.setPin((data_LT[chan] - 1), 0);
           shifterwrite = 1;
         } // a zero spegni led
-        if (typetable[general_mempos] == 40) {
-          shifter.setPin((lightable[chan] - 1), 1);
+        if (data_TY[general_mempos] == 40) {
+          shifter.setPin((data_LT[chan] - 1), 1);
           shifterwrite = 1;
         } // a 40 accendi led
       }
-      if (typetable[general_mempos] == 80) {
-        typetable[general_mempos] = 0; // a 80 resetta il counter led lampeggiante
+      if (data_TY[general_mempos] == 80) {
+        data_TY[general_mempos] = 0; // a 80 resetta il counter led lampeggiante
       }
       #endif
     }
 
     #if (Matrix_Pads > 0 && touch_led_onboard == 1 && Touch_sensors_enable == 2)
     {
-      // if (lightable[chan] > 1)  Serial.println(bit_read(1,(lightable[chan]-1)+page)); 
-      if (bit_read(1, (lightable[chan] - 1) + page) == 1) { // led = acceso nel banco di memoria 
-        if (typetable[general_mempos] == 0) { // a zero spegni led
-          // shifter.setPin((lightable[chan]-1), 0); shifterwrite= 1;
+      // if (data_LT[chan] > 1)  Serial.println(bit_read(1,(data_LT[chan]-1)+page)); 
+      if (bit_read(1, (data_LT[chan] - 1) + page) == 1) { // led = acceso nel banco di memoria 
+        if (data_TY[general_mempos] == 0) { // a zero spegni led
+          // shifter.setPin((data_LT[chan]-1), 0); shifterwrite= 1;
           digitalWrite(8, LOW);
         }
-        if (typetable[general_mempos] == 40) { // a 40 accendi led
-          // shifter.setPin((lightable[chan]-1), 1); shifterwrite= 1;
+        if (data_TY[general_mempos] == 40) { // a 40 accendi led
+          // shifter.setPin((data_LT[chan]-1), 1); shifterwrite= 1;
           digitalWrite(8, HIGH);
         }
       }
-      if (typetable[general_mempos] == 80) {
-        typetable[general_mempos] = 0; // a 80 resetta il counter led lampeggiante
+      if (data_TY[general_mempos] == 80) {
+        data_TY[general_mempos] = 0; // a 80 resetta il counter led lampeggiante
       }
     }
     #endif
@@ -994,7 +994,91 @@ if (qwertyvalue[chan] > 0 && modetable[chan] < 16) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void user_item1() {
-  // vuota
+
+#if (STAGED_BUTTON_READ_TEST == 1)
+
+  push_buttons_lettura_stage(0);
+
+  byte action = data_VA[chan + page];
+
+  if (pb_pressed()) {
+
+    switch (action) {
+
+      case 0:
+        // MIDI NOTE ON
+        // data_MI = note number
+        // data_MA = velocity
+        // data_DM = MIDI channel, 1-16
+        {
+          byte midi_channel = constrain(data_DM[chan], 1, 16);
+          midiSendRaw(143 + midi_channel, data_MI[chan], data_MA[chan]);
+        }
+        break;
+
+      case 1:
+        // HID: letter A
+        Keyboard.press('a');
+        Keyboard.release('a');
+        break;
+
+      case 2:
+        // HID: letter B
+        Keyboard.press('b');
+        Keyboard.release('b');
+        break;
+
+      case 3:
+        // HID: CTRL + S
+        Keyboard.press(128);
+        Keyboard.press('s');
+        Keyboard.releaseAll();
+        break;
+
+      case 4:
+        // HID: CTRL + C
+        Keyboard.press(128);
+        Keyboard.press('c');
+        Keyboard.releaseAll();
+        break;
+
+      case 5:
+        // HID: CTRL + V
+        Keyboard.press(128);
+        Keyboard.press('v');
+        Keyboard.releaseAll();
+        break;
+
+      case 6:
+        // HID: CTRL + Z
+        Keyboard.press(128);
+        Keyboard.press('z');
+        Keyboard.releaseAll();
+        break;
+
+      case 7:
+        // HID: ESC
+        Keyboard.press(177);
+        Keyboard.release(177);
+        break;
+    }
+  }
+
+  if (pb_released()) {
+
+    switch (action) {
+
+      case 0:
+        // MIDI NOTE OFF
+        {
+          byte midi_channel = constrain(data_DM[chan], 1, 16);
+          midiSendRaw(127 + midi_channel, data_MI[chan], 0);
+        }
+        break;
+    }
+  }
+
+#endif
 }
 
 void user_item2() {
@@ -1022,26 +1106,26 @@ void reset() {
   // Stage 1: lettura debounciata pulsante (API staged) per il chan corrente
   push_buttons_lettura_stage(0);
 
-  // ----- PRESS (equivalente a: valore < lower_val && lastbutton[chan] == 1) -----
+  // ----- PRESS (equivalente a: valore < lower_val && data_LB[chan] == 1) -----
   if (pb_pressed()) { ///// button pushed (debounced)
-    //  Serial.println(minvalue[chan]);
+    //  Serial.println(data_MI[chan]);
 
     #if (stratos == 0)
-    button(typetable[remapper(minvalue[chan] - 1) + page],
-           valuetable[remapper(minvalue[chan] - 1) + page],
-           maxvalue[chan], 1);
-    lightable[remapper(minvalue[chan] - 1)] = maxvalue[chan] * 2;
+    midiSendTyped(data_TY[remapper(data_MI[chan] - 1) + page],
+           data_VA[remapper(data_MI[chan] - 1) + page],
+           data_MA[chan], 1);
+    data_LT[remapper(data_MI[chan] - 1)] = data_MA[chan] * 2;
     #endif
 
     #if (stratos == 1)
-    button(typetable[(minvalue[chan]) + page],
-           valuetable[(minvalue[chan]) + page],
-           maxvalue[chan], 1);
-    lightable[minvalue[chan]] = maxvalue[chan] * 2;
+    button(data_TY[(data_MI[chan]) + page],
+           data_VA[(data_MI[chan]) + page],
+           data_MA[chan], 1);
+    data_LT[data_MI[chan]] = data_MA[chan] * 2;
     #endif
   }
 
-  // ----- RELEASE (equivalente a: valore > upper_val && lastbutton[chan] == 0) -----
+  // ----- RELEASE (equivalente a: valore > upper_val && data_LB[chan] == 0) -----
   if (pb_released()) { ///// button released (debounced)
     // Serial.println("reset pressed");
   }
@@ -1050,23 +1134,23 @@ void reset() {
 
   // ---- LEGACY (identica alla tua versione) ----
 
-  if (valore < lower_val && lastbutton[chan] == 1) { ///// button pushed
-    //  Serial.println(minvalue[chan]);
-    lastbutton[chan] = 0;
+  if (valore < lower_val && data_LB[chan] == 1) { ///// button pushed
+    //  Serial.println(data_MI[chan]);
+    data_LB[chan] = 0;
 
     #if (stratos == 0)
-    button(typetable[remapper(minvalue[chan] - 1) + page], valuetable[remapper(minvalue[chan] - 1) + page], maxvalue[chan], 1);
-    lightable[remapper(minvalue[chan] - 1)] = maxvalue[chan] * 2;
+    button(data_TY[remapper(data_MI[chan] - 1) + page], data_VA[remapper(data_MI[chan] - 1) + page], data_MA[chan], 1);
+    data_LT[remapper(data_MI[chan] - 1)] = data_MA[chan] * 2;
     #endif
 
     #if (stratos == 1)
-    button(typetable[(minvalue[chan]) + page], valuetable[(minvalue[chan]) + page], maxvalue[chan], 1);
-    lightable[minvalue[chan]] = maxvalue[chan] * 2;
+    button(data_TY[(data_MI[chan]) + page], data_VA[(data_MI[chan]) + page], data_MA[chan], 1);
+    data_LT[data_MI[chan]] = data_MA[chan] * 2;
     #endif
   }
 
-  if (valore > upper_val && lastbutton[chan] == 0) { ///// button released
-    lastbutton[chan] = 1;
+  if (valore > upper_val && data_LB[chan] == 0) { ///// button released
+    data_LB[chan] = 1;
     // Serial.println("reset pressed");
   }
 
@@ -1086,40 +1170,40 @@ void offset_modifier() {
   // Stage 1: lettura debounciata pulsante (API staged) per il chan corrente
   push_buttons_lettura_stage(0);
 
-  // ----- PRESS (equivalente a: valore < lower_val && lastbutton[chan] > 0) -----
+  // ----- PRESS (equivalente a: valore < lower_val && data_LB[chan] > 0) -----
   if (pb_pressed()) { ///// button pushed (debounced)
-    // lastbutton[chan] viene gestito internamente dallo stage, quindi non lo tocchiamo qui.
+    // data_LB[chan] viene gestito internamente dallo stage, quindi non lo tocchiamo qui.
     //   Serial.println("tunz on");
-    if (lightable[chan] > 0) {
+    if (data_LT[chan] > 0) {
       #if (stratos == 0)
-      // valuetable[ remapper(lightable[chan]-1)+page] ++;
-      typetable[remapper(lightable[chan] - 1) + page] = typetable[remapper(lightable[chan] - 1) + page] + dmxtable[chan];
+      // data_VA[ remapper(data_LT[chan]-1)+page] ++;
+      data_TY[remapper(data_LT[chan] - 1) + page] = data_TY[remapper(data_LT[chan] - 1) + page] + data_DM[chan];
       // Serial.println("tunz");
       #endif
 
       #if (stratos == 1)
-      // valuetable[ (lightable[chan])+page] ++;
-      typetable[(lightable[chan]) + page] = typetable[(lightable[chan]) + page] + dmxtable[chan];
+      // data_VA[ (data_LT[chan])+page] ++;
+      data_TY[(data_LT[chan]) + page] = data_TY[(data_LT[chan]) + page] + data_DM[chan];
       // Serial.println("tunz");
       #endif
     } else {
-      offset_modifier_ = dmxtable[chan];
+      offset_modifier_ = data_DM[chan];
     }
   }
 
-  // ----- RELEASE (equivalente a: valore > upper_val && lastbutton[chan] == 0) -----
+  // ----- RELEASE (equivalente a: valore > upper_val && data_LB[chan] == 0) -----
   if (pb_released()) { ///// button released (debounced)
-    // lastbutton[chan] viene gestito internamente dallo stage, quindi non lo tocchiamo qui.
+    // data_LB[chan] viene gestito internamente dallo stage, quindi non lo tocchiamo qui.
     //   Serial.println("tunz off");
-    if (lightable[chan] > 0) {
+    if (data_LT[chan] > 0) {
       #if (stratos == 0)
-      // valuetable[ remapper(lightable[chan]-1)+page] --;
-      typetable[remapper(lightable[chan] - 1) + page] = typetable[remapper(lightable[chan] - 1) + page] - dmxtable[chan];
+      // data_VA[ remapper(data_LT[chan]-1)+page] --;
+      data_TY[remapper(data_LT[chan] - 1) + page] = data_TY[remapper(data_LT[chan] - 1) + page] - data_DM[chan];
       #endif
 
       #if (stratos == 1)
-      // valuetable[ (lightable[chan])+page] --;
-      typetable[(lightable[chan]) + page] = typetable[(lightable[chan]) + page] - dmxtable[chan];
+      // data_VA[ (data_LT[chan])+page] --;
+      data_TY[(data_LT[chan]) + page] = data_TY[(data_LT[chan]) + page] - data_DM[chan];
       #endif
     } else {
       offset_modifier_ = 0;
@@ -1130,38 +1214,38 @@ void offset_modifier() {
 
   // ---- LEGACY (identica alla tua versione) ----
 
-  if (valore < lower_val && lastbutton[chan] > 0) { ///// button pushed
-    lastbutton[chan] = 0;
+  if (valore < lower_val && data_LB[chan] > 0) { ///// button pushed
+    data_LB[chan] = 0;
     //   Serial.println("tunz on");
-    if (lightable[chan] > 0) {
+    if (data_LT[chan] > 0) {
       #if (stratos == 0)
-      // valuetable[ remapper(lightable[chan]-1)+page] ++;
-      typetable[remapper(lightable[chan] - 1) + page] = typetable[remapper(lightable[chan] - 1) + page] + dmxtable[chan];
+      // data_VA[ remapper(data_LT[chan]-1)+page] ++;
+      data_TY[remapper(data_LT[chan] - 1) + page] = data_TY[remapper(data_LT[chan] - 1) + page] + data_DM[chan];
       // Serial.println("tunz");
       #endif
 
       #if (stratos == 1)
-      // valuetable[ (lightable[chan])+page] ++;
-      typetable[(lightable[chan]) + page] = typetable[(lightable[chan]) + page] + dmxtable[chan];
+      // data_VA[ (data_LT[chan])+page] ++;
+      data_TY[(data_LT[chan]) + page] = data_TY[(data_LT[chan]) + page] + data_DM[chan];
       // Serial.println("tunz");
       #endif
     } else {
-      offset_modifier_ = dmxtable[chan];
+      offset_modifier_ = data_DM[chan];
     }
   }
 
-  if (valore > upper_val && lastbutton[chan] == 0) { ///// button released
-    lastbutton[chan] = 1;
+  if (valore > upper_val && data_LB[chan] == 0) { ///// button released
+    data_LB[chan] = 1;
     //   Serial.println("tunz off");
-    if (lightable[chan] > 0) {
+    if (data_LT[chan] > 0) {
       #if (stratos == 0)
-      // valuetable[ remapper(lightable[chan]-1)+page] --;
-      typetable[remapper(lightable[chan] - 1) + page] = typetable[remapper(lightable[chan] - 1) + page] - dmxtable[chan];
+      // data_VA[ remapper(data_LT[chan]-1)+page] --;
+      data_TY[remapper(data_LT[chan] - 1) + page] = data_TY[remapper(data_LT[chan] - 1) + page] - data_DM[chan];
       #endif
 
       #if (stratos == 1)
-      // valuetable[ (lightable[chan])+page] --;
-      typetable[(lightable[chan]) + page] = typetable[(lightable[chan]) + page] - dmxtable[chan];
+      // data_VA[ (data_LT[chan])+page] --;
+      data_TY[(data_LT[chan]) + page] = data_TY[(data_LT[chan]) + page] - data_DM[chan];
       #endif
     } else {
       offset_modifier_ = 0;
@@ -1174,32 +1258,32 @@ void offset_modifier() {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void virtual_touch_end(byte numero) {
-  if (cycletimer == minvalue[touch_mempos[numero]]) { // decay vitualtouch
+  if (cycletimer == data_MI[touch_mempos[numero]]) { // decay vitualtouch
     cycletimer++;
     // Serial.println("virtual_touch");
     // encled[0]=0;
     
     // utilizzo inomingbyte (boolean(page) - e' na variabile normalmente utilizzata per il midi-in, per on creare nuove variabili la riutilizzo
     if (V_touch_regulator[numero] == 0 
-        && lightable[touch_mempos[numero]] == 1) { // la casella lightable si usa per decidere se attivare o no il touch
+        && data_LT[touch_mempos[numero]] == 1) { // la casella data_LT si usa per decidere se attivare o no il touch
       // shifter.setAll(LOW); 
-      midiOut(typetable[touch_mempos[numero] + page] + 1, valuetable[touch_mempos[numero] + page], 0); // il virtual touch viene emesso - su un canale maggiorato di 1 rispetto al touch normale
+      midiSendRaw(data_TY[touch_mempos[numero] + page] + 1, data_VA[touch_mempos[numero] + page], 0); // il virtual touch viene emesso - su un canale maggiorato di 1 rispetto al touch normale
       
       #if (shifter_active == 1 && stratos == 0)
       shifter.setAll(LOW);  
       #endif
               
-      if (qwertyvalue[touch_mempos[numero]] == 1) { // touch reset 
-        encodervaluepot[numero] = dmxtable[touch_mempos[numero]] * 8; // posiziono encodervaluepot sulla giusta posizione da 0a1024
-        button(typetable[encoder_mempos[numero] + page], valuetable[encoder_mempos[numero] + page], dmxtable[touch_mempos[numero]], 0); 
-        // se la modetable del touch E' in toggle, avremo un virtual-touch-reset sul valore definito da DMXtable del touch.
+      if (data_QW[touch_mempos[numero]] == 1) { // touch reset 
+        encodervaluepot[numero] = data_DM[touch_mempos[numero]] * 8; // posiziono encodervaluepot sulla giusta posizione da 0a1024
+        midiSendTyped(data_TY[spinner_mempos[numero] + page], data_VA[spinner_mempos[numero] + page], data_DM[touch_mempos[numero]], 0); 
+        // se la data_MODE del touch E' in toggle, avremo un virtual-touch-reset sul valore definito da data_DM del touch.
       }
       
       V_touch_regulator[numero] = 1; 
     }
     
     // se l'encoder non gira piu' bisogna fare ledrestore
-    cycletimer = minvalue[touch_mempos[numero]] + 1;
+    cycletimer = data_MI[touch_mempos[numero]] + 1;
   }
 }
 
@@ -1223,16 +1307,16 @@ void restore_end() {
 //---------------------------------------------------------------------------------------------------------
 
 void HOT_keys(byte canale, byte pressione) {
-  // se un modificatore e' impostato su messaggio qwerty (>0), il valore di minvalue 
+  // se un modificatore e' impostato su messaggio qwerty (>0), il valore di data_MI 
   // (non utile per il note off) viene utilizzato per selezionare i modificatori qwerty 
 
   #if defined (__AVR_ATmega32U4__)  
-  // Serial.println(minvalue[canale]);
+  // Serial.println(data_MI[canale]);
 
   #if (hid_keys == 1)
-  if (minvalue[canale] > 0) { 
+  if (data_MI[canale] > 0) { 
     if (pressione == 1) {
-      switch (minvalue[canale]) {
+      switch (data_MI[canale]) {
         case 1:
           Keyboard.press(128); // CTRL left
           break;
@@ -1257,7 +1341,7 @@ void HOT_keys(byte canale, byte pressione) {
           break;
       }
     } else {
-      switch (minvalue[canale]) {
+      switch (data_MI[canale]) {
         case 1:
           Keyboard.release(128); // CTRL left
           break;

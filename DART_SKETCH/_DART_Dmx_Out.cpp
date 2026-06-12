@@ -193,7 +193,7 @@ static void dmxSendByte(volatile uint8_t value)
 #elif defined(__arm__)                    // teenzy
 static void dmxSendByte(uint8_t value)
 {
-	// if (valuetable[general_mampos] > 5)
+	// if (data_VA[general_mampos] > 5)
 	{uint32_t begin, target;
 	uint8_t mask;
 

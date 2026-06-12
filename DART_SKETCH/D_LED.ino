@@ -13,8 +13,8 @@
 void ledrestore (boolean numero) { // riscrive sullo shifter la pagina - numero - con luci accese o spente
   for(int led = 0; led < max_modifiers; led++) { 
     shifter.setPin(led, bit_read(1,led+(numero*max_modifiers)));
-    // if (lastbutton[touch_mempos[0]] == 1)  shifter.setPin(4+numero,HIGH); 
-    // if (lastbutton[touch_mempos[1]] == 1)  shifter.setPin(5+numero,HIGH); 
+    // if (data_LB[touch_mempos[0]] == 1)  shifter.setPin(4+numero,HIGH); 
+    // if (data_LB[touch_mempos[1]] == 1)  shifter.setPin(5+numero,HIGH); 
   }
 }
 #endif
@@ -27,12 +27,12 @@ void ledControl (byte chann, byte stat) { // stat significa status 1 = acceso 0 
   // versione commentata
 
   // GUARD: se questo canale non ha un LED assegnato, NON fare nulla.
-  // Evita underflow (lightable[chann]-1) e qualsiasi effetto indesiderato.
-  if (lightable[chann] == 0) return;
+  // Evita underflow (data_LT[chann]-1) e qualsiasi effetto indesiderato.
+  if (data_LT[chann] == 0) return;
   
   // Se general_mempos == 0 siamo in modalità "MOBO":
   // DART completo, con tutta la controlboard e lo shifter attaccato.
-  if (valuetable[general_mempos] == 0) { // se siamo in modalita MOBO - con tutta la controlboard
+  if (data_VA[general_mempos] == 0) { // se siamo in modalita MOBO - con tutta la controlboard
   
     // Se sto ACCENDENDO il LED (stat > 0), resetto l'ampiezza dell'effetto "scoppio".
     // Questo fa ripartire l'onda luminosa da raggio 0 attorno al pulsante appena premuto.
@@ -41,7 +41,7 @@ void ledControl (byte chann, byte stat) { // stat significa status 1 = acceso 0 
   
     // Ciclo su tutti i 16 "slot" logici dello shifter (0..15).
     // encledtable[i] = numero di uscita fisica dello shifter in quella posizione.
-    // lightable[chann]-1 = uscita fisica associata al pulsante logico "chann".
+    // data_LT[chann]-1 = uscita fisica associata al pulsante logico "chann".
     // In pratica: qui cerco in quale "colonna" dello shifter si trova il LED del pulsante.
     for (byte i = 0; i < 16; i++) {
       // Se in questa posizione trovo il LED del canale premuto:
@@ -50,7 +50,7 @@ void ledControl (byte chann, byte stat) { // stat significa status 1 = acceso 0 
       // Se NON trovo corrispondenza in questa iterazione:
       //  - buttonefxd = 60 → valore "fuori range" che significa: nessun centro valido.
       //    (Con buttonefxd = 60, più avanti buttonledefx() NON disegnerà nessun effetto.)
-      if (encledtable[i] == (lightable[chann]-1)) {
+      if (encledtable[i] == (data_LT[chann]-1)) {
         buttonefxd = i;
         break;
       } else {
@@ -59,13 +59,13 @@ void ledControl (byte chann, byte stat) { // stat significa status 1 = acceso 0 
     }
 
     // Comando il LED fisico sullo shifter:
-    // (lightable[chann]-1) è la linea reale del 74HC595, "stat" è ON/OFF.
-    shifter.setPin((lightable[chann]-1), stat); 
+    // (data_LT[chann]-1) è la linea reale del 74HC595, "stat" è ON/OFF.
+    shifter.setPin((data_LT[chann]-1), stat); 
 
     // Memorizzo lo stato del LED in una bit-table.
     // Questo serve a ricordare lo stato "di fondo" dei LED, così gli effetti temporanei
     // (tipo lo scoppio) possono poi essere cancellati ripristinando la mappa originale.
-    bit_write(1,(lightable[chann]-1)+page,stat);  
+    bit_write(1,(data_LT[chann]-1)+page,stat);  
     // memorizzo lo stato del LED in modo che, anche muovendo i pot, 
     // si possa tornare a visualizzare la corretta configurazione
     // bit table
@@ -76,26 +76,26 @@ void ledControl (byte chann, byte stat) { // stat significa status 1 = acceso 0 
   } else {    // se siamo in modalità no-mobo -  solo arduino
     // Qui NON abbiamo la controlboard collegata.
     // Usiamo direttamente alcuni pin digitali di Arduino come LED "di servizio".
-    //Serial.println(lightable[chann]);
+    //Serial.println(data_LT[chann]);
 
-    // Solo se il valore di lightable[chann] è uno di questi, facciamo qualcosa:
+    // Solo se il valore di data_LT[chann] è uno di questi, facciamo qualcosa:
     // 4,5,6,10,11,12 sono pin digitali di Arduino riservati a LED/uscite locali.
     if (                              // solo se corrisponde a uno di questi valore , fai qualcosa -  sarebbero i pin digitali di arduino
-      lightable[chann] == 4 || 
-      lightable[chann] == 5 || 
-      lightable[chann] == 6 || 
-      lightable[chann] == 10 || 
-      lightable[chann] == 11 || 
-      lightable[chann] == 12 ) {
-      //  Serial.println(lightable[chann]);
+      data_LT[chann] == 4 || 
+      data_LT[chann] == 5 || 
+      data_LT[chann] == 6 || 
+      data_LT[chann] == 10 || 
+      data_LT[chann] == 11 || 
+      data_LT[chann] == 12 ) {
+      //  Serial.println(data_LT[chann]);
 
       // In modalità "solo Arduino" accendiamo/spegniamo direttamente il pin digitale.
       // Qui "stat" è usato come HIGH/LOW (0/1) per digitalWrite.
-      digitalWrite(lightable[chann], stat);
+      digitalWrite(data_LT[chann], stat);
 
       // Anche in questo caso aggiorniamo la bit-table,
       // così la logica di ripristino (ledrestore / status interni) resta coerente.
-      bit_write(1,(lightable[chann]-1)+page,stat);
+      bit_write(1,(data_LT[chann]-1)+page,stat);
 
       //  digitalWrite(10, stat);   // vecchio test, lasciato commentato
     }
@@ -112,7 +112,7 @@ void ledControl (byte chann, byte stat) { // stat significa status 1 = acceso 0 
 #if (shifter_active == 1 && stratos == 0)
 
 void led_enc_exe () {
-  if (qwertyvalue[general_mempos] > 0) { // verifico che nelle impostazioni GENERAL siano attivati gli effetti // 0 = no / 1 = pots / 2 = spinners / 3 = buttons
+  if (data_QW[general_mempos] > 0) { // verifico che nelle impostazioni GENERAL siano attivati gli effetti // 0 = no / 1 = pots / 2 = spinners / 3 = buttons
     { // se encled supera il valore massimo o minimo
       // per esempio girando un encoder...
       // l'effetto luminoso deve ricominciare ni nuovo dal basso o dall'alto
@@ -264,7 +264,7 @@ void buttonledefx() {
 #if (shifter_active == 1 && stratos == 0 && Distance_sensor == 1)
 void beamefx() {
   cycletimer = 0;
-  encled[0] = lightable[distance_mempos] * 2;
+  encled[0] = data_LT[distance_sensor_mempos] * 2;
   led_enc_exe();
 }
 #endif
@@ -273,28 +273,28 @@ void beamefx() {
 
 void offgroup (byte canale, byte midiout) { // canale == il chan del pulsante premuto
   for (int i = 0; i < 56; i++) { 
-    if (modetable[i] == modetable[canale] && i != canale) { // se i pulsanti sono nello stesso gruppo e sono accesi, spegnere lucetta e memorizzare status toggle
+    if (data_MODE[i] == data_MODE[canale] && i != canale) { // se i pulsanti sono nello stesso gruppo e sono accesi, spegnere lucetta e memorizzare status toggle
       if (bit_read(4,i) == 1 || bit_read(4,i+max_modifiers) == 1) {
         if (midiout == 1) {
           outnucleo(0,i); // invia messaggio OFF - se il parametro midiout e' 1
         }
         
         #if (shifter_active == 1 && stratos == 0)
-        shifter.setPin(lightable[i]-1, 0); // spegni il led
+        shifter.setPin(data_LT[i]-1, 0); // spegni il led
         bit_write(4,i+page,0);
-        bit_write(1,lightable[i]+page-1,0); // spegni il led nella lightable
+        bit_write(1,data_LT[i]+page-1,0); // spegni il led nella data_LT
         #endif 
 
         #if (Matrix_Pads == 1 )
-        single_h(matrix_remap[i],lightable[i],0,1);  // 
+        single_h(matrix_remap[i],data_LT[i],0,1);  // 
         bit_write(4,i+page,0);
-        bit_write(1,matrix_remap[i]+page-1,0); // spegni il led nella lightable
+        bit_write(1,matrix_remap[i]+page-1,0); // spegni il led nella data_LT
         #endif
 
         #if (Matrix_Pads == 2 )
-        single_h(matrix_remap[i-16],lightable[i],0,1);  // 
+        single_h(matrix_remap[i-16],data_LT[i],0,1);  // 
         bit_write(4,i+page,0);
-        bit_write(1,matrix_remap[i-16]+page-1,0); // spegni il led nella lightable
+        bit_write(1,matrix_remap[i-16]+page-1,0); // spegni il led nella data_LT
         #endif
       }
     }
