@@ -1,14 +1,14 @@
 #ifndef DART_CONFIG_H
 #define DART_CONFIG_H
 
-#define DART_PROFILE 1
+#define DART_PROFILE 2
 // Global compile-time configuration for DART firmware
 //
 // === PROFILES (user level) ===
 // End users should only modify the line below // If not defined , the STANDARD profile will be used by default.
 //
 
-   #define DART_PROFILE 4   // 1=STANDARD 2=CUSTOM 3=KOROVA 4=DART 5=KOMBAT 6=STRATOS   
+   #define DART_PROFILE 1   // 1=STANDARD 2=CUSTOM 3=KOROVA 4=DART 5=KOMBAT 6=STRATOS   
 
 
 
@@ -102,10 +102,10 @@ Profiles allow the firmware to remain compact, efficient and focused on the requ
                                         // 0 = scene/morph OFF (puoi rimuovere D_scene.ino)
 #define SCENE_DEBUG                 0   // 1 = Serial debug scene ON; 0 = build pulita
 
-#define hid_keys                    0   // 1 = enabled
+#define hid_keys                    1   // 1 = enabled
 
 // mouse emulation section - //  explanation ANCHOR: DART_MOUSE_AND_BOOSTAX_EXPLANATION
-#define hid_mouse                   0   // 1 = enabled
+#define hid_mouse                   1   // 1 = enabled
 #define ENABLE_BOOSTAX              1   // 1 = prograssive mouse movement accelerator active ; 0 = excluded //  ANCHOR: DART_MOUSE_AND_BOOSTAX_EXPLANATION
 #define mouse_block                 0   // 1 = enabled // 0 = disabled // mouse messages are stopped after 2 seconds of repeated activity
 #define arrows_block                0   // 1 = enabled // 0 = disabled // arrow key messages are stopped after 2 seconds of repeated activity

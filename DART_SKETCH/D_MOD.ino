@@ -1371,5 +1371,175 @@ void HOT_keys(byte canale, byte pressione) {
   #endif
 }
 
+void pageswitch() { //----------------------------------------------------- PAGE SWITCH
+  /*
+  // ============================================================
+  // CTRL-F: PAGESWITCH_DIAG_HOOK_TOP  (DISABLED)
+  // Diagnostica usata per capire perché il takeover veniva armato al boot.
+  // ============================================================
+  ps_calls++;
+  if (ps_first_page == 255) { ps_first_page = page; ps_first_pagestate = pagestate; }
+  */
 
+  // 2 casi:
+  // A) pagestate==0 e page>0  -> torna alla page 0   (midiSendRaw con MIN)
+  // B) pagestate==1 e page==0 -> va a max_modifiers (midiSendRaw con MAX)
+  //
+  // Tutto il resto è IDENTICO nei due rami, quindi lo condividiamo
+  // per spremere flash.
+
+  byte targetPage;
+  byte outValue;   // data_MI o data_MA del page_mempos
+  byte ledsMode;   // 0 oppure 1 (per page_leds_)
+
+  if (pagestate == 0 && page > 0) {
+    targetPage = 0;
+    outValue = data_MI[page_mempos];
+    ledsMode = 0;
+  } else if (pagestate == 1 && page == 0) {
+    targetPage = max_modifiers;
+    outValue = data_MA[page_mempos];
+    ledsMode = 1;
+  } else {
+    /*
+    // CTRL-F: PAGESWITCH_DIAG_NOCHANGE  (DISABLED)
+    if (ps_first_reason == 255) ps_first_reason = 0;
+    */
+    return; // nessun cambio pagina richiesto
+  }
+
+  // Applica target
+  byte oldPage = page;
+  page = targetPage;
+
+  /*
+  // ============================================================
+  // CTRL-F: PAGESWITCH_DIAG_CHANGE  (DISABLED)
+  // ============================================================
+  ps_changes++;
+  if (ps_first_reason == 255) {
+    if (page == max_modifiers) ps_first_reason = 1;
+    else if (page == 0)        ps_first_reason = 2;
+    else                       ps_first_reason = 0;
+  }
+  */
+
+
+  // CTRL-F: TAKEOVER_INIT_PAGE2_ON_FIRST_ENTRY
+  #if (ENABLE_POT_TAKEOVER == 1)
+  // Prima entrata in Page2: inizializza i target data_LB della Page2 copiando Page1
+  // (evita target=0 irraggiungibili che bloccherebbero il takeover)
+  if (page == max_modifiers) {
+    if ((potPageInitMask & 2) == 0) {
+      for (byte i = 0; i < max_modifiers; i++) {
+        data_LB[64 + i] = data_LB[i];
+      }
+      potPageInitMask |= 2;
+    }
+  }
+  #endif
+  
+  // CTRL-F: TAKEOVER_ARM_ON_PAGESWITCH
+  /*
+  // CTRL-F: PAGESWITCH_DIAG_ARM  (DISABLED)
+  ps_arm++;
+  */
+  #if (ENABLE_POT_TAKEOVER == 1)
+  // Appena entri in una pagina: ARMED su tutti i pot (chan 0..59) di quella pagina.
+  // pots() li sbloccherà (CAUGHT) solo quando agganciano il loro target.
+  for (byte i = 0; i < max_modifiers; i++) {
+    bit_write(5, i + page, 1);
+  }
+  #endif
+
+  // Reset "modifiers" (come nel tuo)
+  offset_modifier_ = 0;
+
+  // IMPORTANT DESIGN NOTE (la tua): page switch = full state reload
+  reset_mempos();       // come in chiusura editor (241)
+  load_preset_base();   // riallinea data_TY/data_VA ecc (base)
+  load_preset(page);    // poi carica la pagina corrente
+
+  #if (Scale == 1)
+  // Riallinea scale spinner (come nel tuo)
+  update_scala(1); // secondo spinner
+  update_scala(0); // primo spinner
+  #endif
+
+  // Restore shifter leds (solo se attivo e non stratos)
+  #if (shifter_active == 1 && stratos == 0)
+  shifter.setAll(LOW);
+  shifterwrite = 1;
+  ledrestore(page);
+  #endif
+
+  // Restore matrix (se presente)
+  #if (Matrix_Pads > 0)
+  // se il led di segnalazione sta blinkando - cambiando page si potrebbe bloccare
+  digitalWrite(8, LOW);
+  matrix_restore(page);
+  #endif
+
+  // Notifica pagina (come nel tuo: data_TY/data_VA + min/data_MA)
+  midiSendRaw(data_TY[page_mempos], data_VA[page_mempos], outValue);
+
+  // LED pagina (0 oppure 1)
+  page_leds_(ledsMode);
+
+  // Flag (come nel tuo)
+  shifterwrite = 1;
+
+  // Reset Xen (come nel tuo)
+  higher_Xen[0] = 40;
+  higher_Xen[1] = 40;
+  lower_Xen[0] = 100;
+  lower_Xen[1] = 100;
+}
+
+void page_leds_(byte pagina) {
+  if (pagina == 0) { 
+    #if (page_LEDs == 1) // indicatori led dedicati al page switch
+    if (data_VA[general_mempos] == 0 && data_LT[page_mempos] > 0) { // nomobo setup disattivo 
+      #if (shifter_active == 1)
+      shifter.setPin((data_DM[page_mempos] - 1), 1); 
+      #endif
+      bit_write(1, (data_DM[page_mempos] - 1) + page, 1);
+      
+      #if (shifter_active == 1)
+      shifter.setPin((data_LT[page_mempos] - 1), 0); 
+      #endif
+      bit_write(1, (data_LT[page_mempos] - 1) + page, 0);
+    } else {
+      // shifter.setPin((data_MI[page_mempos]-1), 1); 
+      digitalWrite(data_DM[page_mempos] - 1, 1);
+      bit_write(1, (data_DM[page_mempos] - 1) + page, 1);
+      // shifter.setPin((data_MA[page_mempos]-1), 0); 
+      digitalWrite(data_LT[page_mempos] - 1, 0);
+      bit_write(1, (data_LT[page_mempos] - 1) + page, 0);
+    }
+    #endif
+  } else {
+    #if (page_LEDs == 1)
+    if (data_VA[general_mempos] == 0 && data_LT[page_mempos] > 0) {
+      #if (shifter_active == 1)
+      shifter.setPin((data_DM[page_mempos] - 1), 0); 
+      #endif
+      bit_write(1, (data_DM[page_mempos] - 1) + page, 0);
+      
+      #if (shifter_active == 1)
+      shifter.setPin((data_LT[page_mempos] - 1), 1); 
+      #endif
+      bit_write(1, (data_LT[page_mempos] - 1) + page, 1);
+    } else {
+      // shifter.setPin((data_MI[page_mempos]-1), 1); 
+      digitalWrite(data_DM[page_mempos] - 1, 0);
+      bit_write(1, (data_DM[page_mempos] - 1) + page, 0);
+      // shifter.setPin((data_MA[page_mempos]-1), 0); 
+      digitalWrite(data_LT[page_mempos] - 1, 1);
+      bit_write(1, (data_LT[page_mempos] - 1) + page, 1);
+    }
+    #endif
+  }
+}
+ 
   
