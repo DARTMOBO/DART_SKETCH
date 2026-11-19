@@ -9,6 +9,7 @@
  */
 
 void load_preset_base() {
+  control_present = 0; // Do not let the ISR consume partially replaced tables.
 #if (ENABLE_EEPROM == 0)
   // EEPROM disabilitata: niente preset da caricare.
   // Lasciamo le tabelle come sono (verranno inizializzate da aux_preset()).
@@ -26,8 +27,9 @@ void load_preset_base() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void load_preset(boolean numero) {
+  reset_mempos();
 #if (ENABLE_EEPROM == 0)
-  // EEPROM disabilitata: niente lettura preset, niente scene persistenti.
+   
   // Forziamo AUTODETECT: eeprom_preset_active=0 + preset base.
   eeprom_preset_active = 0;
   aux_preset();
@@ -38,7 +40,7 @@ void load_preset(boolean numero) {
   // carica le variabili dalla EEPROM alla memoria esecutiva, 
   /// secondo la pagina in cui ci si trova.
      
-  #if (shifter_active == 1 && stratos == 0)
+#if (shifter_active == 1)
   if (data_VA[general_mempos] == 0) {
     shifter.setAll(HIGH);
     shifter.write();
@@ -49,26 +51,35 @@ void load_preset(boolean numero) {
   eeprom_preset_active = 0;
 
   for (byte i = 0; i < max_modifiers; i++) {
-    data_MODE[i] = EEPROM.read(i + 128 + (numero * 512));    
-
-    #if (Matrix_Pads > 0)
-    if (i < 47)
+    #if (VELO_PAD_RELEASE_SCANS > 0)
+    const byte previousMode = data_MODE[i];
     #endif
+    data_MODE[i] = EEPROM.read(i + 128 + (numero * 512));
+    #if (VELO_PAD_RELEASE_SCANS > 0)
+    // Il marker di rilascio appartiene solo a MODE 27: pulisci ai cambi di tipo.
+    // Conserva invece pressione/conteggio se entrambe le pagine usano velocity pad.
+    if (data_MODE[i] != previousMode &&
+        (data_MODE[i] == 27 || (previousMode == 27 && (data_LB[i] & 0x80)))) {
+      data_LB[i] = 1;
+    }
+    #endif
+
+    // CTRL-F: LOAD_DATA_MODE_OTHER
+    // Keep the inactive page mode table coherent without changing the meaning
+    // of data_MODE[] everywhere else in the sketch.
+    #if (USE_REFACTORED_MIDIFEEDBACK == 1) && (ENABLE_DUAL_PAGE_FEEDBACK == 1)
+    data_MODE_OTHER[i] = EEPROM.read(i + 128 + ((numero ? 0 : 1) * 512));
+    #endif
+
     setup_mempos(i); // dopo aver caricato la data_MODE facciamo il settaggio macchina
     
     data_DM[i] = EEPROM.read(i + 192 + (numero * 512));
   
-    if (i == mouse_mempos && mouse_mempos > 0) {  
+    if (i == mouse_mempos && data_MODE[i] == 25) {  
       data_MI[i] = remapper(EEPROM.read(i + 256 + (numero * 512)) - 1); 
       data_MA[i] = remapper(EEPROM.read(i + 320 + (numero * 512)) - 1);   
       
-      // quando vengono attivate le funzioni MOUSE, XY del joystick vengono impostate su BLIND INPUT - 
-      // in tal modo si evitano conflitti
-      // correzione - dato che poi gli input non verrebbero letti (analogread verrebbe saltato da AIN) tolgo questa parte
-      if (data_DM[i] != 0) {
-        data_MODE[data_MI[mouse_mempos]] = 0;
-        data_MODE[data_MA[mouse_mempos]] = 0;
-      } 
+      // Reserve valid axes only after every MODE has been loaded.
     } else {
       data_MI[i] = EEPROM.read(i + 256 + (numero * 512)); // if (data_DM[mouse_mempos] == 2)
       
@@ -99,26 +110,13 @@ void load_preset(boolean numero) {
     data_QW[i] = EEPROM.read(i + 384 + (numero * 512));
   }
 
-   
-  
-  if (spinner_mempos[0] == 0) {
-    // 181 risolto il problema tra b6 (input in posizione reale = 0) e lo spinner1 (quando non viene dichiarato nel preset.
-    // da adesso , quando spinner_mempos[0] = 0 il controller va a verificare che non ci sia un conflitto con un item in memoryposition 0 
-    // se si va a posizionare lo spinner1 altrove in memoria, dove c'è spazio inutilizzato.
-    if (data_MODE[0] != 21) {
-      for (byte i = 0; i < max_modifiers; i++) {
-        if (data_MODE[i] == 0) {
-          spinner_mempos[0] = i;
-          break;
-        }
-      }
-    }
-  }
+
+  // Absent spinners are disabled by presence bits, without borrowing a slot.
 
   // if (mouse
   delay(5);
   
-  #if (shifter_active == 1 && stratos == 0)
+#if (shifter_active == 1)
   if (data_VA[general_mempos] == 0) {
     shifter.setAll(LOW);
     shifter.write();
@@ -139,21 +137,48 @@ void load_preset(boolean numero) {
     for (byte i = 0; i < max_modifiers; i++) {
       data_LT[i] = EEPROM.read(i + 448 + (numero * 512));
     }
+    // MOUSE owns its axes regardless of their order in EEPROM. Zero in the
+    // preset maps to 255 (unassigned); never use that sentinel as an array index.
+    if (data_MODE[mouse_mempos] == 25) {
+      data_QW[mouse_mempos] = 255; // RAM-only cache: remapped wheel input.
+      #if defined(__AVR_ATmega32U4__) && (hid_mouse == 1)
+      byte wheel = data_VA[mouse_mempos + (numero ? max_modifiers : 0)];
+      if (wheel != 0) {
+        wheel = remapper(wheel - 1);
+        if (wheel < max_modifiers &&
+            (data_MODE[wheel] == 19 || data_MODE[wheel] == 21 || data_MODE[wheel] == 22))
+          data_QW[mouse_mempos] = wheel;
+      }
+      if (data_DM[mouse_mempos] != 0) {
+        byte x = data_MI[mouse_mempos], y = data_MA[mouse_mempos];
+        if (x < max_modifiers) data_MODE[x] = 0;
+        if (y < max_modifiers) data_MODE[y] = 0;
+      }
+      #endif
+    }
+    rebuild_control_presence();
   }
 
   // ------------------------------------------------------------
-  // SCENE: ricostruzione lista pot-soggetto dopo load preset
+   
   // La facciamo una sola volta, quando viene caricata la pagina 0
   // ------------------------------------------------------------
-  #if (Scene == 1)
-  if (numero == 0) {
-    scene_build_subject_list();
-    scene_eeprom_load();
-  }
-  #endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Final validation happens after MOUSE may have made an axis BLIND.
+// One atomic publication after all settings are ready; no MODE scan in loop().
+void rebuild_control_presence() {
+  byte present = 0;
+  if (data_MODE[page_mempos] == 17) present |= CONTROL_PAGE;
+  if (data_MODE[mouse_mempos] == 25) present |= CONTROL_MOUSE;
+  if (data_MODE[touch_mempos[0]] == 23) present |= CONTROL_TOUCH1;
+  if (data_MODE[touch_mempos[1]] == 24) present |= CONTROL_TOUCH2;
+  if (data_MODE[spinner_mempos[0]] == 21) present |= CONTROL_SPINNER1;
+  if (data_MODE[spinner_mempos[1]] == 22) present |= CONTROL_SPINNER2;
+  control_present = present;
+}
 
 void setup_mempos(byte i) { // richiamato da load_preset
   if (data_MODE[i] == 18) {
@@ -182,9 +207,11 @@ void setup_mempos(byte i) { // richiamato da load_preset
     mouse_mempos = i;
   }
   
+  #if (Piezo_pads == 1)
   if (data_MODE[i] == 20) {
     PADS_mempos = i;
   }
+  #endif
   
   if (data_MODE[i] == 17) {
     page_mempos = i; 
@@ -214,10 +241,13 @@ void setup_mempos(byte i) { // richiamato da load_preset
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if (stratos == 0) // dart one
-void aux_preset() { // preset di base caricato all'avvio soltanto se il preset sulla eeprom non valido. 
+void aux_preset() { // preset di base caricato all'avvio soltanto se il preset sulla eeprom non valido.
+  control_present = 0; 
   for (byte i = 0; i < max_modifiers; i++) {
     data_MODE[i] = 1;
+    #if (USE_REFACTORED_MIDIFEEDBACK == 1) && (ENABLE_DUAL_PAGE_FEEDBACK == 1)
+    data_MODE_OTHER[i] = 1;
+    #endif
 
     // ==== [AUX_PRESET_UNIQUE_NOTES_SAMD] CTRL-F: AUX_PRESET_UNIQUE_NOTES_SAMD ====
     // Allineamento con lo sketch di test M0: ogni item ha un data1 diverso, cosi'
@@ -229,7 +259,7 @@ void aux_preset() { // preset di base caricato all'avvio soltanto se il preset s
     data_VA[i + max_modifiers] = 36 + i;
     data_TY[i] = 144;
     data_TY[i + max_modifiers] = 144;
-    #else
+#else
     data_VA[i + page] = 60 + (i / 8) * 8; // di default, tutte le note emesse sono uguali. in questo modo, se non si montano multiplexers, ogni in triggera otto note, che essendo tutte uguali verranno filtrate dal midiout in una solo nota.
     data_VA[i] = 60 + (i / 8) * 8;
     data_TY[i] = 144;
@@ -247,7 +277,7 @@ void aux_preset() { // preset di base caricato all'avvio soltanto se il preset s
     } else {
       data_LT[i] = remapper(i); // in modalità normale: comportamento storico
     }
-    #else
+#else
     data_LT[i] = remapper(i);
     #endif
   }
@@ -289,6 +319,9 @@ void aux_preset() { // preset di base caricato all'avvio soltanto se il preset s
   data_MI[general_mempos] = 0; // no extraplex
   data_DM[general_mempos] = 2; // no 2nd encoder
   data_DM[mouse_mempos] = 0; // no mouse emulation
+  data_QW[mouse_mempos] = 255; // no wheel in the implicit fallback preset
   data_VA[general_mempos] = 0; // shifters & multiplexers active.
+  // The fallback preset deliberately defines these slots without matching MODEs.
+  control_present = CONTROL_PAGE | CONTROL_MOUSE | CONTROL_TOUCH1 | CONTROL_TOUCH2 |
+                    CONTROL_SPINNER1 | CONTROL_SPINNER2;
 }
-#endif

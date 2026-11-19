@@ -7,9 +7,16 @@
  * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version. See the LICENSE file for details.
  */
-#if (Scene == 1)
-void scene_morph_encsc(byte enc_chan);
-#endif
+
+// The cached index is local runtime state in the otherwise unused MOUSE QW.
+// The stored preset still uses MOUSE VALUE; no wire-format field is added.
+bool mouse_wheel_owns(byte input) {
+  #if defined(__AVR_ATmega32U4__) && (hid_mouse == 1)
+  return (control_present & CONTROL_MOUSE) && data_QW[mouse_mempos] == input;
+#else
+  return false;
+  #endif
+}
 
 void encoder(byte numero) {
   // NUMERO corrisponde alla chan/memoryposition
@@ -25,40 +32,44 @@ void encoder(byte numero) {
   // data_DM[mouse_mempos] emulazione mouse attiva
   // data_VA[mouse_mempos+page] // scelta dell encoder che emula mousewheel
 
-  if (data_LB[numero] != 64) { 
-    // ============================================================
-    // CTRL-F: ENCSC_TYPE244_MARKER
-    // NUOVA REGOLA: ENCSC/SCENE-MORPH via TYPE marker (pseudomidi 244)
-    // - page-aware: data_TY[] contiene PAGE1 e PAGE2, quindi usiamo +page
-    // - quando il marker è attivo, NON eseguiamo logica encoder normale
-    // - consumiamo l'impulso (63/65) riportando data_LB a 64
-    // ============================================================
-    #if (Scene == 1)
-    if (data_TY[numero + page] == 244) {
-      scene_morph_encsc(numero); // funzione in D_scene.ino
+  if (data_LB[numero] != 64) {
+    #if defined(__AVR_ATmega32U4__) && (hid_mouse == 1)
+     
+    if (mouse_wheel_owns(numero)) {
+      const int8_t speed = (int8_t)data_MI[numero] - 32;
+      if (mouse_hid_wheel_counter == 0)
+        Mouse.move(0, 0, (-(data_LB[numero] - 64)) * (speed < 0 ? -1 : 1));
+      // Equivalent to map32(abs(speed), 0, 32, 32, 1), for the stored 1..32 range.
+      const byte magnitude = speed < 0 ? -speed : speed;
+      if (++mouse_hid_wheel_counter >= 33 - magnitude) mouse_hid_wheel_counter = 0;
       data_LB[numero] = 64;
       return;
     }
     #endif
+    // ============================================================
+    // CTRL-F: ENCSC_TYPE244_MARKER
+     
+    // - page-aware: data_TY[] contiene PAGE1 e PAGE2, quindi usiamo +page
+    // - quando il marker è attivo, NON eseguiamo logica encoder normale
+    // - consumiamo l'impulso (63/65) riportando data_LB a 64
+    // ============================================================
 
     byte tocco;  
     cycletimer = 0;
 
     if (data_MODE[numero] > 20) { // spinner (21/22)
       numero2h = boolean(data_MODE[numero] - 21);   
-      tocco = data_LB[touch_mempos[numero2h]]; // touch associato allo spinner 1/2
+      const byte touchPresent = control_present & (numero2h ? CONTROL_TOUCH2 : CONTROL_TOUCH1);
+      tocco = touchPresent ? data_LB[touch_mempos[numero2h]] : 0;
 
       encoder_block[numero2h] = constrain(encoder_block[numero2h] + (data_LB[numero] - 64), 20, 235);
 
-      if (V_touch_regulator[numero2h] == 1 && data_LT[touch_mempos[numero2h]] == 1) { 
+      if (touchPresent && V_touch_regulator[numero2h] == 1 && data_LT[touch_mempos[numero2h]] == 1) { 
         midiSendRaw(data_TY[touch_mempos[numero2h] + page] + 1,
                 data_VA[touch_mempos[numero2h] + page],
                 127); // invio del virtual touch 
 
-        #if (shifter_active == 1 && stratos == 0)
-        shifter.setPin(4 + numero2h, HIGH);
-        shifterwrite = 1;
-        #endif
+        touch_led_update(numero2h, 1);
       }
 
       V_touch_regulator[numero2h] = 0;
@@ -82,29 +93,28 @@ void encoder(byte numero) {
           }
         }
       } else { // data_DM 0/1 endless
+        // Relative spinners emit CC, including old presets with unsupported types.
+         
+        byte encoderType = data_TY[numero + page];
+        if (data_MODE[numero] > 20) encoderType = 176 | (encoderType & 15);
         // CTRL-F: ENCODER_SIGNED_SPEED_REFACTOR
         const int8_t speed = (int8_t)data_MI[numero] - 32; // range -32..+32
         const bool inverted = (speed < 0);
 
         if (data_DM[numero] == 0) { // endless 63/65 (accelerato)
-          if (data_TY[numero + page] <= 191) {
+          if (encoderType <= 191) {
             // CTRL-F: FIX_INV_ACCEL_63_65
-            // Niente map32() qui: l'inversione è gestita da dir + speedAbs (evita doppia inversione).
+            // Invert the complete relative delta; positive speeds keep their response.
             const int8_t dir = inverted ? -1 : 1;
             const uint8_t speedAbs = (uint8_t)(inverted ? -speed : speed);
             const uint8_t lbAccel = data_LB[numero];
 
-            #if (stratos == 0)
             if (data_LT[numero] == 16)
-            #endif
-            #if (stratos == 1)
-            if (data_LT[numero] == 250)
-            #endif
             {
-              midiSendTyped(data_TY[numero + page] + boolean(data_QW[numero]) * tocco,
+              midiSendTyped(encoderType + boolean(data_QW[numero]) * tocco,
                      data_VA[numero + page],
                      constrain(
-                       (int)lbAccel + ((int)(lbAccel - 64) * (int)speedAbs * (int)dir),
+                       64 + ((int)(lbAccel - 64) * ((int)speedAbs + 1) * (int)dir),
                        0, 127),
                      0);
 
@@ -123,7 +133,7 @@ void encoder(byte numero) {
             // CTRL-F: FIX_INV_ENDLESS_DMX1
             const int8_t dir = inverted ? -1 : 1;
 
-            midiSendTyped(data_TY[numero + (page)] + boolean(data_QW[numero]) * tocco,
+            midiSendTyped(encoderType + boolean(data_QW[numero]) * tocco,
                    data_VA[numero + (page)],
                    constrain((-(data_LB[numero] - 64) * dir) * 127, 0, 127),
                    2);
@@ -132,44 +142,15 @@ void encoder(byte numero) {
           }
         }
 
-        #if (shifter_active == 1 && stratos == 0)
+#if (shifter_active == 1)
         if ((data_QW[numero] ^ tocco) != 3) {
           led_enc_exe();
         }
         #endif
 
-        #if (Matrix_Pads > 0)
-        if ((data_QW[numero] ^ tocco) != 3) {
-          led_enc_exe_matrix();
-        }
-        #endif
       }
 
       //-------------------------------------------------------------------------------------------------------------------------------
-      #if defined (__AVR_ATmega32U4__)  
-      { // attivazione mousewheel
-        #if (stratos == 1)
-        if (data_VA[mouse_mempos + page] == numero)
-        #endif
-
-        #if (stratos == 0)
-        if (remapper(data_VA[mouse_mempos + page] - 1) == numero)
-        #endif
-        {
-          #if (hid_mouse == 1)
-          if (mouse_wheel_speed_counter == 0) {
-            Mouse.move(0, 0, (-(data_LB[numero] - 64)) * (constrain(data_MI[numero] - 32, -1, 1)));
-          }
-          #endif
-
-          mouse_wheel_speed_counter++;
-          if (mouse_wheel_speed_counter == map32(abs(data_MI[numero] - 32), 0, 32, 32, 1)) {
-            mouse_wheel_speed_counter = 0;
-          }
-        }
-      }
-      #endif
-
       if (data_DM[numero] > 0) { // in modalità relativa con accelerazione (63-65) non devo resettare data_LB...
         data_LB[numero] = 64;
       }
@@ -204,34 +185,18 @@ void encoder_pot_mode(byte numero) {
     // --- ANCHOR: PC_TO_CC_IN_POT_EMU ---
     byte t = data_TY[numero + page]; // status (0x90..)
     byte group = (t - 144) / 16; // 0=NOTE,1=AT,2=CC,3=PC,...
-    #if (Scene == 1)
-    if (group == 3) {
-      // PC (0xC0..0xCF) usato come marcatore "CC-SCENE":
-      // trasformo in CC (0xB0..0xBF) mantenendo lo stesso canale
-      t = t - 16;
-    }
-    #endif
     // ============================================================
     // CTRL-F: ENCSUBJECT_TO_CONVOY
-    // Se questo encoder/spinner è uno scene-subject:
+     
     // - NON inviare diretto
     // - aggiorna il convoy (verità unica) e committa
     // - return per evitare doppio invio (convoy + button)
     // ============================================================
-    #if (Scene == 1)
-    {
-      byte si = convoy_find_subjectIndex(numero); // numero = memoryposition dell'encoder
-      if (si != 255) {
-        convoy_set(si, out);
-        convoy_commit();
-        return;
-      }
-    }
-    #endif
     // comportamento normale (non subject): invio diretto
     midiSendTyped(t, data_VA[numero + page], out, 1);
-  } else { // NOTE => modalità SCALE (solo spinner)
-    if (data_MODE[numero] > 19) {
+  } else { // NOTE => SCALE belongs only to Spinner 1 (POT / legacy RAMP).
+    #if (Scale == 1)
+    if (data_MODE[numero] == 21) {
       at = encodervaluepot[numero2h] / 8;
 
       if (encodervaluepot_buffer[numero2h] != at) {
@@ -270,22 +235,20 @@ void encoder_pot_mode(byte numero) {
         }
       }
     }
+    #endif
   }
 
   // --- LED / feedback come prima ---
-  #if (shifter_active == 1 && stratos == 0)
+#if (shifter_active == 1)
   ledrestore(page);
   #endif
 
   encled[0] = abs((valuepot / 4) - 255);
 
-  #if (shifter_active == 1 && stratos == 0)
+#if (shifter_active == 1)
   led_enc_exe();
   #endif
 
-  #if (Matrix_Pads > 0)
-  led_enc_exe_matrix();
-  #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -359,7 +322,6 @@ void encoder_pot_calcolo(byte chan_, byte moltiplicatore) {
 }
 
 
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // =====================================================================
@@ -371,10 +333,12 @@ void encoder_pot_calcolo(byte chan_, byte moltiplicatore) {
 // - ENC_TOP_LOCKOUT_US permette un timing dedicato per top spinner (ottico vs meccanico).
 // =====================================================================
 #if (ENABLE_ENC_LOCKOUT == 1)
-extern uint32_t enc_lock_last_us[60];   // dichiarato in D_INS.ino (array globale per memoryposition 0..59)
+// Il top spinner usa pin diretti: timestamp dedicato, fuori dai 24 slot dei 4051.
+static uint32_t enc_top_lock_last_us = 0;
 #endif
 
 void lettura_enc_principale() { // legge l'encoder principale (TOP SPINNER) via interrupt
+  if (!(control_present & CONTROL_SPINNER1)) return;
   const byte chan_enc = spinner_mempos[0];
 
   // Lettura immediata dei 2 bit (A/B).
@@ -389,7 +353,7 @@ void lettura_enc_principale() { // legge l'encoder principale (TOP SPINNER) via 
   // ignoriamo la generazione di step per un attimo.
   // IMPORTANTISSIMO: aggiorniamo comunque data_MA[chan_enc] (fase quadrature) per non creare salti alla ripresa.
   uint32_t now = micros();
-  if ((uint32_t)(now - enc_lock_last_us[chan_enc]) < (uint32_t)ENC_TOP_LOCKOUT_US) {
+  if ((uint32_t)(now - enc_top_lock_last_us) < (uint32_t)ENC_TOP_LOCKOUT_US) {
     MSB[0] = msb;
     LSB[0] = lsb;
     data_MA[chan_enc] = encoded;   // 'previous state' usato da updateEncoder()
@@ -407,7 +371,7 @@ void lettura_enc_principale() { // legge l'encoder principale (TOP SPINNER) via 
   // Armiamo il lockout SOLO se updateEncoder() ha prodotto uno step valido.
   // (Se data_LB resta 64, vuol dire: nessun movimento reale.)
   if (data_LB[chan_enc] != 64) {
-    enc_lock_last_us[chan_enc] = now;
+    enc_top_lock_last_us = now;
   }
 #endif
 }
@@ -443,7 +407,7 @@ void qwerty_encoderr(byte numero) {
  
 void updateEncoder(byte numero) {
   boolean numero2_ = 1;
-  if (numero == spinner_mempos[0]) {
+  if ((control_present & CONTROL_SPINNER1) && numero == spinner_mempos[0]) {
     numero2_ = 0;
   }
   

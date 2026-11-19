@@ -1,8 +1,6 @@
  /*
 
 
-
-
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * DART_SKETCH   â   Copyright (c) 2015â2025 M. Marchese - dartmobo.com
@@ -13,13 +11,12 @@
  */
 
 
-
 #if (ENABLE_ENC_MAJORITY == 1) && (ENABLE_ENC_MAJ_WINDOW == 1)
 extern uint32_t enc_maj_window_until_us;
 #endif
 
 // ============================================================================
-// ENCODER INPUT CLEANER (DART classico / stratos=0)
+ 
 // - Majority burst: N letture ravvicinate di A/B (stato 2-bit 00/01/10/11)
 // - Lockout: dopo un passo valido, ignora per X microsecondi (anti doppi/contrari)
 // NOTE: Questa implementazione lavora con il modello esistente:
@@ -28,7 +25,21 @@ extern uint32_t enc_maj_window_until_us;
 // ============================================================================
 
 #if (encoders_ == 1) && (ENABLE_ENC_LOCKOUT == 1)
-uint32_t enc_lock_last_us[60];   // 60 slot = memoryposition 0..59
+// 24 slot fisici: 3 coppie di 4051 (0+1, 2+3, 4+5) x 8 ingressi.
+// La seconda fase di ogni encoder si trova sullo stesso ingresso del plexer successivo.
+uint32_t enc_lock_last_us[24];
+
+static inline byte enc_lock_slot_from_chan(byte chan)
+{
+  // chan = plexer * 8 + ingresso.
+  // Ogni coppia di plexer condivide gli stessi 8 slot lockout.
+  return (byte)(((chan >> 4) << 3) | (chan & 0x07));
+}
+
+#if (Side_spinner == 1)
+// Il side spinner usa pin diretti: non appartiene ai 24 slot dei 4051.
+static uint32_t enc_side_lock_last_us = 0;
+#endif
 #endif
 
 #if (ENABLE_ENC_MAJORITY == 1) && (ENABLE_ENC_MAJ_WINDOW == 1)
@@ -59,7 +70,7 @@ static inline byte enc_majority_state_from_pins_core(byte pinMSB, byte pinLSB,
   //
   // invertRead:
   // - 0  -> polarita' normale (digitalRead diretto)  [mondo DART classico]
-  // - 1  -> polarita' invertita (!digitalRead)       [STRATOS encoder]
+   
   //
   // Nota prestazioni:
   // - invertRead e' passato come costante (0 o 1), quindi il compilatore
@@ -137,7 +148,7 @@ static inline byte enc_majority_state_from_pins(byte pinMSB, byte pinLSB,
   return enc_majority_state_from_pins_core(pinMSB, pinLSB, samples, usDelay, 0);
 }
 
-// Wrapper pubblico: STRATOS (polarita' invertita, equivalente a !digitalRead)
+ 
 static inline byte enc_majority_state_from_pins_inv(byte pinMSB, byte pinLSB,
                                                     byte samples, unsigned int usDelay)
 {
@@ -147,19 +158,14 @@ static inline byte enc_majority_state_from_pins_inv(byte pinMSB, byte pinLSB,
 #endif  // ENABLE_ENC_MAJORITY
 
 
-
-  #if (stratos == 0)
   void AIN()
  { 
 for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del multiplexer vado poi a leggere tutti gli ingressi analogici (cioÃ¨ l'uscita di ogni plexer)
 { 
-   
-  
- 
-   
-  
+
+
 #if (top_spinner == 1) 
-     if (data_LB[spinner_mempos[0]] == 64 || data_DM[general_mempos] == 0)  //  [spinner_mempos[0] Ã¨ l0'idirizzo di memoria per lo spinner principale, quello che dave avere maggiore risoluzione e prioritÃ  di esecuzione su tutto.
+     if (!(control_present & CONTROL_SPINNER1) || data_LB[spinner_mempos[0]] == 64 || data_DM[general_mempos] == 0)  //  [spinner_mempos[0] Ã¨ l0'idirizzo di memoria per lo spinner principale, quello che dave avere maggiore risoluzione e prioritÃ  di esecuzione su tutto.
     
     
       // 64 = no encoder action - the MAIN spinner has priority over any other action.
@@ -181,7 +187,6 @@ for( channel = 0; channel < 8; channel++)    /// per ognuno degli 8 channels del
 
   //  if (data_DM[general_mempos] >1)
   //  {senseEncoder_2nd();}  // carica MSB LSB [1] // // gli input pin su cui viene letto il secondo encoder sono 33 e 41
-
 
 
  ///////////////////////////////////////////////////////////////////   
@@ -209,8 +214,7 @@ delay(5);
   
     
    chan = (plexer * 8) + channel  ;        // chan sarÃ  il mio punto di riferimento per tutti e 56 (48+ EXTRA PLEXER) gli input della mia DARTMOBO. 
-                        
- 
+
 
  ///////////////////////////////////////////////////////////////////////////////////// autodetect
   #if (ENABLE_AUTODETECT == 1)
@@ -319,7 +323,6 @@ delay(5);
    byte readmode = data_MODE_readmode[data_MODE[chan]];
 
 
-
 switch (readmode) {
   case 0: // Pulsanti -  digitalRead
 
@@ -361,7 +364,7 @@ switch (readmode) {
 	    // SAMD: pullup via pinMode(INPUT_PULLUP). Per "spegnere" la pullup → INPUT.
 	    #if defined(ARDUINO_ARCH_SAMD)
 	      pinMode(A0 + plexer, INPUT);
-	    #else
+#else
 	      digitalWrite(18 + plexer, LOW);   // disabilita pullup SOLO se Dummy_pullups=1
 	    #endif
   #endif
@@ -373,7 +376,7 @@ switch (readmode) {
   #if (pullups_active == 1) && (Dummy_pullups == 1)
 	    #if defined(ARDUINO_ARCH_SAMD)
 	      pinMode(A0 + plexer, INPUT_PULLUP);
-	    #else
+#else
 	      digitalWrite(18 + plexer, HIGH);  // riabilita pullup SOLO se Dummy_pullups=1
 	    #endif
   #endif
@@ -393,6 +396,7 @@ switch (readmode) {
 	  // -------------------------------------------------------------------------
 	
 	  #if (POT_EMA_ENABLE == 1)
+   if (data_MODE[chan] != 27) { // escludi i velocity pads
 	    // 1) comprimi 0..1023 -> 0..255
       
        
@@ -418,7 +422,7 @@ switch (readmode) {
 
 	    // 4) riespandi 0..255 -> 0..1023
 	    valore = ((int)y8) << 2;
-
+} // fine EMA per gli altri ingressi
       /* ============================================================================
    IMPORTANT (switch/case scope trap)  [DART NOTE]
    In C/C++, a `case:` label does NOT create a new scope.
@@ -434,9 +438,8 @@ switch (readmode) {
    ========================================================================== */
       
 	  #endif
-    
 
-      
+
     break;
     }
 
@@ -451,7 +454,7 @@ switch (readmode) {
       #elif defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
         byte pinMSB = (byte)(plexer + 14);
         byte pinLSB = (byte)(plexer + 15);
-      #else
+#else
         // NON-AVR (es. SAMD / Metro M0): mapping pin encoder non definito qui.
         // Per ora mettiamo un fallback "dummy" solo per compilare.
         byte pinMSB = 0;
@@ -492,13 +495,13 @@ switch (readmode) {
           byte s = maj_window_open
             ? enc_majority_state_from_pins(pinMSB, pinLSB, ENC_MAJ_SAMPLES, ENC_MAJ_USDELAY)
             : s_raw;
-        #else
+#else
           byte s = enc_majority_state_from_pins(pinMSB, pinLSB, ENC_MAJ_SAMPLES, ENC_MAJ_USDELAY);
         #endif
 
         MSB[1] = (byte)((s >> 1) & 1);
         LSB[1] = (byte)(s & 1);
-      #else
+#else
         // Majority OFF: sempre raw
         MSB[1] = msb_raw;
         LSB[1] = lsb_raw;
@@ -507,9 +510,10 @@ switch (readmode) {
 
       // 3) Lockout (anti doppi / colpi contrari) â opzionale e reversibile
       #if (ENABLE_ENC_LOCKOUT == 1)
+        const byte enc_lock_slot = enc_lock_slot_from_chan(chan);
         uint32_t now = micros();
 
-        if ((uint32_t)(now - enc_lock_last_us[chan]) < (uint32_t)ENC_LOCKOUT_US) {
+        if ((uint32_t)(now - enc_lock_last_us[enc_lock_slot]) < (uint32_t)ENC_LOCKOUT_US) {
           // Dentro la finestra di lockout:
           // - NON generiamo passi (data_LB resta fermo)
           // - ma aggiorniamo comunque lo "stato precedente" (data_MA) per non creare salti strani appena finisce il lockout
@@ -525,7 +529,7 @@ switch (readmode) {
 
       // 5) Aggiorna lockout solo se c'e' stato un vero passo (+/-)
       #if (ENABLE_ENC_LOCKOUT == 1)
-        if (data_LB[chan] != 64) enc_lock_last_us[chan] = now;
+        if (data_LB[chan] != 64) enc_lock_last_us[enc_lock_slot] = now;
       #endif
 
     #endif
@@ -564,9 +568,8 @@ switch (readmode) {
  // }
  
      ain_nucleo(); // vai a eseguire effettivamente la traduzione da segnale elettrico a segnale MIDI, secondo tutte le modalitÃ  disponibili. 
-     
-  
-  
+
+
   }
    
   //  __________________________________________________________
@@ -592,22 +595,17 @@ switch (readmode) {
    encoder(spinner_mempos[0]);         // esecuzione con out MIDI dello spinner principale                  
   }
   #endif
-  
-
-  
 
 
    } // end PLEXER
    } // end ain
-   #endif
-
 
 
    void ain_nucleo()
 {
    #if (hid_mouse == 1)
   #if defined(__AVR_ATmega32U4__)
-  if (mouse_mempos > 0) mouse_control();
+  if (control_present & CONTROL_MOUSE) mouse_control();
   #endif
   #endif
   
@@ -747,19 +745,12 @@ switch (readmode) {
       pots();
       break;
 
-  
 
-      
- #if (Scene == 1)
-    case 39:  // scene_record_button
-      scene_record_button();
-      break;
-#endif
-
-  // case 40:  // scene_control
    //  encoder(chan);
      // break;
-
+   
+      
+    //   break;
 
     default:  // modalitÃ  non gestita
       break;
@@ -768,7 +759,7 @@ switch (readmode) {
 
    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  #if (stratos == 0) && (ENABLE_AUTODETECT == 1)
+#if (ENABLE_AUTODETECT == 1)
   void detect_plexer()
   {
      {
@@ -810,11 +801,10 @@ void diversifica_data_VA ()
             }
 }
 
-#endif // stratos==0 && ENABLE_AUTODETECT
+#endif  
 
 
 //////////////////////////////////////////////////////////////////////
-#if (stratos == 0 )
 void setPlexer( byte channel)
 {
    // set the selector pins HIGH and LOW to match the binary value of channel
@@ -825,7 +815,6 @@ void setPlexer( byte channel)
       digitalWrite(pin, isBitSet);
    }
 }
-#endif
 
  #if (monitor_temporizzato == 1)
 // [AINDBG_VALUE_ONLY]
@@ -838,13 +827,14 @@ void aindbg_valueOnly(int valore_ora)
   if ((now - tLast) < 300) return;
   tLast = now;
 
-  Serial.println(valore_ora);
+ // Serial.println(valore_ora);
 }
  #endif 
 
  
 #if (Side_spinner == 1)
 void Side_spinner_read() { // ===== SIDE_SPINNER_LOCKOUT =====
+  if (!(control_present & CONTROL_SPINNER2)) return;
   { // gestione del SIDE SPINNER // data_DM[general_mempos] >1 significa che un side spinner è stato "istituito" via editor, nel mio preset.
 
     // -------------------------------------------------------------------------
@@ -860,6 +850,10 @@ void Side_spinner_read() { // ===== SIDE_SPINNER_LOCKOUT =====
     #if defined (__AVR_ATmega32U4__)
       const byte pin_msb = 22;
       const byte pin_lsb = 23;
+      #elif defined(ARDUINO_ARCH_SAMD)
+  const byte pin_msb = 22;
+  const byte pin_lsb = 23;
+  
     #elif defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
       const byte pin_msb = 18;
       const byte pin_lsb = 19;
@@ -877,7 +871,7 @@ void Side_spinner_read() { // ===== SIDE_SPINNER_LOCKOUT =====
     //    IMPORTANTISSIMO: aggiorniamo comunque la fase (data_MA[]) per evitare salti alla ripresa.
     #if (ENABLE_ENC_LOCKOUT == 1)
       uint32_t now = micros();
-      if ((uint32_t)(now - enc_lock_last_us[chan_enc]) < (uint32_t)ENC_LOCKOUT_US) {
+      if ((uint32_t)(now - enc_side_lock_last_us) < (uint32_t)ENC_LOCKOUT_US) {
         MSB[1] = msb_raw;
         LSB[1] = lsb_raw;
         data_MA[chan_enc]   = encoded_raw; // stato precedente per updateEncoder()
@@ -913,13 +907,13 @@ void Side_spinner_read() { // ===== SIDE_SPINNER_LOCKOUT =====
         byte encoded = maj_window_open
           ? enc_majority_state_from_pins(pin_msb, pin_lsb, ENC_MAJ_SAMPLES, ENC_MAJ_USDELAY)
           : encoded_raw;
-      #else
+#else
         byte encoded = enc_majority_state_from_pins(pin_msb, pin_lsb, ENC_MAJ_SAMPLES, ENC_MAJ_USDELAY);
       #endif
 
       byte msb = (byte)((encoded >> 1) & 1);
       byte lsb = (byte)(encoded & 1);
-    #else
+#else
       byte encoded = encoded_raw;
       byte msb = msb_raw;
       byte lsb = lsb_raw;
@@ -935,7 +929,7 @@ void Side_spinner_read() { // ===== SIDE_SPINNER_LOCKOUT =====
     //    (Se data_LB resta 64, vuol dire: nessun movimento reale.)
     #if (ENABLE_ENC_LOCKOUT == 1)
       if (data_LB[chan_enc] != 64) {
-        enc_lock_last_us[chan_enc] = now;
+        enc_side_lock_last_us = now;
       }
     #endif
 

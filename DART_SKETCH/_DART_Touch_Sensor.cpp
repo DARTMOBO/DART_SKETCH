@@ -31,7 +31,7 @@ int CapacitiveSensor::capacitiveSensorRaw(uint16_t limit)
   return 0;
 }
 
-#else // __AVR__
+#else
 
 
 CapacitiveSensor::CapacitiveSensor(uint8_t sendPin, uint8_t receivePin)

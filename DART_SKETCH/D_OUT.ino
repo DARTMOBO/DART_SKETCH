@@ -49,7 +49,7 @@ void midiSendFiltered(byte cmd, byte pitch, byte velocity, byte filter)  // ex n
     // if (cmd != old_cmd) 
     // Serial.println(cmd);
     
-    #else
+#else
       midiSendRaw(cmd, pitch, velocity); // cleaner OFF: uscita diretta, nessun filtraggio extra
     #endif
     old_cmd = cmd; 
@@ -84,7 +84,6 @@ static inline byte applyOffsetToStatus(byte status, byte off)
 #endif
 
 
-
 #if ( MIDI_OUT_SAFE_OFFSET   == 0) 
 
 void midiSendRaw(byte cmd, byte pitch, byte velocity) // ex midiOut - void rinominata
@@ -92,11 +91,9 @@ void midiSendRaw(byte cmd, byte pitch, byte velocity) // ex midiOut - void rinom
   #if (MIDI_OUT_block == 0)
   // velocity = constrain(velocity,0,127)
   #if defined (__AVR_ATmega32U4__)  
-    #if (stratos == 0)
     Serial1.write(cmd + offset_modifier_);
     Serial1.write(pitch);
     Serial1.write(velocity);
-    #endif
 
     midiEventPacket_t event = {((cmd + offset_modifier_ - 144) / 16) + 9, cmd + offset_modifier_, pitch, velocity};
     MidiUSB.sendMIDI(event);
@@ -128,11 +125,9 @@ void midiSendRaw(byte cmd, byte pitch, byte velocity)  // ex midiOut - void rino
 
    
   #if defined (__AVR_ATmega32U4__)
-    #if (stratos == 0)
     Serial1.write(cmd2);
     Serial1.write(pitch);
     Serial1.write(velocity);
-    #endif
 
   // USB-MIDI: header = (cable<<4) | CIN, e per i channel message CIN coincide col nibble alto (8..E)
     midiEventPacket_t event = { (byte)((0 << 4) | (cmd2 >> 4)), cmd2, pitch, velocity };
@@ -187,12 +182,23 @@ void midiSendTyped(byte cmd, byte pitch, byte velocity, byte filterr) // ex butt
 }
 
 void outnucleo(byte onoff, byte chan_) {
+  // Velocity-pad ON is sent directly with the measured velocity. Its OFF
+  // must likewise stay MIDI-only, even with old QWERTY/DMX preset bytes.
+  if (onoff == 0 && data_MODE[chan_] == 27) {
+    byte status = data_TY[chan_ + page];
+    #if (note_off == 1)
+    if ((status & 0xF0) == 0x90) status -= 16;
+    #endif
+    midiSendTyped(status, data_VA[chan_ + page], 0, 1);
+    return;
+  }
+
   switch (onoff) {
     case 1: // se premuto
       if (eeprom_preset_active == 1) {
         if (data_QW[chan_] == 0) { // se non è specificato nessun tasto qwerty
           midiSendTyped(data_TY[chan_ + page], data_VA[chan_ + page], data_MA[chan_], 1);
-          #if (DMX_active == 1 && stratos == 0)
+#if (DMX_active == 1)
           DmxSimple.write(data_DM[chan_], data_MA[chan_] * 2);
           #endif
         }
@@ -211,9 +217,8 @@ void outnucleo(byte onoff, byte chan_) {
     case 0: 
       if (eeprom_preset_active == 1) { // normale funz
         if (data_QW[chan_] == 0) {
-          byte off_velocity = (data_MODE[chan_ + page] == 27) ? 0 : data_MI[chan_];
-          midiSendTyped(data_TY[chan_ + page], data_VA[chan_ + page], off_velocity, 1);
-          #if (DMX_active == 1 && stratos == 0)
+          midiSendTyped(data_TY[chan_ + page], data_VA[chan_ + page], data_MI[chan_], 1);
+#if (DMX_active == 1)
           DmxSimple.write(data_DM[chan_], data_MI[chan_] * 2);
           #endif
         }
@@ -231,21 +236,17 @@ void outnucleo(byte onoff, byte chan_) {
 
     #if (note_off == 1)
     case 0: 
-      byte note_off_;
-      if (data_VA[chan_ + page] < 160) {
-        note_off_ = 16;
-      }
+      byte note_off_ = ((data_TY[chan_ + page] & 0xF0) == 0x90) ? 16 : 0;
 
       if (eeprom_preset_active == 1) {
         if (data_QW[chan_] == 0) { 
-          // byte off_velocity = (data_MODE[chan_ + page] == 27) ? 0 : data_MI[chan_];
-          button(data_TY[chan_ + page] - note_off_, data_VA[chan_ + page], 0, 1);
-          #if (DMX_active == 1 && stratos == 0)
+          midiSendTyped(data_TY[chan_ + page] - note_off_, data_VA[chan_ + page], 0, 1);
+#if (DMX_active == 1)
           DmxSimple.write(data_DM[chan_], data_MI[chan_] * 2);
           #endif
         }
       } else {
-        button(data_TY[chan_ + page] - note_off_, data_VA[chan_ + page], 0, 1);
+        midiSendTyped(data_TY[chan_ + page] - note_off_, data_VA[chan_ + page], 0, 1);
       }
       
       #if defined (__AVR_ATmega32U4__)  

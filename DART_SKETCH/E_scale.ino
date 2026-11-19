@@ -2,10 +2,13 @@
 
 #if (Scale == 1) 
 void scale_learn(byte pitch) {
-  if (data_LB[touch_mempos[0]] == 0 || data_LB[touch_mempos[1]] == 0) { // se touch premuto/toccato
-    if (data_DM[spinner_mempos[0]] > 1) {
-      encodervaluepot[0] = pitch * 8;
-    }
+  if (mouse_wheel_owns(spinner_mempos[0])) return;
+  // Learn is exclusive to Spinner 1 + Touch 1 in NOTE/POT or legacy RAMP mode.
+  if ((control_present & (CONTROL_SPINNER1 | CONTROL_TOUCH1)) == (CONTROL_SPINNER1 | CONTROL_TOUCH1) &&
+      data_DM[spinner_mempos[0]] > 1 &&
+      (data_TY[spinner_mempos[0] + page] & 0xF0) == 0x90 &&
+      data_LB[touch_mempos[0]] == 0) {
+    encodervaluepot[0] = pitch * 8;
    
     if (scala_reset == 1) { // azzera la scala
       for (byte i = 0; i < scala_lenght; i++) {
@@ -33,7 +36,8 @@ void scale_learn(byte pitch) {
 }
 
 //////////////////////////////////////////////////////////////////////
-void update_scala(byte quale_spinner) { // quale_spinner è 0 top 1 side
+void update_scala(byte quale_spinner) {
+  if (quale_spinner != 0 || !(control_present & CONTROL_SPINNER1)) return; // SCALE is reserved for Spinner 1.
   // richiamato da setup_mempos() e da switchpage()
   // scala[4] è un array che contiene 4 scale... scalaSpinner0-page1, scalaSpinner1-page1, ScalaSpinner0-page2, scalaSpinner1-page2
   // per caricare una scala dalla eeprom di servono 12 BIT - per le 12 note di un'ottava

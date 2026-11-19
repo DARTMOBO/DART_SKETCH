@@ -10,34 +10,13 @@
 
 void setup() {
   { // setup per matrix pads
-    #if (Matrix_Pads > 0 && stratos == 0)
-    {
-      set_unit(0);
-      set_unit(1);
-      set_unit(2);
-      set_unit(3);
-      
-      set_unit(4);
-      set_unit(5);
-      set_unit(6);
-      set_unit(7);
-      
-      set_unit(8);
-      set_unit(9);
-      set_unit(10);
-      set_unit(11);
-
-      set_unit(12);
-      set_unit(13);
-    }
-    #endif // (Matrix_Pads > 0 && stratos == 0)
   }
 
   { // DMX setup
-    #if (DMX_active == 1 && stratos == 0)
+#if (DMX_active == 1)
     DmxSimple.usePin(13);
     DmxSimple.maxChannel(64);
-    #endif // (DMX_active == 1 && stratos == 0)
+    #endif  
   }
 
   
@@ -48,34 +27,24 @@ void setup() {
   }
 
   { // setup 4051 chips
-    #if (stratos == 0)
     for (byte bit = 4; bit < 7; bit++) {
       pinMode(bit, OUTPUT); // set the three select pins to output // 4051
     }
-    #endif // (stratos == 0)
   }
-
-
-
 
 
    #if (ENABLE_POT_TAKEOVER == 1)
   for (byte bit = 0; bit < 128; bit++) {
     data_LB[bit] = 1; // ?? 
   }
-  #else // !ENABLE_POT_TAKEOVER
+#else
   for (byte bit = 0; bit < 64; bit++) {
     data_LB[bit] = 1; // ?? 
     }
 #endif // ENABLE_POT_TAKEOVER
 
 
-
-
-
-
   { // encoder e midi-DIN inputs - su dartmobo
-    #if (stratos == 0) 
     pinMode(2, INPUT); // ------------ encoder input settings
     pinMode(3, INPUT);
     // pinMode(12, OUTPUT);
@@ -84,7 +53,7 @@ void setup() {
       // SAMD: la pullup si abilita con INPUT_PULLUP
       pinMode(2, INPUT_PULLUP);
       pinMode(3, INPUT_PULLUP);
-    #else
+#else
       // AVR: pullup storica via digitalWrite(HIGH) su pin in INPUT
       digitalWrite(2, HIGH); // turn pullup resistor on // encoder
       digitalWrite(3, HIGH); // turn pullup resistor on // encoder
@@ -93,24 +62,22 @@ void setup() {
     pinMode(0, INPUT); // ------------ midi over DIN settings
     #if defined(ARDUINO_ARCH_SAMD)
       pinMode(0, INPUT_PULLUP);
-    #else
+#else
       digitalWrite(0, HIGH);
     #endif
-    #endif // (stratos == 0)
   }
 
   { // gestione pullups
     #if (pullups_active == 1)
 #if defined (__AVR_ATmega32U4__) || defined(ARDUINO_ARCH_SAMD) // gestione pullups
       { 
-        #if (stratos == 0) // dartmobo pullups  
         { 
           #if defined(ARDUINO_ARCH_SAMD)
             // SAMD (Metro M0): abilita pullup sui 6 pin ADC reali usati dai 4051
             for (byte i = 0; i < 6; i++) {
               pinMode(DART_ADC_PIN_FROM_PLEXER(i), INPUT_PULLUP);
             }
-          #else
+#else
             // AVR (Leonardo): pullup storica sui canali A0..A5 (numeri 18..23)
             digitalWrite(18, HIGH); // analog in 0
             digitalWrite(19, HIGH); // analog in 1
@@ -120,47 +87,8 @@ void setup() {
             digitalWrite(23, HIGH); // analog in 5
           #endif
         }
-        #endif // (stratos == 0)
 
         
-        #if (stratos == 1) // stratos pullups 
-        {
-          pinMode(0, INPUT);
-          digitalWrite(0, HIGH);
-          pinMode(1, INPUT);
-          digitalWrite(1, HIGH);
-          pinMode(4, INPUT);
-          digitalWrite(4, HIGH);
-          pinMode(5, INPUT);
-          digitalWrite(5, HIGH);
-          pinMode(6, INPUT);
-          digitalWrite(6, HIGH);
-          pinMode(7, INPUT);
-          digitalWrite(7, HIGH); 
-          
-     
-          digitalWrite(18, HIGH);
-          digitalWrite(19, HIGH);
-         
-
-       
-          pinMode(20, INPUT);
-          digitalWrite(20, HIGH); // enc 2 // in analogici
-         
-       
-          pinMode(21, INPUT);
-          digitalWrite(21, HIGH);  
-         
-          pinMode(2, INPUT);
-          digitalWrite(2, HIGH); // enc 1
-          pinMode(3, INPUT);
-          digitalWrite(3, HIGH); 
-
-          pinMode(14, OUTPUT);    
-          pinMode(15, OUTPUT); 
-          pinMode(16, OUTPUT); // led touch
-        }
-        #endif // (stratos == 1)
       }
       #endif // defined (__AVR_ATmega32U4__)
       
@@ -181,9 +109,7 @@ void setup() {
 
   { // serial begin
     #if defined (__AVR_ATmega32U4__)
-      #if (stratos == 0)  
-      Serial1.begin(31250); // midi over DIN connectors - specific baud rate - su stratos non serve
-      #endif // (stratos == 0)  
+      Serial1.begin(31250);  
     #endif // defined (__AVR_ATmega32U4__)
     #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
     Serial.begin(31250); // midi specific baud rate
@@ -202,10 +128,9 @@ void setup() {
   load_preset_base();
   load_preset(0);
 
-  #if (stratos == 0) // se trovo un preset lo carico e controllo lo stato di PAGE
   #if (Page_switch == 1)
   {
-    if (eeprom_preset_active == 1 && page_mempos > 0) { // 1 = c'è un preset nella eeprom // eeprom_preset_active viene settato da setup_mempos 
+    if (eeprom_preset_active == 1 && (control_present & CONTROL_PAGE)) { // 1 = c'è un preset nella eeprom // eeprom_preset_active viene settato da setup_mempos 
                                                         // che a sua volta è richiamata da load_preset
       setPlexer((page_mempos) - ((page_mempos / 8) * 8)); 
     
@@ -213,7 +138,6 @@ void setup() {
     
      // In setup usiamo analogRead classico per evitare dipendenze da fastADC_init.
      data_LB[page_mempos] = map32(analogRead((page_mempos / 8)), 0, 1024, 0, 2);         // read page switch state. // se valore alto (valore alto è normale, se non viene portato in basso dal cortocircuito di un pulsante) 
-
 
 
       if (data_LB[page_mempos] > 0) {
@@ -250,7 +174,7 @@ void setup() {
       // update_scala(0); 
     }
     }
-      #else // !(Page_switch == 1)
+#else
     // Page_switch disattivo: ignora completamente l’eventuale lever nel preset.
     // Forza sempre PAGE 1.
     page = 0;
@@ -270,7 +194,7 @@ void setup() {
 // CTRL-F: TAKEOVER_BOOT_FREE_STARTPAGE
 // Boot-friendly: sulla pagina di AVVIO i pot devono essere subito "live".
 // Disarmo takeover (bank5) SOLO per la pagina corrente.
-// Pageswitch / Scene potranno riarmarlo più avanti quando serve.
+ 
 // ============================================================
 #if (ENABLE_POT_TAKEOVER == 1)
 for (byte i = 0; i < max_modifiers; i++) {
@@ -290,39 +214,9 @@ for (byte i = 0; i < max_modifiers; i++) {
 */
 
 
-  #endif // (stratos == 0)
-
-
-
- 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  #if (stratos == 1) // se trovo un preset lo carico e controllo lo stato di PAGE
-  {
-    // page = 0; // provvisorio
-    digitalWrite(15, LOW);
-    digitalWrite(14, HIGH);    
-    // valore = analogRead(18);
-    
-    if (eeprom_preset_active == 1 && page_mempos > 0) { 
-      data_LB[page_mempos] = map32(analogRead_1024(18), 0, 1024, 0, 2);
-
-      if (data_LB[page_mempos] == 1) {
-        page = 0; // pagestate=0; 
-        load_preset(0); // ledrestore(); // levetta a destra caricamento preset eeprom pagina 1
-        update_scala(1);  
-        update_scala(0);   
-      } else {
-        page = max_modifiers; // pagestate=1; 
-        load_preset(1); // ledrestore2(); // levetta a sinistra preset 2
-        update_scala(1);  
-        update_scala(0);  
-      }
-    }
-  }
-  #endif // (stratos == 1)
 
   if (data_MA[general_mempos] == 0) { // se i pads sono attivi bisogna togliere la pullup
-    #if (stratos == 0)
       #if defined (__AVR_ATmega32U4__) 
       digitalWrite(23, LOW);
       #endif // defined (__AVR_ATmega32U4__)
@@ -336,16 +230,13 @@ for (byte i = 0; i < max_modifiers; i++) {
       #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__) 
       digitalWrite(19, LOW);
       #endif // defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328P__)
-   #endif // (stratos == 0)
   }  
 
-#if (stratos == 0)
   if (data_VA[general_mempos] != 0) { // 0 = nomobo
     digitalWrite(12, LOW);
     digitalWrite(11, LOW);
     digitalWrite(10, LOW);
   }
-#endif // (stratos == 0)
 
   // [TOUCH_PULLUP_SETUP]
   // External touch inputs: optionally enable internal pullups (for buttons to GND / open-drain).
@@ -363,6 +254,7 @@ for (byte i = 0; i < max_modifiers; i++) {
     }
   }
 
+
   openeditor = 0;
   note = 255; // out of range (0-127) value
  
@@ -371,7 +263,7 @@ for (byte i = 0; i < max_modifiers; i++) {
 #if defined(ARDUINO_ARCH_SAMD)
     attachInterrupt(digitalPinToInterrupt(2), lettura_enc_principale, CHANGE);
 attachInterrupt(digitalPinToInterrupt(3), lettura_enc_principale, CHANGE);
-#else 
+#else
 
     attachInterrupt(0, lettura_enc_principale, CHANGE); 
     attachInterrupt(1, lettura_enc_principale, CHANGE);
@@ -382,6 +274,7 @@ attachInterrupt(digitalPinToInterrupt(3), lettura_enc_principale, CHANGE);
   #if (Fast_analogread == 1)
   fastADC_init();
   #endif // (Fast_analogread == 1)
+
 
   /*
   // ============================================================
@@ -427,7 +320,7 @@ uint8_t analogReadFast8(uint8_t analogPin) {
   uint8_t ch;
   #ifdef analogPinToChannel
     ch = analogPinToChannel(analogPin);
-  #else
+#else
     ch = analogPin; // fallback se la macro non esiste
   #endif // analogPinToChannel
 
@@ -455,7 +348,7 @@ uint8_t analogReadFast8(uint8_t analogPin) {
   return ADCH;
 }
 
-#else // !__AVR__
+#else
 
 // Fallback non-AVR: niente registri ADC. Manteniamo la firma per non rompere il codice.
 void standardADC_init() {}

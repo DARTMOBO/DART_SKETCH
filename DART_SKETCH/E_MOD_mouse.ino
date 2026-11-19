@@ -82,7 +82,7 @@ static void mouse_axis_step(int8_t d, int16_t* accum,
 // CTRL-F: MOUSE_BLOCK_HELPER
 #if (mouse_block == 1)
 static inline uint8_t mouse_block_allow(uint8_t active) {
-  // blocca il flusso mouse dopo 2s di attivita' continua
+  // blocca il flusso mouse dopo 5s di attivita' continua
   // e lo sblocca quando torni in deadzone per un attimo.
   // (usa millis(), gia' presente altrove nello sketch)
 
@@ -129,7 +129,7 @@ static inline uint8_t mouse_block_allow(uint8_t active) {
 // ------------------------------------------------------------
 void mouse_control() {
   #if defined(__AVR_ATmega32U4__)
-  if (mouse_mempos != 0) {
+  if (control_present & CONTROL_MOUSE) {
     static int16_t accum_x = 0;
     static int16_t accum_y = 0;
 
@@ -143,7 +143,9 @@ void mouse_control() {
       return;
     }
     
-    int8_t baseSpeed = raw_speed - 32;
+    // Scala editor: 0 = OFF, 16 = meta, 32 = normale, 64 = doppia.
+    // Rimappa 0..64 in 0..32 mantenendo le proporzioni e la velocita massima storica.
+    int8_t baseSpeed = raw_speed >> 1;
 
     // inversioni via data_LT[mouse_mempos]
     // bit0 = invert Y, bit1 = invert X

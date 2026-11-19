@@ -20,7 +20,6 @@ class Shifter
    	//void clear();
 
 
-
   private:
 	byte _SER_Pin;
   	byte _RCLK_Pin;

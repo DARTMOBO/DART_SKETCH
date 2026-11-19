@@ -1,12 +1,5 @@
-/* 
- * DART EEPROM wrapper
- * - ENABLE_EEPROM = 1  -> EEPROM attiva (preset / scene persistenti)
- * - ENABLE_EEPROM = 0  -> EEPROM disattiva (no upload/load preset, firmware in AUTODETECT)
- *
- * Nota migrazione (es. Adafruit Metro M0 / SAMD):
- * quando ENABLE_EEPROM=0 questo header NON include nulla di AVR e fornisce uno stub
- * "EEPROM" per far compilare tutto mentre migri lo sketch un pezzo alla volta.
- */
+
+
 
 #pragma once
 
@@ -40,7 +33,7 @@ static const EEPROMClass EEPROM;
 // - su AVR: usiamo l'implementazione storica (quella che avevi già qui)
 // - su altre architetture: proviamo a usare la EEPROM del core (se presente)
 // -----------------------------------------------------------------------------
-#else  // (ENABLE_EEPROM == 1)
+#else
 
 #if defined(ARDUINO_ARCH_AVR)
 // ==================== AVR IMPLEMENTATION (storica) ====================
@@ -208,13 +201,13 @@ static EEPROMClass EEPROM;
     #define DART_EEPROM_COMMIT()   do { EEPROM.commit(); } while (0)
     #define DART_EEPROM_FORMAT(x)  do { EEPROM.format((uint8_t)(x)); } while (0)
 
-  #else
+#else
 
     // Fallback: se il core espone EEPROM.h, usiamola.
     #if defined(__has_include)
       #if __has_include(<EEPROM.h>)
         #include <EEPROM.h>
-      #else
+#else
         #include <stdint.h>
         struct EEPROMClass {
           uint8_t read(int) const { return 0; }
@@ -226,7 +219,7 @@ static EEPROMClass EEPROM;
         };
         static EEPROMClass EEPROM;
       #endif
-    #else
+#else
       // Compilatori vecchi senza __has_include -> stub
       #include <stdint.h>
       struct EEPROMClass {

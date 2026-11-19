@@ -8,7 +8,7 @@
  * (at your option) any later version. See the LICENSE file for details.
  */
 
-#if (shifter_active == 1 && stratos == 0)
+#if (shifter_active == 1)
 
 void ledrestore (boolean numero) { // riscrive sullo shifter la pagina - numero - con luci accese o spente
   for(int led = 0; led < max_modifiers; led++) { 
@@ -21,7 +21,7 @@ void ledrestore (boolean numero) { // riscrive sullo shifter la pagina - numero 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 
-#if (shifter_active == 1 && stratos == 0)
+#if (shifter_active == 1)
 
 void ledControl (byte chann, byte stat) { // stat significa status 1 = acceso 0 = spento
   // versione commentata
@@ -109,7 +109,7 @@ void ledControl (byte chann, byte stat) { // stat significa status 1 = acceso 0 
 
 //_____________________________________________________________________________________________________
 
-#if (shifter_active == 1 && stratos == 0)
+#if (shifter_active == 1)
 
 void led_enc_exe () {
   if (data_QW[general_mempos] > 0) { // verifico che nelle impostazioni GENERAL siano attivati gli effetti // 0 = no / 1 = pots / 2 = spinners / 3 = buttons
@@ -132,7 +132,7 @@ void led_enc_exe () {
       shifter.setPin(encledtable[constrain(encled[0]/16,0,15)], 1);  // accendo effettivamente il led secondo il valore "encled"
       // che farà riferimento alla tabella "encledtable"
       // encled è 0-255 // diviso per 16 da luogo a 16 posizioni
-      // (che può cambiare da modello a modello - kombat / one etc etc)
+       
     }
     
     byte ripristino_led = (encled[0]/16) - 2; // adesso vado a spegnere i led che ho acceso prima
@@ -154,7 +154,7 @@ void led_enc_exe () {
 
 //_____________________________________________________________________________________________________________________________________________
 
-#if (shifter_active == 1 && stratos == 0)
+#if (shifter_active == 1)
 
 void buttonledefx() {
   // versione commentata
@@ -258,10 +258,9 @@ void buttonledefx() {
 }
 
 
-   
 #endif
 
-#if (shifter_active == 1 && stratos == 0 && Distance_sensor == 1)
+#if (shifter_active == 1 && Distance_sensor == 1)
 void beamefx() {
   cycletimer = 0;
   encled[0] = data_LT[distance_sensor_mempos] * 2;
@@ -279,23 +278,15 @@ void offgroup (byte canale, byte midiout) { // canale == il chan del pulsante pr
           outnucleo(0,i); // invia messaggio OFF - se il parametro midiout e' 1
         }
         
-        #if (shifter_active == 1 && stratos == 0)
-        shifter.setPin(data_LT[i]-1, 0); // spegni il led
+#if (shifter_active == 1)
         bit_write(4,i+page,0);
-        bit_write(1,data_LT[i]+page-1,0); // spegni il led nella data_LT
+        if (data_LT[i] > 0) { // LED 0 has no physical output or visual bit.
+          shifter.setPin(data_LT[i]-1, 0);
+          bit_write(1,data_LT[i]+page-1,0);
+        }
         #endif 
 
-        #if (Matrix_Pads == 1 )
-        single_h(matrix_remap[i],data_LT[i],0,1);  // 
-        bit_write(4,i+page,0);
-        bit_write(1,matrix_remap[i]+page-1,0); // spegni il led nella data_LT
-        #endif
 
-        #if (Matrix_Pads == 2 )
-        single_h(matrix_remap[i-16],data_LT[i],0,1);  // 
-        bit_write(4,i+page,0);
-        bit_write(1,matrix_remap[i-16]+page-1,0); // spegni il led nella data_LT
-        #endif
       }
     }
   }

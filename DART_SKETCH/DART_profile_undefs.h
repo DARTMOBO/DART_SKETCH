@@ -2,7 +2,7 @@
 // Included at the start of each profile inside DART_config.h
 // to keep the profile body visually lighter without changing behavior.
 
-    // === CUSTOM (profilo 2) ===
+    // Overrides for KOROVA and ONE
     #undef ENABLE_POT_TAKEOVER
     #undef ENABLE_AUTODETECT
     #undef shifter_active
@@ -21,10 +21,9 @@
     #undef Piezo_pads
     #undef Extraplexer
     #undef Scale
-    #undef Scene
     #undef hid_keys
     #undef hid_mouse
-    #undef stratos
+    #undef ENABLE_BOOSTAX
     #undef blinker
     #undef note_off
     #undef pullups_active
@@ -51,9 +50,7 @@
     #undef Dummy_read
     #undef Dummy_pullups
     #undef ENABLE_POT_HIPREC_WINDOW
-    #undef Matrix_Pads
-    #undef MATRIX_CROSS_FX
-    #undef MATRIXFX_MODE
-    #undef led_eco
+    #undef POT_EMA_ENABLE
+    #undef POT_EMA_SHIFT
+    #undef POT_EMA_INPUT_COUNT
     #undef monitor_temporizzato
-    #undef Velo_pads_debug

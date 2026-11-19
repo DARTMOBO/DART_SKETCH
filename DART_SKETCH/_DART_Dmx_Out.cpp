@@ -24,7 +24,6 @@
 #include "_DART_DMX_Out.h"
 
 
-
 /** dmxBuffer contains a software copy of all the DMX channels.
   */
    
@@ -93,7 +92,6 @@ IntervalTimer DMXtimer;
 #endif
 
 // #endif
-
 
 
 /** Initialise the DMX engine

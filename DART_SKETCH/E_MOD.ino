@@ -15,18 +15,18 @@ void beam() { //----------------------------------------------------- BEAM SENSO
       // Serial.println("");
       midiSendFiltered(data_TY[chan + (page)], data_VA[chan + (page)], data_LT[distance_sensor_mempos], 1); // MIDIUSB.flush();
       
-      #if (DMX_active == 1 && stratos == 0)
+#if (DMX_active == 1)
       // DmxSimple.write(data_DM[chan], data_LT[distance_sensor_mempos] * 2);
       #endif
       
-      #if (shifter_active == 1 && stratos == 0)
+#if (shifter_active == 1)
       beamefx();
       #endif
 
       shifterwrite = 1;
       data_LB[distance_sensor_mempos] = 1;
     } else if (data_LB[distance_sensor_mempos] == 1) {
-      #if (shifter_active == 1 && stratos == 0)
+#if (shifter_active == 1)
       ledrestore(page);
       shifterwrite = 1;
       #endif
@@ -86,21 +86,27 @@ void beam() { //----------------------------------------------------- BEAM SENSO
 
 void beam_scale_send() {
   #if (Distance_sensor == 1)
-    #if (shifter_active == 1 && stratos == 0)
+#if (shifter_active == 1)
     beamefx();
     #endif
     
-    button(data_TY[distance_sensor_mempos + page], beam_scala_buffer, 0, 0);
-    button(data_TY[distance_sensor_mempos + page], at, 127, 1);  
+    midiSendTyped(data_TY[distance_sensor_mempos + page], beam_scala_buffer, 0, 0);
+    midiSendTyped(data_TY[distance_sensor_mempos + page], at, 127, 1);  
     beam_scala_buffer = at;
     
     if (valore < minbeam || valore > maxbeam) {
-      button(data_TY[distance_sensor_mempos + page], beam_scala_buffer, 0, 0);
+      midiSendTyped(data_TY[distance_sensor_mempos + page], beam_scala_buffer, 0, 0);
     }
     // cycletimer = 0;
   #endif
 }
 
+
+// CTRL-F: SEQ_VAL_ARR_TABLE
+// Tabella di puntatori usata da seq() per condensare i 4 case dello switch originale
+// in un unico percorso di codice (risparmio flash su AVR). Non sposta né duplica dati:
+// punta semplicemente ai 4 array esistenti. Vedi seq() sotto (ramo STAGED_BUTTON_READ_TEST==1).
+const volatile byte* const val_arr[4] = { data_MI, data_MA, data_DM, data_LT };
 
 void seq() {
   // come funziona:
@@ -125,69 +131,31 @@ void seq() {
     // Serial.println(valore);
 
     if (data_MA[chan] > 0) {
-      switch (data_QW[chan]) { // data_QW[chan] usato come contatore > 159 sono cc
-        case 0:
-          // Serial.println(data_MI[chan]);
-          if (data_TY[chan + (page)] < 160) { // se sono note
-            midiSendFiltered(data_TY[chan + (page)], data_MI[chan], 127, 1); // invio accensione
+      // CTRL-F: SEQ_TABLE_DRIVEN
+      // Versione condensata dello switch a 4 case originale (vedi ramo #else sotto
+      // per la logica di riferimento, invariata). Stesso comportamento, un solo
+      // percorso di codice invece di 4 quasi-duplicati -> meno flash su AVR.
+      // val_arr è dichiarato fuori da seq() (vedi sopra la funzione).
+      byte step = data_QW[chan];
+      byte type = data_TY[chan + (page)];
+      byte on  = val_arr[step][chan];
+      byte off = (step == 0)
+                   ? (data_LT[chan] > 0 ? data_LT[chan] : (data_DM[chan] > 0 ? data_DM[chan] : data_MA[chan]))
+                   : val_arr[step - 1][chan];
 
-            if (data_LT[chan] > 0) { // invio spegnimento
-              midiSendFiltered(data_TY[chan + (page)], data_LT[chan], 0, 1);
-            } else if (data_DM[chan] > 0) {
-              midiSendFiltered(data_TY[chan + (page)], data_DM[chan], 0, 1);
-            } else {
-              midiSendFiltered(data_TY[chan + (page)], data_MA[chan], 0, 1);
-            }
-          } else { // se sono cc
-            midiSendFiltered(data_TY[chan + (page)], data_VA[chan + (page)], data_MI[chan], 1); // l'ultimo "1" è relativo al filtro anti doppioni
-          }
+      if (type < 160) { // se sono note
+        midiSendFiltered(type, on, 127, 1); // invio accensione
+        midiSendFiltered(type, off, 0, 1); // invio spegnimento
+      } else { // se sono cc
+        midiSendFiltered(type, data_VA[chan + (page)], on, 1); // l'ultimo "1" è relativo al filtro anti doppioni
+      }
 
-          data_QW[chan]++;
-          break;
-
-        case 1:
-          // Serial.println(data_MA[chan]);
-          if (data_TY[chan + (page)] < 160) {
-            midiSendFiltered(data_TY[chan + (page)], data_MA[chan], 127, 1);
-            midiSendFiltered(data_TY[chan + (page)], data_MI[chan], 0, 1);
-          } else {
-            midiSendFiltered(data_TY[chan + (page)], data_VA[chan + (page)], data_MA[chan], 1);
-          }
-
-          if (data_DM[chan] > 0) {
-            data_QW[chan]++;
-          } else {
-            data_QW[chan] = 0;
-          }
-          break;
-
-        case 2:
-          // Serial.println(data_DM[chan]);
-          if (data_TY[chan + (page)] < 160) {
-            midiSendFiltered(data_TY[chan + (page)], data_DM[chan], 127, 1);
-            midiSendFiltered(data_TY[chan + (page)], data_MA[chan], 0, 1);
-          } else {
-            midiSendFiltered(data_TY[chan + (page)], data_VA[chan + (page)], data_DM[chan], 1);
-          }
-
-          if (data_LT[chan] > 0) {
-            data_QW[chan]++;
-          } else {
-            data_QW[chan] = 0;
-          }
-          break;
-
-        case 3:
-          // Serial.println(data_LT[chan]);
-          if (data_TY[chan + (page)] < 160) {
-            midiSendFiltered(data_TY[chan + (page)], data_LT[chan], 127, 1);
-            midiSendFiltered(data_TY[chan + (page)], data_DM[chan], 0, 1);
-          } else {
-            midiSendFiltered(data_TY[chan + (page)], data_VA[chan + (page)], data_LT[chan], 1);
-          }
-
-          data_QW[chan] = 0;
-          break;
+      if (step == 0) {
+        data_QW[chan] = 1;
+      } else if (step < 3 && val_arr[step + 1][chan] > 0) {
+        data_QW[chan] = step + 1;
+      } else {
+        data_QW[chan] = 0;
       }
     } else { // progressione a step - data_MI decide la grandezza dello step
       data_QW[chan] = data_QW[chan] + data_MI[chan];
@@ -300,7 +268,6 @@ void seq() {
 }
 
 
-#if (stratos == 0)
   #if (Piezo_pads == 1)
   void piezo_pads() { 
     // i pads vengono attivati da GENERAL SETTINGS, il messaggio MIDI emesso viene descritto nell'ITEM PADS
@@ -352,7 +319,6 @@ void seq() {
     }
   }
   #endif
-#endif
 
 #if (Extraplexer == 1)
 void Extraplexer_read() {

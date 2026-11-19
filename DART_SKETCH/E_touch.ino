@@ -8,6 +8,90 @@
  * (at your option) any later version. See the LICENSE file for details.
  */
 
+// Touch LEDs use existing state; no extra persistent memory.
+ 
+bool touch_led_active(byte n) {
+  byte t = touch_mempos[n];
+  if (!(control_present & (n ? CONTROL_TOUCH2 : CONTROL_TOUCH1))) return false;
+  return data_LT[t] == 1 ? V_touch_regulator[n] == 0
+                        : data_LT[t] == 0 && data_LB[t] == 0;
+}
+
+void touch_led_update(byte n, byte on) {
+#if (shifter_active == 1)
+  byte led = data_MA[touch_mempos[n]];
+  if (led > 0 && led <= 32) {
+    // Two touches may deliberately share one LED: releasing one keeps the other lit.
+    byte other = n ^ 1;
+    if (!on && data_MA[touch_mempos[other]] == led && touch_led_active(other)) on = 1;
+    bit_write(1, led - 1 + page, on);
+    shifter.setPin(led - 1, on);
+    shifterwrite = 1;
+  }
+  #endif
+  #if (touch_led_onboard == 1 && Touch_sensors_enable == 2)
+  // This physical LED has no selectable shift-register address.
+  digitalWrite(8, on || touch_led_active(n ^ 1));
+  #endif
+}
+
+// Physical Touch Reset: eight non-blocking steps, one every 15 ms.
+// Reuse the spinner position; the only new persistent state is 4 bytes.
+static byte touch_reset_steps[2]; // low nibble: remaining steps; bit 7: page
+static uint16_t touch_reset_ms;
+
+void touch_reset_start(byte n) {
+  if (!(touch_reset_steps[0] | touch_reset_steps[1]))
+    touch_reset_ms = (uint16_t)millis();
+  touch_reset_steps[n] = data_QW[touch_mempos[n]] == 1
+    ? (byte)(8 | (page ? 128 : 0)) : 0;
+}
+
+void touch_reset_tick() {
+  if (!(touch_reset_steps[0] | touch_reset_steps[1])) return;
+  if (openeditor) {
+    touch_reset_steps[0] = touch_reset_steps[1] = 0;
+    return;
+  }
+  uint16_t now = (uint16_t)millis();
+  if ((uint16_t)(now - touch_reset_ms) < 15) return;
+  touch_reset_ms = now;
+  for (byte n = 0; n < 2; ++n) {
+    byte steps = touch_reset_steps[n];
+    if (!steps) continue;
+    const byte required = n ? CONTROL_TOUCH2 | CONTROL_SPINNER2 : CONTROL_TOUCH1 | CONTROL_SPINNER1;
+    if ((control_present & required) != required) {
+      touch_reset_steps[n] = 0;
+      continue;
+    }
+    byte s = spinner_mempos[n];
+    byte t = touch_mempos[n];
+    byte type = data_TY[s + page];
+    byte group = type & 0xF0;
+    // Retouch, a new turn, a page/preset change or incompatible settings cancel.
+    if (mouse_wheel_owns(s) || data_LB[t] == 0
+        || (data_QW[s] == 0 && encoder_block[n] != 64)
+        || !!(steps & 128) != !!page
+        || data_DM[s] != 2 || (group != 176 && group != 224)) {
+      touch_reset_steps[n] = 0;
+      continue;
+    }
+    steps &= 15;
+    int target = (int)data_DM[t] * 8;
+    int value = encodervaluepot[n];
+    value += (target - value) / steps;
+    encodervaluepot[n] = value;
+    touch_reset_steps[n] = steps > 1 ? touch_reset_steps[n] - 1 : 0;
+    if (group == 224) {
+      // PB uses real LSB/MSB: reset value 64 is exactly 8192 (0,64).
+      midiSendFiltered(type, (value & 7) << 4, value >> 3, 1);
+    } else {
+      midiSendFiltered(type, data_VA[s + page], value >> 3, 1);
+    }
+  }
+}
+
+
 // [TOUCH_SENSORS_EXTERNAL_UNIFIED]
 // External digital touch read (modules/buttons): pinset chosen by Touch_sensors_enable (2 or 3)
 // - Touch_sensors_enable = 2  -> T0=7, T1=9
@@ -17,7 +101,7 @@
 
 void touch_sensors(byte T_numero) { // void dedicata al touch esterno - con uso di chip dedicati, che sgravano il codice
   // SE ESISTE UN ITEM CON SETTAGGIO TOUCH ALLORA SI PROCEDE ALLA LETTURA
-  if (touch_mempos[T_numero] > 0) {
+  if (control_present & (T_numero ? CONTROL_TOUCH2 : CONTROL_TOUCH1)) {
     const byte pin0 = 7;
     const byte pin1 = (Touch_sensors_enable == 2) ? 9 : 8;
 
@@ -34,7 +118,7 @@ void touch_sensors(byte T_numero) { // void dedicata al touch esterno - con uso 
     if (data_LT[touch_mempos[T_numero]] == 0) {
       touch_execute(T_numero);
     }
-    // else if (data_LT[touch_mempos[T_numero]] == 2) { ... monitoring ... }  // lasciato come in origine (commentato)
+    // Legacy monitoring mode 2 is retired; the editor only offers physical/virtual.
   }
 }
 
@@ -48,7 +132,7 @@ void touch_sensors(byte T_numero) {
   // - su SAMD leggiamo SOLO il touch 1 (T_numero == 0) con TX=8 e RX=7
   // - il release-hold resta nel touch_execute() storico
 
-  if (touch_mempos[T_numero] == 0) return;
+  if (!(control_present & (T_numero ? CONTROL_TOUCH2 : CONTROL_TOUCH1))) return;
 
   // ------------------------------------------------------------------
   // AVR storico
@@ -60,9 +144,6 @@ void touch_sensors(byte T_numero) {
 
     if (data_LT[touch_mempos[T_numero]] == 0) {
       touch_execute(T_numero);
-    } else if (data_LT[touch_mempos[T_numero]] == 2) {
-      midiSendFiltered(176, T_numero, averageXen[T_numero], 0);
-      delay(20);
     }
 
     if (averageXen[T_numero] > higher_Xen[T_numero]) {
@@ -131,16 +212,13 @@ void touch_sensors(byte T_numero) {
         (readingsXen[T_numero][0] +
          readingsXen[T_numero][1] +
          readingsXen[T_numero][2]) / 3;
-    #else
+#else
       averageXen[T_numero] = readingsXen[T_numero][indexXen];
     #endif
 
     // 4) Touch logic storica invariata
     if (data_LT[touch_mempos[T_numero]] == 0) {
       touch_execute(T_numero);
-    } else if (data_LT[touch_mempos[T_numero]] == 2) {
-      midiSendFiltered(176, T_numero, averageXen[T_numero], 0);
-      delay(20);
     }
 
     // 5) Auto-apprendimento storico dei limiti
@@ -182,43 +260,19 @@ void touch_execute(byte numero_ex) {
           // scala_learn =0; // resetta la scala che viene memorizzata tramite learn ogni volta che si tocca la wheel
           // scala_reset = 1;
 
-          if (data_TY[spinner_mempos[numero_ex] + page] < 160) { // sotto 160 sono note on e note off
+          if ((control_present & (numero_ex ? CONTROL_SPINNER2 : CONTROL_SPINNER1)) && !mouse_wheel_owns(spinner_mempos[numero_ex]) && data_TY[spinner_mempos[numero_ex] + page] < 160) { // sotto 160 sono note on e note off
             // se encoder impostato su note allora manda il note off ( al rilascio)
             // serve per scale mode, per non lasciare note accese
             midiSendTyped(data_TY[spinner_mempos[numero_ex] + page], encodervaluepot_buffer[numero_ex], 0, 1);  
           }
 
-          if (data_QW[touch_mempos[numero_ex]] == 1) { // touch reset attivo
-            // se impostato su cc o altro - manda il touch reset
-            // button(data_TY[spinner_mempos[numero]+(page)],data_VA[spinner_mempos[numero]+(page)],data_DM[touch_mempos[numero]],1); 
-            // touch reset normale
-            int smooth = (encodervaluepot[numero_ex] / 8) - data_DM[touch_mempos[numero_ex]]; // ritorno in modo graduale alla posizione originale
-            for (byte i = 8; i > 0; i--) {
-              midiSendTyped(data_TY[spinner_mempos[numero_ex] + (page)], data_VA[spinner_mempos[numero_ex] + (page)], data_DM[touch_mempos[numero_ex]] + (smooth / 8) * (i - 1), 1);
-              delay(15);
-            }
-            encodervaluepot[numero_ex] = data_DM[touch_mempos[numero_ex]] * 8;
-          }
+          touch_reset_start(numero_ex);
 
           data_LB[touch_mempos[numero_ex]] = zero; 
           // encled=0; 
           encoder_block[numero_ex] = 64;
 
-          bit_write(1, data_MA[touch_mempos[numero_ex]] - 1 + page, 0); // spengo il led nella tabella di memoria
-
-          #if (shifter_active == 1 && stratos == 0)
-          // shifter.setAll(LOW);  
-          if (page == 0) {
-            ledrestore(0);
-          } else {
-            ledrestore(1);
-          }
-          shifterwrite = 1; 
-          #endif
-
-          #if (stratos == 1)
-          digitalWrite(16, LOW);
-          #endif
+          touch_led_update(numero_ex, 0);
         }
       } 
     }
@@ -227,13 +281,8 @@ void touch_execute(byte numero_ex) {
     if (averageXen[numero_ex] > 
         ((higher_Xen[numero_ex])) // piu' abbasso questo valore piu' aumenta la sensibilita'
         - map32(data_MI[touch_mempos[numero_ex]], 0, 127, 0, higher_Xen[numero_ex] - lower_Xen[numero_ex])) { // la sottrazione e' proporzionale ad higher_xen
-      #if (stratos == 1)
-      decaysensor[numero_ex] = data_LT[general_mempos] * 10;
-      #endif
 
-      #if (stratos == 0)
       decaysensor[numero_ex] = data_LT[general_mempos] * 2;
-      #endif
       
       if (data_LB[touch_mempos[numero_ex]] == zero) { // && decaysensor[numero] <= 0
         /*
@@ -275,19 +324,7 @@ void touch_execute(byte numero_ex) {
           data_LB[touch_mempos[numero_ex]] = uno; // shifter.setAll(LOW); 
           encoder_block[numero_ex] = 64;
 
-          bit_write(1, data_MA[touch_mempos[numero_ex]] - 1 + page, 1);
-          
-          #if (shifter_active == 1 && stratos == 0)
-          shifter.setPin(data_MA[touch_mempos[numero_ex]] - 1, HIGH); // accendo il led del touch , nella tabella di memoria
-          #endif
-
-          #if (stratos == 1)
-          digitalWrite(16, HIGH);
-          #endif 
-          
-          // bit_write(1,4+numero+page,1);
-          // if (page==0) ledrestore(0); else ledrestore(1); shifterwrite=1;
-          shifterwrite = 1;
+          touch_led_update(numero_ex, 1);
         } // opencalibration[1]=HIGH;
       }
     }
@@ -319,48 +356,19 @@ void touch_execute(byte numero_ex) {
           // Serial.println(data_TY[spinner_mempos[numero]+page]);
           // Serial.println(data_VA[touch_mempos[numero]+(page)]);
 
-          if (data_TY[spinner_mempos[numero_ex] + page] < 160) { // sotto 160 sono note on e note off
+          if ((control_present & (numero_ex ? CONTROL_SPINNER2 : CONTROL_SPINNER1)) && !mouse_wheel_owns(spinner_mempos[numero_ex]) && data_TY[spinner_mempos[numero_ex] + page] < 160) { // sotto 160 sono note on e note off
             // se encoder impostato su note allora manda il note off ( al rilascio)
             // serve per scale mode, per non lasciare note accese
             midiSendTyped(data_TY[spinner_mempos[numero_ex] + page], encodervaluepot_buffer[numero_ex], 0, 1);  
           }
 
-          if (data_QW[touch_mempos[numero_ex]] == 1) { // touch reset attivo
-            // se impostato su cc o altro - manda il touch reset
-            // button(data_TY[spinner_mempos[numero]+(page)],data_VA[spinner_mempos[numero]+(page)],data_DM[touch_mempos[numero]],1); 
-            // touch reset normale
-            int smooth = (encodervaluepot[numero_ex] / 8) - data_DM[touch_mempos[numero_ex]]; // ritorno in modo graduale alla posizione originale
-            for (byte i = 8; i > 0; i--) {
-              midiSendTyped(data_TY[spinner_mempos[numero_ex] + (page)], data_VA[spinner_mempos[numero_ex] + (page)], data_DM[touch_mempos[numero_ex]] + (smooth / 8) * (i - 1), 1);
-              delay(15);
-            }
-            encodervaluepot[numero_ex] = data_DM[touch_mempos[numero_ex]] * 8;
-          }
+          touch_reset_start(numero_ex);
 
           data_LB[touch_mempos[numero_ex]] = zero; 
           // encled=0; 
           encoder_block[numero_ex] = 64;
           
-          #if (shifter_active == 1 && stratos == 0)
-          if (data_MA[touch_mempos[numero_ex]] > 0) {
-            bit_write(1, data_MA[touch_mempos[numero_ex]] - 1 + page, 0); // spengo il led nella tabella di memoria
-          }
-          
-          if (page == 0) {
-            ledrestore(0);
-          } else {
-            ledrestore(1);
-          }  
-          shifterwrite = 1; 
-          #endif
-
-          #if (stratos == 1)
-          digitalWrite(16, LOW);
-          #endif
-
-          #if (touch_led_onboard == 1 && Touch_sensors_enable == 2)
-          digitalWrite(8, LOW);
-          #endif
+          touch_led_update(numero_ex, 0);
         }
       }
     } 
@@ -378,25 +386,7 @@ void touch_execute(byte numero_ex) {
           data_LB[touch_mempos[numero_ex]] = uno; // shifter.setAll(LOW); 
           encoder_block[numero_ex] = 64;
 
-          #if (shifter_active == 1 && stratos == 0)
-          if (data_MA[touch_mempos[numero_ex]] > 0) {
-            bit_write(1, data_MA[touch_mempos[numero_ex]] - 1 + page, 1); // accendo il led nella tabella di memoria
-          }
-
-          shifter.setPin(data_MA[touch_mempos[numero_ex]] - 1, HIGH); // accendo il led del touch , nella tabella di memoria
-          #endif
-          
-          #if (stratos == 1)
-          digitalWrite(16, HIGH);
-          #endif 
-
-          #if (touch_led_onboard == 1 && Touch_sensors_enable == 2)
-          digitalWrite(8, HIGH);
-          #endif
-          
-          // bit_write(1,4+numero+page,1);
-          // if (page==0) ledrestore(0); else ledrestore(1); shifterwrite=1;
-          shifterwrite = 1;
+          touch_led_update(numero_ex, 1);
         } // opencalibration[1]=HIGH;
       }
       // decaysensor[numero] = decaysensor_value;
