@@ -249,14 +249,15 @@ void aux_preset() { // preset di base caricato all'avvio soltanto se il preset s
     data_MODE_OTHER[i] = 1;
     #endif
 
-    // ==== [AUX_PRESET_UNIQUE_NOTES_SAMD] CTRL-F: AUX_PRESET_UNIQUE_NOTES_SAMD ====
-    // Allineamento con lo sketch di test M0: ogni item ha un data1 diverso, cosi'
-    // nel monitor MIDI si capisce subito quale memory position sta trasmettendo.
-    // Scriviamo esplicitamente sia PAGE 1 sia PAGE 2, evitando dipendenze dal
-    // valore runtime di 'page' durante l'avvio.
     #if defined(ARDUINO_ARCH_SAMD)
-    data_VA[i] = 36 + i;
-    data_VA[i + max_modifiers] = 36 + i;
+    #if (ENABLE_AUTODETECT == 1)
+    // The eight reads of a direct pin share a number until detect_plexer finds a mux.
+    const byte data1 = 60 + (i / 8) * 8;
+#else
+    const byte data1 = 36 + i; // Fixed M0 fallback when autodetect is disabled.
+    #endif
+    data_VA[i] = data1;
+    data_VA[i + max_modifiers] = data1;
     data_TY[i] = 144;
     data_TY[i + max_modifiers] = 144;
 #else
